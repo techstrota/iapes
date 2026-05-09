@@ -45,7 +45,7 @@
             <!-- Logo -->
             <td style="vertical-align:middle; padding-right:10px;">
                 <img 
-                    src="https://techstrota.com/images/logo/TsLogo.png"
+                    src="https://techstrota.com/_next/image?url=%2Flogo.png&w=384&q=75"
                     alt="TechStrota Logo"
                     width="170"
                     style="display:block; max-width:170px; height:auto;"

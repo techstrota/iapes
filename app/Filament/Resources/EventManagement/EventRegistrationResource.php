@@ -12,8 +12,10 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\{TextColumn, SelectColumn};
 use Filament\Tables\Actions\{Action, BulkAction, ActionGroup, EditAction, DeleteBulkAction};
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\View;
+use Illuminate\Database\Eloquent\Builder;
 use Spatie\Browsershot\Browsershot;
 use ZipArchive;
 
@@ -49,16 +51,23 @@ class EventRegistrationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc') 
+            ->poll('5s')
             ->columns([
                 TextColumn::make('event.event_title')
                     ->label('Event Name')
                     ->searchable()
                     ->sortable(),
+                
+                TextColumn::make('event.event_type')
+                    ->label('Event Type')
+                    ->formatStateUsing(fn (string $state): string => str($state)->headline())
+                    ->searchable()
+                    ->sortable(),
 
                 TextColumn::make('name')
                     ->label('Participant Name')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
 
                 TextColumn::make('certificate_number')
                     ->label('Certificate Number')
@@ -76,8 +85,37 @@ class EventRegistrationResource extends Resource
                     ]),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('event')
-                    ->relationship('event', 'event_title'),
+                 // 1. Event Type Filter
+            SelectFilter::make('event_type')
+                ->label('Event Type')
+                ->options(fn () => \App\Models\Event::query()
+                    ->whereNotNull('event_type')
+                    ->distinct()
+                    ->pluck('event_type', 'event_type')
+                    ->mapWithKeys(fn ($type) => [
+                        $type => str($type)->headline() // Capitalizes and formats (e.g., 'event_type' -> 'Event Type')
+                        ])
+                    ->toArray()
+                )
+                ->query(function (Builder $query, array $data) {
+                    if ($data['value']) {
+                        $query->whereHas('event', fn ($q) => $q->where('event_type', $data['value']));
+                    }
+                }),
+
+                    // 2. Dependent Event Title Filter
+               Tables\Filters\SelectFilter::make('event')
+                    ->label('Event Name')
+                    ->relationship('event', 'event_title', function (Builder $query, $livewire) {
+                        // Access the table's current filter states via the Livewire component
+                        // The path is usually tableFilters.{filterName}.{key}
+                        $eventType = $livewire->tableFilters['event_type']['value'] ?? null;
+
+                        return $query->when($eventType, fn ($q) => $q->where('event_type', $eventType));
+                    })
+                    ->searchable()
+                    ->preload()
+
             ])
             ->actions([
                 ActionGroup::make([
@@ -94,7 +132,7 @@ class EventRegistrationResource extends Resource
                         ->modalSubmitAction(false) // Hide the "Submit" button
                         ->modalCancelActionLabel('Close')
                         ->modalContent(fn (EventRegistration $record) => view(
-                            'event.premium-certificate', 
+                            'event.certificate', 
                             [
                                 'registration' => $record,
                                 'isPdf' => false // This ensures asset() is used for logos instead of public_path()
@@ -106,8 +144,22 @@ class EventRegistrationResource extends Resource
                         ->icon('heroicon-o-check-badge')
                         ->color('success')
                         ->requiresConfirmation()
-                        ->hidden(fn ($record) => $record->certificate_number !== null)
+                        ->requiresConfirmation()
+                        // HIDDEN logic: Hide if certificate exists OR if the event is still upcoming
+                        ->hidden(fn ($record) => 
+                            $record->certificate_number !== null || 
+                            $record->event?->event_status === 'upcoming'
+                        )
                         ->action(function ($record) {
+                            // Extra check inside the action
+                            if ($record->event?->event_status === 'upcoming') {
+                                Notification::make()
+                                    ->title('Cannot Issue Certificate')
+                                    ->body('Certificates cannot be issued for upcoming events.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
                             $record->update([
                                 'attendance_status' => 'attended',
                                 'certificate_number' => $record->generateCertificateNumber(),
@@ -134,15 +186,43 @@ class EventRegistrationResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     // Bulk Print (One PDF with many pages)
                     BulkAction::make('bulk_print_pdf')
-                        ->label('Print Selected')
+                        ->label('Bilk Print Certz')
                         ->icon('heroicon-o-printer')
-                        ->action(fn ($records) => static::downloadBulkPdf($records)),
+                       ->action(function ($records) {
+                            // Filter out records where the event is still upcoming
+                            $filteredRecords = $records->filter(fn ($record) => $record->event?->event_status !== 'upcoming');
+
+                            if ($filteredRecords->isEmpty()) {
+                                Notification::make()
+                                    ->title('No valid records')
+                                    ->body('None of the selected participants belong to completed events.')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
+
+                            return static::downloadBulkPdf($filteredRecords);
+                        }),
 
                     // Bulk ZIP (Multiple PDF files)
                     BulkAction::make('bulk_zip_download')
-                        ->label('Download ZIP')
+                        ->label('Bulk Download Certs (ZIP)')
                         ->icon('heroicon-o-archive-box')
-                        ->action(fn ($records) => static::downloadBulkZip($records)),
+                        ->action(function ($records) {
+                        // Filter out records where the event is still upcoming
+                        $filteredRecords = $records->filter(fn ($record) => $record->event?->event_status !== 'upcoming');
+
+                        if ($filteredRecords->isEmpty()) {
+                            Notification::make()
+                                ->title('Action Aborted')
+                                ->body('You cannot generate ZIP files for upcoming events.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        return static::downloadBulkZip($filteredRecords);
+                    }),
 
                     DeleteBulkAction::make(),
                 ]),
@@ -186,7 +266,7 @@ class EventRegistrationResource extends Resource
         }
 
         // Passes 'registration' variable to the blade
-        $html = view("event.premium-certificate", ['registration' => $record])->render();
+        $html = view("event.certificate", ['registration' => $record])->render();
         $pdf = static::getBrowsershotInstance($html)->pdf();
 
         return response()->streamDownload(

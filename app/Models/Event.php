@@ -18,6 +18,7 @@ class Event extends Model
         'location',
         'event_certificate_template',
         'event_status',
+        'skills',
       //  'created_by'
     ];
 

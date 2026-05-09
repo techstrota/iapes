@@ -333,7 +333,7 @@
                             <div class="content-wrapper">
                                 <img src="{{ $logoPath }}" alt="TechStrota" style="height:75px;margin-bottom:6mm;margin-top:-7mm;">
                                 
-                                <div class="main-title">Certificate of Participation</div>
+                                <div class="main-title">Certificate of Completion</div>
                                 
                                 <p style="font-size:22pt;color:black;margin:6mm 0;font-weight:900;font-family:'Cormorant Garamond',serif;">
                                     This is to certify that
@@ -350,8 +350,8 @@
                                 <div class="underline"></div>
                                 
                                 <div class="body-text">
-                                    has successfully participated in the <b>{{ $reg->event->event_title }}</b>. 
-                                    This event was conducted by <b>TechStrota</b> on 
+                                    has successfully completed the <b>{{ $reg->event->event_title }}</b>. 
+                                    This {{ $reg->event->type }} {{ $reg->event->event_type }} was conducted by <b>TechStrota</b> on 
                                     <b>{{ \Carbon\Carbon::parse($reg->event->event_date)->format('dS F Y') }}</b>. 
                                     We appreciate the dedication and active involvement shown during the event.
                                 </div>

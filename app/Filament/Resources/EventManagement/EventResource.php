@@ -8,7 +8,7 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\{TextInput, Select, DatePicker, FileUpload, TextArea};
+use Filament\Forms\Components\{TextInput, Select, DatePicker, FileUpload, TextArea, RichEditor};
 use Filament\Forms\Get; // <--- MAKE SURE THIS IS PRESENT
 use Filament\Forms\Set; // (Optional, if you use Set)
 use Filament\Resources\Resource;
@@ -73,34 +73,30 @@ class EventResource extends Resource
                         'completed' => 'Completed',
                     ])
                     ->required(),
-
-                // Select::make('event_certificate_template')
-                //     ->options([
-                //         'workshop' => 'Workshop',
-                //         'hackathon' => 'Hackathon',
-                //         'seminar' => 'Seminar'
-                //     ])
-                //     ->required(),
-
-                // FileUpload::make('event_certificate_template')
-                //     ->directory('event_certificate-templates')
-                //     ->image()
+                
+                RichEditor::make('skills')
+                    ->label('Skills will be Gain By Participant')
+                     ->required(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->poll('5s')
+            ->defaultSort('created_at', 'desc') 
             ->columns([
                 //
                 TextColumn::make('event_title')
+                    ->label('Event Name')
                     ->searchable()
                     ->description(fn ($record): string => $record->event_description)
                     ->sortable(),
 
                 TextColumn::make('event_type')
-                    ->searchable()
-                    ->sortable(),
+                    ->label('Event Type')  
+                    ->formatStateUsing(fn (string $state): string => ucfirst($state))
+                    ->searchable(),
 
                 TextColumn::make('event_date')
                     ->label('Event Date')
@@ -125,11 +121,14 @@ class EventResource extends Resource
                         'completed' => 'success',
                         'upcoming' => 'warning',
                     })
-                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
-
-                TextColumn::make('event_type')
-                    ->searchable()
-                    ->sortable(),
+                    ->formatStateUsing(function ($record, $state) {
+                    // If the date is before today and status isn't 'completed'
+                    if ($record->event_date < now()->toDateString() && $state !== 'completed') {
+                        $record->update(['event_status' => 'completed']);
+                        return 'Completed';
+                    }
+                    return ucfirst($state);
+                }),
 
                 TextColumn::make('registrations_count')
                     ->counts('registrations') // Must match the method name in your Event Model
@@ -137,15 +136,6 @@ class EventResource extends Resource
                     ->badge()
                     ->color('info')
                     ->sortable(),
-                    
-                // TextColumn::make('type')
-                //     ->badge()
-                //     ->color(fn (string $state): string => match ($state) {
-                //         'online' => 'success',
-                //         'offline' => 'warning',
-                //         default => 'gray',
-                //     })
-                //     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
             ])
             ->filters([
                 //
@@ -155,6 +145,7 @@ class EventResource extends Resource
                         'offline' => 'Offline',
                 ]),
             ])
+            
             ->actions([
                 ActionGroup::make([
 

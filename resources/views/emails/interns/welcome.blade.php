@@ -42,7 +42,7 @@
         <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size:13px; color:#333; line-height: 1.4;">
             <tr>
                 <td style="vertical-align:middle; padding-right:15px;">
-                    <img src="https://techstrota.com/images/logo/TsLogo.png" alt="TechStrota Logo" width="150" style="display:block; max-width:150px; height:auto;" />
+                    <img src="https://techstrota.com/_next/image?url=%2Flogo.png&w=384&q=75" alt="TechStrota Logo" width="150" style="display:block; max-width:150px; height:auto;" />
                 </td>
                 <td style="vertical-align:middle; border-left: 1px solid #cbd5e1; padding-left: 15px;">
                     <strong style="font-size:16px;">
