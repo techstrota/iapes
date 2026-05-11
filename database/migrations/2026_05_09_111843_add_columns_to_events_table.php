@@ -12,7 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('events', function (Blueprint $table) {
+            $table->renameColumn('event_date', 'event_start_date');
+             $table->renameColumn('location', 'event_venue');
+            $table->date('event_end_date')->nullable()->after('event_start_date');
+            $table->text('meeting_platform')->nullable()->after('meeting_link');
             $table->text('skills')->nullable()->after('event_status');
+             if (Schema::hasColumn('events', 'event_certificate_template')) {
+                $table->dropColumn('event_certificate_template');
+            }
+            $table->string('event_type')->change();
+           
         });
     }
 
@@ -22,7 +31,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            $table->dropColumn(['skills']);
+            $table->dropColumn(['skills','event_end_date','meeting_platform']);
+            $table->renameColumn('event_start_date', 'event_date');
+             $table->renameColumn('event_venue', 'location');
         });
     }
 };

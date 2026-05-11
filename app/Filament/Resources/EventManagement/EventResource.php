@@ -40,15 +40,41 @@ class EventResource extends Resource
 
                 TextArea::make('event_description')
                     ->required(),
-                Select::make('event_type')
+                    
+                TextInput::make('event_type')
+                    ->label('Event Type')
+                    ->datalist([
+                        'Seminar',
+                        'Hackathon',
+                        'Workshop',
+                        'Conference',
+                        'Meetup'
+                    ])
+                    ->autocomplete(false) // Prevents browser autofill from overlapping suggestions
+                    ->required(),
+
+                Select::make('is_multiday')
+                    ->label('Is Multi-Day Event')
                     ->options([
-                        'seminar' => 'Seminar',
-                        'hackathon' => 'Hackathon',
-                        'workshop' => 'Workshop'
-                    ])->required(),
-                DatePicker::make('event_date')->required(),
+                        'yes' => 'Yes',
+                        'no' => 'No'
+                    ])
+                    ->default('no')
+                    ->live()
+                    ->required(),
+
+                DatePicker::make('event_start_date')
+                    ->label(fn (Get $get): string => $get('is_multiday') === 'yes' ? 'Event Start Date' : 'Event Date')
+                    ->required(),
+
+                DatePicker::make('event_end_date')
+                    ->required()
+                    ->different('event_start_date')
+                    ->visible(fn (Get $get): bool => $get('is_multiday') === 'yes')
+                    ->label('Event End Date'),
 
                 Select::make('type')
+                    ->label('Is this Event Online or Offline ?')
                     ->options([
                         'online' => 'Online',
                         'offline' => 'Offline',
@@ -56,8 +82,15 @@ class EventResource extends Resource
                     ->live() // This is crucial for real-time reactivity
                     ->required(),
 
+                TextInput::make('meeting_platform')
+                    ->label('Meeting Platform')
+                    ->visible(fn (Get $get) => $get('type') === 'online')
+                    ->placeholder('Google Meet , Zoom etc')
+                    ->required(),
+
                 TextInput::make('meeting_link')
                     ->url()
+                    ->label('Meeting Link')
                     ->placeholder('https://meet.google.com/')
                     ->visible(fn (Get $get) => $get('type') === 'online'),
 
@@ -72,11 +105,11 @@ class EventResource extends Resource
                         'upcoming' => 'Upcoming',
                         'completed' => 'Completed',
                     ])
+                    ->default('upcoming')
                     ->required(),
                 
                 RichEditor::make('skills')
-                    ->label('Skills will be Gain By Participant')
-                     ->required(),
+                    ->label('Skills will be Gain By Participant'),
             ]);
     }
 
@@ -98,9 +131,15 @@ class EventResource extends Resource
                     ->formatStateUsing(fn (string $state): string => ucfirst($state))
                     ->searchable(),
 
-                TextColumn::make('event_date')
+                TextColumn::make('event_start_date')
                     ->label('Event Date')
                     ->date()
+                    ->sortable(),
+
+                TextColumn::make('event_end_date')
+                    ->label('Event End Date')
+                    ->date()
+                    ->placeholder('Single Day Event')
                     ->sortable(),
 
                 TextColumn::make('location')
@@ -123,7 +162,7 @@ class EventResource extends Resource
                     })
                     ->formatStateUsing(function ($record, $state) {
                     // If the date is before today and status isn't 'completed'
-                    if ($record->event_date < now()->toDateString() && $state !== 'completed') {
+                    if ($record->event_start_date < now()->toDateString() && $state !== 'completed') {
                         $record->update(['event_status' => 'completed']);
                         return 'Completed';
                     }
@@ -132,7 +171,7 @@ class EventResource extends Resource
 
                 TextColumn::make('registrations_count')
                     ->counts('registrations') // Must match the method name in your Event Model
-                    ->label('Registrations')
+                    ->label('No. of Registrations')
                     ->badge()
                     ->color('info')
                     ->sortable(),

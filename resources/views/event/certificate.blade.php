@@ -357,7 +357,7 @@
                                 
                                 <div class="description">
                                     on successfully participating in <b>{{ $reg->event->event_title }}</b><br><br>
-                                    <!-- This {{ $reg->event->type ?? '' }} {{ $reg->event->event_type ?? 'event' }} was conducted by <b>TechStrota</b> on <b>{{ \Carbon\Carbon::parse($reg->event->event_date ?? now())->format('dS F Y') }}</b>.<br> -->
+                                    <!-- This {{ $reg->event->type ?? '' }} {{ $reg->event->event_type ?? 'event' }} was conducted by <b>TechStrota</b> on <b>{{ \Carbon\Carbon::parse($reg->event->event_start_date ?? now())->format('dS F Y') }}</b>.<br> -->
                                     This certificate holder can
                                     {!! $reg->event->skills ?? '' !!}
                                 </div>
@@ -403,7 +403,7 @@
                                 
                                 <div class="issued-on">
                                     Issued on:<br>
-                                    <div class="issued-on-val">{{ \Carbon\Carbon::parse($reg->event->event_date ?? now())->format('F jS, Y') }}</div>
+                                    <div class="issued-on-val">{{ \Carbon\Carbon::parse($reg->event->event_end_date ?? $reg->event->event_start_date ?? now())->format('F jS, Y') }}</div>
                                 </div>
                             </div>
                             

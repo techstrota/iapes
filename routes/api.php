@@ -15,10 +15,11 @@ Route::get('/verify-email', [AuthController::class, 'verifyEmail']);
 Route::post('/submit', [AuthController::class, 'submitApplication']);
 Route::post('/intern/apply', [AuthController::class, 'submitApplication']);
 
-// This will be accessible at: http://your-ip:8000/api/latest-event
-Route::get('/latest-event', [EventController::class, 'getLatestEvent']);
-// Registration endpoint
-Route::post('/event/register', [EventController::class, 'register']);
+
+// Used by the "Available Events" cards
+Route::get('/events', [EventController::class, 'getAllEvents']);
+// Used by the "Complete Registration" button
+Route::post('/event/register-multiple', [EventController::class, 'registerMultiple']);
 
 
 
