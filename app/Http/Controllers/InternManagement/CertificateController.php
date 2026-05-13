@@ -182,6 +182,16 @@ class CertificateController extends Controller
             // If found in ManualCertificates, use the Manual Resource logic
             return ManualCertificateResource::downloadSinglePdf($manualCert, false);
         }
+
+        // 3. Fallback: Try to find the token in the EventRegistration model
+        $eventReg = \App\Models\EventRegistration::where('certificate_number', $token)->first();
+
+        if ($eventReg) {
+            // If found in EventRegistration, download the event certificate
+            return \App\Filament\Resources\EventManagement\EventRegistrationResource::downloadSinglePdf($eventReg);
+        }
+
+        abort(404, 'Certificate not found.');
     }
 
     public function saveCertificateToServer(string $id)

@@ -214,7 +214,7 @@
                 .signatures-area {
                     position: absolute;
                     bottom: 20mm;
-                    right: 40mm;
+                    right: 45mm;
                     display: flex;
                     gap: 35mm;
                     z-index: 5;
@@ -356,8 +356,12 @@
                                 <div class="recipient-underline"></div>
                                 
                                 <div class="description">
-                                    on successfully participating in <b>{{ $reg->event->event_title }}</b><br><br>
-                                    <!-- This {{ $reg->event->type ?? '' }} {{ $reg->event->event_type ?? 'event' }} was conducted by <b>TechStrota</b> on <b>{{ \Carbon\Carbon::parse($reg->event->event_start_date ?? now())->format('dS F Y') }}</b>.<br> -->
+                                    on successfully participating in <b>{{ $reg->event->event_title }}</b>.<br>
+                                    @if($reg->event->event_end_date)
+                                        This {{ $reg->event->type ?? '' }} {{ $reg->event->event_type ?? 'event' }} was organized by <b>TechStrota</b> from <b>{{ \Carbon\Carbon::parse($reg->event->event_start_date ?? now())->format('dS F Y') }}</b> to <b>{{ \Carbon\Carbon::parse($reg->event->event_end_date)->format('dS F Y') }}</b>.<br>
+                                    @else
+                                        This {{ $reg->event->type ?? '' }} {{ $reg->event->event_type ?? 'event' }} was organized by <b>TechStrota</b> on <b>{{ \Carbon\Carbon::parse($reg->event->event_start_date ?? now())->format('dS F Y') }}</b>.<br>
+                                    @endif
                                     This certificate holder can
                                     {!! $reg->event->skills ?? '' !!}
                                 </div>
@@ -369,11 +373,6 @@
                                     <p class="sig-name">JAMOD BADAL</p>
                                     <p class="sig-title">Founder & CEO</p>
                                 </div>
-                                <!-- <div class="sig-box">
-                                    <div class="sig-line"></div>
-                                    <p class="sig-name">TechStrota</p>
-                                    <p class="sig-title">Organization</p>
-                                </div> -->
                             </div>
                             
                             <div class="banner">

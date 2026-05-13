@@ -303,8 +303,8 @@ class OfferLetterResource extends Resource
                             ?? '—';
                     }),
                 TextColumn::make('internship_role'),
-                TextColumn::make('joining_date')->date(),
-                TextColumn::make('completion_date')->date(),
+                TextColumn::make('joining_date')->date()->sortable(),
+                TextColumn::make('completion_date')->date()->sortable(),
                 TextColumn::make('duration')
                     ->label('Duration')
                     ->state(function ($record): string {

@@ -18,6 +18,7 @@ use Filament\Tables\Columns\{TextColumn, };
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
 
 use Filament\Tables\Actions\{Action, ActionGroup, BulkAction};
 
@@ -60,8 +61,8 @@ class EventResource extends Resource
                         'no' => 'No'
                     ])
                     ->default('no')
-                    ->live()
-                    ->required(),
+                    ->live(),
+                  //  ->required(),
 
                 DatePicker::make('event_start_date')
                     ->label(fn (Get $get): string => $get('is_multiday') === 'yes' ? 'Event Start Date' : 'Event Date')
@@ -123,8 +124,9 @@ class EventResource extends Resource
                 TextColumn::make('event_title')
                     ->label('Event Name')
                     ->searchable()
-                    ->description(fn ($record): string => $record->event_description)
-                    ->sortable(),
+                    ->sortable()
+                    ->description(fn ($record): string => Str::limit($record->event_description, 30))
+                    ->tooltip(fn ($record): string => $record->event_description),
 
                 TextColumn::make('event_type')
                     ->label('Event Type')  
@@ -132,27 +134,33 @@ class EventResource extends Resource
                     ->searchable(),
 
                 TextColumn::make('event_start_date')
-                    ->label('Event Date')
-                    ->date()
-                    ->sortable(),
-
-                TextColumn::make('event_end_date')
-                    ->label('Event End Date')
-                    ->date()
-                    ->placeholder('Single Day Event')
+                    ->label('Event Date(s)')
+                    ->formatStateUsing(function ($record, $state) {
+                        $start = \Carbon\Carbon::parse($state)->format('M j, Y');
+                        if ($record->event_end_date) {
+                            $end = \Carbon\Carbon::parse($record->event_end_date)->format('M j, Y');
+                            return "{$start} - {$end}";
+                        }
+                        return $start;
+                    })
+                    ->description(fn ($record): string => $record->event_end_date ? 'Multi-day Event' : 'Single Day Event')
                     ->sortable(),
 
                 TextColumn::make('event_venue')
                     ->label('Location / Link')
-                    ->state(function ($record): string {
-                        // Logic to show either the physical location or the online link
-                        return $record->type === 'online' 
+                    ->state(function ($record): string {   
+                        return $record->type === 'online'  // Logic to show either the physical location or the online link
                             ? ($record->meeting_link ?? 'No Link Provided') 
                             : ($record->event_venue ?? 'No Location');
                     })
+                    ->tooltip(fn ($record): string => $record->type === 'online' // Dynamic Tooltip: Shows the full meeting link or full venue address on hover
+                        ? ($record->meeting_link ?? 'No Link Provided') 
+                        : ($record->event_venue ?? 'No Location'))
                     ->icon(fn ($record): string => $record->type === 'online' ? 'heroicon-m-computer-desktop' : 'heroicon-m-map-pin')
                     ->description(fn ($record): string => $record->type === 'online' ? 'Online Event' : 'Physical Venue')
-                    ->limit(30),
+                    ->limit(30)
+                    ->copyable(fn ($record): bool => $record->type === 'online' ? filled($record->meeting_link) : filled($record->event_venue)) // Adds a click-to-copy feature
+                    ->copyMessage(fn ($record): string => $record->meeting_link ? 'Link Copied' : 'Location Copied!'),
                 
                 TextColumn::make('event_status')
                     ->badge()
@@ -177,7 +185,6 @@ class EventResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                //
                 SelectFilter::make('type')
                     ->options([
                         'online' => 'Online',
@@ -186,24 +193,17 @@ class EventResource extends Resource
             ])
             
             ->actions([
-                ActionGroup::make([
-
-
                     Action::make('view_registrations')
                         ->label('View Registrations')
                         ->icon('heroicon-o-users')
                         ->url(fn (Event $record) => EventRegistrationResource::getUrl('index', [
                             'tableFilters[event][value]' => $record->id,
                         ])),
-
-                    Tables\Actions\EditAction::make(),
-                ])
+                   // Tables\Actions\EditAction::make(),
+                
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-
-
-
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);

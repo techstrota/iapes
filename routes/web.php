@@ -126,6 +126,9 @@ Route::get('/certificates/print/{record}', function (ManualCertificate $record) 
 Route::get('/certificates/event/print/{record}', function (Event $record) {
     return EventRegistrationResource::downloadSinglePdf($record, $isStream = true);
 })->name('certificate.print')->middleware(['auth']);
+// The route that the QR code will point to
+Route::get('/verify-certificate/{certificate_number}', [CertificateController::class, 'verifyQR'])
+     ->name('certificate.verify');
 
 //--------------------------------------------------------------------------------------------------------------
 

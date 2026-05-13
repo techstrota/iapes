@@ -6,6 +6,7 @@ use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\InterviewManagement\Application;
 use App\Models\InterviewManagement\InterviewAssignment;
+use App\Models\InternManagement\Intern;
 use Carbon\Carbon;
 
 class ApplicationStats extends BaseWidget
@@ -42,7 +43,7 @@ class ApplicationStats extends BaseWidget
             Stat::make(
             'Interview Assigned',
             InterviewAssignment::count()
-        )
+            )
             ->description('Candidates scheduled for interview')
             ->descriptionIcon('heroicon-m-calendar-days')
             ->color('info')
@@ -77,6 +78,26 @@ class ApplicationStats extends BaseWidget
             ->descriptionIcon('heroicon-m-x-circle')
             ->color('danger')
             ->chart($applicationsLast7Days->toArray()),
+        
+        Stat::make(
+            'Active Interns',
+            Intern::where('is_active', true)->count()
+            )
+            ->description('Total Active Interns')
+            ->descriptionIcon('heroicon-m-user-group')
+            ->color('info')
+            ->chart($applicationsLast7Days->toArray()),
+
+
+        Stat::make(
+            'Total Interns',
+            Intern::count()
+            )
+            ->description('Total Interns')
+            ->descriptionIcon('heroicon-m-user-group')
+            ->color('success')
+            ->chart($applicationsLast7Days->toArray()),
         ];
+        
     }
 }
