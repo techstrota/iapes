@@ -311,10 +311,19 @@ class OfferLetterResource extends Resource
                         if (!$record->joining_date || !$record->completion_date) {
                             return 'N/A';
                         }
-                        $start = \Carbon\Carbon::parse($record->joining_date);
-                        $end = \Carbon\Carbon::parse($record->completion_date);
-                        $months = round($start->floatDiffInMonths($end)); // 👈 rounded whole number
-                        return $months . ' Months';
+                        $start    = \Carbon\Carbon::parse($record->joining_date);
+                        $end      = \Carbon\Carbon::parse($record->completion_date);
+                        $interval = $start->diff($end);
+                        $months   = ($interval->y * 12) + $interval->m;
+                        $days     = $interval->d;
+
+                        if ($months > 0 && $days > 0) {
+                            return $months . ' ' . ($months === 1 ? 'Month' : 'Months') . ' ' . $days . ' ' . ($days === 1 ? 'Day' : 'Days');
+                        } elseif ($months > 0) {
+                            return $months . ' ' . ($months === 1 ? 'Month' : 'Months');
+                        } else {
+                            return $days . ' ' . ($days === 1 ? 'Day' : 'Days');
+                        }
                     }),
                 TextColumn::make('template')
                     ->label('Offer Letter Template')
