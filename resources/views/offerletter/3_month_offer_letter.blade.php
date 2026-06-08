@@ -224,7 +224,7 @@
                         </tr>
                         <tr>
                             <td class="label">2) Duration:</td>
-                            <td>{{ \Carbon\Carbon::parse($offer->joining_date)->format('d/m/Y') }} to {{ \Carbon\Carbon::parse($offer->completion_date)->format('d/m/Y') }} (1 Month)</td>
+                            <td>{{ \Carbon\Carbon::parse($offer->joining_date)->format('d/m/Y') }} to {{ \Carbon\Carbon::parse($offer->completion_date)->format('d/m/Y') }} </td>
                         </tr>
                         <tr>
                             <td class="label">3) Working Hours:</td>
