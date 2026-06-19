@@ -186,7 +186,7 @@ class EventRegistrationResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     // Bulk Print (One PDF with many pages)
                     BulkAction::make('bulk_print_pdf')
-                        ->label('Bilk Print Certz')
+                        ->label('Bulk Print Certs')
                         ->icon('heroicon-o-printer')
                        ->action(function ($records) {
                             // Filter out records where the event is still upcoming

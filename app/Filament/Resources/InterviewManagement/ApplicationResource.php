@@ -89,8 +89,8 @@ class ApplicationResource extends Resource
                             TextInput::make('cgpa')
                                 ->label('CGPA / Percentage')
                                 ->numeric()       // Ensures only numbers are entered
-                                ->step(0.01)  
-                                 ->required()    // Allows decimals like 8.55
+                                ->step(0.01)  // Allows decimals like 8.55
+                                ->required()    
                                 ->maxValue(100),  // Optional: prevents unrealistic numbers
 
                             TextInput::make('domain')

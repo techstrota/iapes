@@ -15,4 +15,19 @@ class CreateApplication extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        try {
+            return static::getModel()::create($data);
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Database Error')
+                ->body('An error occurred while saving to the database. Please check your inputs. (' . $e->errorInfo[2] . ')')
+                ->danger()
+                ->send();
+
+            throw new \Filament\Support\Exceptions\Halt();
+        }
+    }
 }
