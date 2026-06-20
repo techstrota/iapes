@@ -43,6 +43,7 @@ class Intern extends Authenticatable implements FilamentUser
         'is_active',
         'intern_image',
         'cert_token',
+        'grade',
     ];
 
     protected $hidden = [

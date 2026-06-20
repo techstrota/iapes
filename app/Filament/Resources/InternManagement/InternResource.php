@@ -96,6 +96,11 @@ class InternResource extends Resource
                                 ->label('Project Name')
                                 ->required(),
                             
+                            TextInput::make('grade')
+                                ->label('Grade')
+                                ->placeholder('A, B, etc.')
+                                ->maxLength(255),
+                            
                             // DatePicker::make('completion_date')
                             //     ->label('Completion Date')
                             //     ->default(now())

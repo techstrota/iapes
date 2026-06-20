@@ -26,7 +26,7 @@
 
         $workingHoursPerDay = $intern->offer_letters->working_hours ?: 5;
         // Total hours calculation: Working Days * Hours per day
-        $totalHours = ($workingHoursPerDay > 40) ? $workingHoursPerDay : ($workingDays * $workingHoursPerDay);
+        $totalHours = round(($workingHoursPerDay > 40) ? $workingHoursPerDay : ($workingDays * $workingHoursPerDay));
     @endphp
 
     <div class="title">INTERNSHIP COMPLETION LETTER</div>
@@ -45,9 +45,9 @@
         This is to certify that <strong>{{ $internName }}</strong>@if($internCollege || $internUniversity), a student of
         <strong>{{ $internDegree }}</strong>,@endif has successfully completed 
         @if($isShortTerm)
-            the <strong>{{ $workingDays }} Days ({{ $totalHours }} Hours)</strong> internship with Grade <strong>{{ $intern->grade ?? 'A' }}</strong>.
+            the <strong>{{ $workingDays }} Days ({{ $totalHours }} Hours)</strong> internship{!! $intern->grade ? ' with Grade <strong>' . e($intern->grade) . '</strong>' : '' !!}.
         @else
-        the internship.
+        the internship{!! $intern->grade ? ' with Grade <strong>' . e($intern->grade) . '</strong>' : '' !!}.
         @endif
         The internship was carried out for the course titled
         <strong>“{{ $intern->offer_letters->internship_role }}”</strong>, conducted by
