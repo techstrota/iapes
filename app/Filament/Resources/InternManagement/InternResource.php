@@ -85,6 +85,7 @@ class InternResource extends Resource
                                     $set('joining_date',         $offer?->joining_date);
                                     $set('internship_role',      $offer?->internship_role);
                                     $set('internship_position',  $offer?->internship_position);
+                                    $set('completion_date',      $offer?->completion_date);
                                 }
                             }),
                     ]),
@@ -180,13 +181,26 @@ class InternResource extends Resource
                                 ->afterStateHydrated(fn ($component, $record) => $component->state(
                                     $record?->offerletter?->internship_position
                                 )),
+
+                            DatePicker::make('joining_date')
+                                ->label('Joining Date')
+                                ->dehydrated(true)
+                                ->afterStateHydrated(function ($component, $record) {
+                                    $date = $record?->offerletter?->joining_date;
+                                    if ($date) {
+                                        $component->state(\Carbon\Carbon::parse($date)->format('Y-m-d'));
+                                    }
+                                }),
  
                             DatePicker::make('completion_date')
                                 ->label('Completion Date')
                                 ->dehydrated(true)
-                                ->afterStateHydrated(fn ($component, $record) => $component->state(
-                                    $record?->offerletter?->completion_date
-                                )),
+                                ->afterStateHydrated(function ($component, $record) {
+                                    $date = $record?->offerletter?->completion_date;
+                                    if ($date) {
+                                        $component->state(\Carbon\Carbon::parse($date)->format('Y-m-d'));
+                                    }
+                                }),
                         ]),
                     ]),
             ]);

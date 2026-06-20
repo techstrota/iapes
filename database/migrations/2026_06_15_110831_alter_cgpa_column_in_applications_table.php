@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('applications', function (Blueprint $table) {
             //
             // 5 total digits, 2 after the decimal point allows up to 100.00
-            $table->decimal('cgpa', 5, 2)->change();
+            $table->decimal('cgpa', 5, 2)->change()->nullable();
         });
     }
 
@@ -25,7 +25,7 @@ return new class extends Migration
     {
         Schema::table('applications', function (Blueprint $table) {
             //
-            $table->decimal('cgpa', 4, 2)->change();
+            $table->decimal('cgpa', 4, 2)->change()->nullable();
         });
     }
 };
