@@ -54,8 +54,9 @@
         <strong>Techstrota</strong>@if($internCollege || $internUniversity) and facilitated by
             <strong>{{ $uni }}</strong>@endif.
         The internship duration was from <strong>{{ $startDate->format('d/m/Y') }}</strong> to
-        <strong>{{ $endDate->format('d/m/Y') }}</strong> at Techstrota. 503, Sterling Centre, R C Dutt Road, Near Fairfield
-        Hotel, Alkapuri, Vadodara, Gujarat - 390007
+        <strong>{{ $endDate->format('d/m/Y') }}</strong> at: <strong>Techstrota</strong><br>
+        503, Sterling Centre, R C Dutt Road, Near Fairfield
+        Hotel, Alkapuri, Vadodara, Gujarat - 390007.
     </div>
 
     @if($intern->project_description)
