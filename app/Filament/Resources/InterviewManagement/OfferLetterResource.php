@@ -351,41 +351,59 @@ class OfferLetterResource extends Resource
                     ->afterStateUpdated(function ($record, $state) {
                         // We trigger creation if state is TRUE and there is no linked intern yet
                         if ($state && !$record->intern_id) {
+                            try {
+                                $year = now()->format('y'); 
+                                $prefix = "TS{$year}/WD/";
+                                $lastIntern = Intern::where('intern_code', 'like', "{$prefix}%")
+                                    ->latest('id')
+                                    ->first();
+                                $sequence = $lastIntern 
+                                    ? (int) str($lastIntern->intern_code)->afterLast('/')->toString() + 1 
+                                    : 1;
+                                $paddedSequence = str_pad($sequence, 3, '0', STR_PAD_LEFT);
+                                // Intern ID
+                                $generatedCode = $prefix . $paddedSequence;
+                                // Username
+                                $username = "ts{$year}{$paddedSequence}@user.com";
+                                // Password
+                                $plainPassword = "ts{$year}{$paddedSequence}";
+                                $intern = Intern::create([
+                                    'application_id' => $record->application_id,   // null is fine for general
+                                    'offer_letter_id'=> $record->id,
+                                    'intern_code'   => $generatedCode,
+                                    'username'      => $username,
+                                    'password'      => \Illuminate\Support\Facades\Hash::make($plainPassword),
+                                    'name'          => $record->application->name ?? $record->name ?? 'Intern ' . $sequence,
+                                    'email'         => $record->application->email ?? $record->email ?? "intern{$sequence}@example.com",
+                                    'joining_date'  => $record->joining_date,
+                                    'is_active'     => true,
+                                ]);
 
-                            $year = now()->format('y'); 
-                            $prefix = "TS{$year}/WD/";
-                            $lastIntern = Intern::where('intern_code', 'like', "{$prefix}%")
-                                ->latest('id')
-                                ->first();
-                            $sequence = $lastIntern 
-                                ? (int) str($lastIntern->intern_code)->afterLast('/')->toString() + 1 
-                                : 1;
-                            $paddedSequence = str_pad($sequence, 3, '0', STR_PAD_LEFT);
-                            // Intern ID
-                            $generatedCode = $prefix . $paddedSequence;
-                            // Username
-                            $username = "ts{$year}{$paddedSequence}@user.com";
-                            // Password
-                            $plainPassword = "ts{$year}{$paddedSequence}";
-                            $intern = Intern::create([
-                                'application_id' => $record->application_id,   // null is fine for general
-                                'offer_letter_id'=> $record->id,
-                                'intern_code'   => $generatedCode,
-                                'username'      => $username,
-                                'password'      => \Illuminate\Support\Facades\Hash::make($plainPassword),
-                                'name'          => $record->application->name ?? $record->name ?? 'Intern ' . $sequence,
-                                'email'         => $record->application->email ?? $record->email ?? "intern{$sequence}@example.com",
-                                'joining_date'  => $record->joining_date,
-                                'is_active'     => true,
-                            ]);
+                                //$record->update(['intern_id' => $intern->id]);
 
-                            //$record->update(['intern_id' => $intern->id]);
-
-                            Notification::make()
-                                ->title('Intern Account Created')
-                                ->body("ID: **{$generatedCode}** | Username: **{$username}** | Pass: **{$plainPassword}**")
-                                ->success()
-                                ->send();
+                                Notification::make()
+                                    ->title('Intern Account Created')
+                                    ->body("ID: **{$generatedCode}** | Username: **{$username}** | Pass: **{$plainPassword}**")
+                                    ->success()
+                                    ->send();
+                            } catch (\Illuminate\Database\QueryException $e) {
+                                // Revert the toggle state since creation failed
+                                $record->update(['is_accepted' => false]);
+                                
+                                Notification::make()
+                                    ->title('Database Error')
+                                    ->body('Failed to create intern account: ' . ($e->errorInfo[2] ?? $e->getMessage()))
+                                    ->danger()
+                                    ->send();
+                            } catch (\Exception $e) {
+                                $record->update(['is_accepted' => false]);
+                                
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Failed to create intern account: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
                         }
                     }),
             ])

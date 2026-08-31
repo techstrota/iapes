@@ -31,8 +31,16 @@ trait LogsActivity
             $properties['record_name'] = $this->getActivityLogIdentifier();
         }
         
+        $userId = Auth::guard('web')->id();
+        
+        if (!$userId && Auth::guard('intern')->check()) {
+            $intern = Auth::guard('intern')->user();
+            $properties['performed_by_intern'] = $intern->id;
+            $description .= " (by Intern: {$intern->name})";
+        }
+        
         ActivityLog::create([
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
             'action' => $event,
             'subject_type' => get_class($this),
             'subject_id' => $this->id,
