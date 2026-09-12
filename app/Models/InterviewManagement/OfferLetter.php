@@ -25,6 +25,8 @@ class OfferLetter extends Model
         'university',
         'internship_position',
         'offer_issue_date',
+        'offer_status',
+        'is_accepted',
     ];
     protected $casts = [
         'joining_date' => 'date',
@@ -73,6 +75,61 @@ class OfferLetter extends Model
     public function intern()
     {
         return $this->hasOne(Intern::class, 'offer_letter_id');
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->offer_status === 'draft';
+    }
+
+    public function isAccepted(): bool
+    {
+        return $this->offer_status === 'accepted';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->offer_status === 'rejected';
+    }
+
+    /**
+     * Auto-select template based on application duration.
+     */
+    public static function templateForDuration(?int $duration, ?string $unit): string
+    {
+        if (!$duration || !$unit) return 'general';
+        $unit = strtolower($unit);
+        $months = str_contains($unit, 'month') ? $duration
+                : (str_contains($unit, 'week') ? round($duration / 4.3) : round($duration / 30));
+
+        return match(true) {
+            $months <= 1  => 'one_month',
+            $months <= 3  => '3_month_offer_letter',
+            $months <= 4  => '4_month_offer_letter',
+            $months >= 6  => '6_month_offer_letter',
+            default       => 'general',
+        };
+    }
+
+    /**
+     * Generate default formatted description for offer letter second page.
+     */
+    public static function defaultDescription(
+        ?string $joiningDate = null,
+        ?string $completionDate = null,
+        ?string $workingHours = '42 hours per week'
+    ): string {
+        $commence = $joiningDate 
+            ? \Illuminate\Support\Carbon::parse($joiningDate)->format('jS F, Y') 
+            : '18th December, 2025';
+
+        $conclude = $completionDate 
+            ? \Illuminate\Support\Carbon::parse($completionDate)->format('jS F, Y') 
+            : '30th April, 2026';
+
+        $hours = !empty($workingHours) ? $workingHours : '42 hours per week';
+
+        return "<p>The internship will commence on <strong>{$commence}</strong> and will conclude on <strong>{$conclude}</strong>. You will be expected to work <strong>{$hours}</strong>, from <strong>Monday to Saturday</strong>, between <strong>10:30 AM to 5:30 PM</strong>.</p>\n<p>Upon successful completion of the internship, you will receive a <strong>Certificate of Completion</strong> and a <strong>Letter of Recommendation</strong>. You will also be eligible for certain benefits, including access to the company’s facilities, events, and training programs.</p>";
     }
 
     protected static function booted()

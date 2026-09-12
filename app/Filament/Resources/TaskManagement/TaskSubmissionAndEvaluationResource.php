@@ -17,6 +17,7 @@ use Filament\Notifications\Notification;
 class TaskSubmissionAndEvaluationResource extends Resource
 {
     protected static ?string $model = TaskSubmission::class;
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationGroup = 'Task And Evaluation Management';
     protected static ?string $navigationLabel = 'Submission And Evaluation';
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';

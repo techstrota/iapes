@@ -30,6 +30,10 @@ Route::get('/view-offer-pdf/{id}', function ($id) {
     return $pdf->stream($fileName . '.pdf');
 })->name('view-offer-pdf')->middleware(['auth:web,intern']);
 
+Route::post('/admin/offer-letters/preview', [\App\Http\Controllers\OfferLetterPreviewController::class, 'preview'])
+    ->name('offer-letter.preview')
+    ->middleware(['web', 'auth:web']);
+
 Route::get('/', function () {
     return view('welcome');
 });

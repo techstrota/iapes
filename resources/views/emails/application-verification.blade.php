@@ -165,8 +165,8 @@
                     +91 8128840055
                 </a>,
                 Email:
-                <a href="mailto:sales@techstrota.com" style="color:#1F6AAE; text-decoration:underline;">
-                    sales@techstrota.com
+                <a href="mailto:info@techstrota.com" style="color:#1F6AAE; text-decoration:underline;">
+                    info@techstrota.com
                 </a>
                 <br>
 

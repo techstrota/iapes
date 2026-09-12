@@ -71,46 +71,46 @@ class ViewInternProfile extends ViewRecord
                                 ->modalSubmitActionLabel('Save Photo'),
 
             //-------------------------------------------------------------------------                                
-            Actions\Action::make('viewCertificate')
-                ->label('View Certificate')
-                ->icon('heroicon-o-academic-cap')
-                ->color('success')
-                ->visible(fn ($record) => $record->offerLetter?->is_accepted ?? false)
-                ->url(fn ($record): string => route('intern.certificate.view', ['id' => $record->id]))
-                ->openUrlInNewTab(),
+            // Actions\Action::make('viewCertificate')
+            //     ->label('View Certificate')
+            //     ->icon('heroicon-o-academic-cap')
+            //     ->color('success')
+            //     ->visible(fn ($record) => $record->offerLetter?->is_accepted ?? false)
+            //     ->url(fn ($record): string => route('intern.certificate.view', ['id' => $record->id]))
+            //     ->openUrlInNewTab(),
             Actions\Action::make('viewIdCard')
                 ->label('View ID Card')
                 ->icon('heroicon-o-identification')
                 ->color('primary')
                 ->url(fn ($record) => route('print-id-card', ['id' => $record->id]))
-                ->openUrlInNewTab(),
+                ->openUrlInNewTab()
 
-            Actions\Action::make('updatePassword')
-                ->label('Reset Password')
-                ->icon('heroicon-o-key')
-                ->color('warning')
-                // This is the modal popup
-                ->form([
-                    Forms\Components\Section::make('Security')
-                        ->description('Update your account password here.')
-                        ->schema([
-                            Forms\Components\TextInput::make('password')
-                                ->label('New Password')
-                                ->password()
-                                ->revealable()
-                                ->required() // Required in this specific modal
-                                ->minLength(7)
-                                ->same('password_confirmation')
-                                ->dehydrateStateUsing(fn ($state) => Hash::make($state)),
+            // Actions\Action::make('updatePassword')
+            //     ->label('Reset Password')
+            //     ->icon('heroicon-o-key')
+            //     ->color('warning')
+            //     // This is the modal popup
+            //     ->form([
+            //         Forms\Components\Section::make('Security')
+            //             ->description('Update your account password here.')
+            //             ->schema([
+            //                 Forms\Components\TextInput::make('password')
+            //                     ->label('New Password')
+            //                     ->password()
+            //                     ->revealable()
+            //                     ->required() // Required in this specific modal
+            //                     ->minLength(7)
+            //                     ->same('password_confirmation')
+            //                     ->dehydrateStateUsing(fn ($state) => Hash::make($state)),
 
-                            Forms\Components\TextInput::make('password_confirmation')
-                                ->label('Confirm New Password')
-                                ->password()
-                                ->revealable()
-                                ->required()
-                                ->dehydrated(false),
-                        ])->columns(2),
-                ])
+            //                 Forms\Components\TextInput::make('password_confirmation')
+            //                     ->label('Confirm New Password')
+            //                     ->password()
+            //                     ->revealable()
+            //                     ->required()
+            //                     ->dehydrated(false),
+            //             ])->columns(2),
+            //     ])
                 ->action(function (array $data, $record) {
                     // This logic saves the hashed password to the database
                     $record->update([

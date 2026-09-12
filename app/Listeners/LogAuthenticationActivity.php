@@ -33,15 +33,24 @@ class LogAuthenticationActivity
         }
 
         if ($action) {
+            // activity_logs.user_id is a FK → users.id.
+            // Interns authenticate via the 'intern' guard and live in the
+            // `interns` table, NOT `users`. Writing their ID into user_id
+            // violates the FK constraint. Set user_id = null for interns and
+            // store their identity in properties and subject_type/subject_id.
+            $isIntern = $user instanceof \App\Models\InternManagement\Intern;
+
             ActivityLog::create([
-                'user_id' => $user?->id,
-                'action' => $action,
+                'user_id'      => $isIntern ? null : $user?->id,
+                'action'       => $action,
                 'subject_type' => $user ? get_class($user) : null,
-                'subject_id' => $user?->id,
-                'description' => $description,
-                'properties' => [
-                    'ip' => Request::ip(),
-                    'user_agent' => Request::userAgent(),
+                'subject_id'   => $user?->id,
+                'description'  => $description,
+                'properties'   => [
+                    'ip'          => Request::ip(),
+                    'user_agent'  => Request::userAgent(),
+                    'intern_id'   => $isIntern ? $user->id   : null,
+                    'intern_name' => $isIntern ? $user->name : null,
                 ],
             ]);
         }

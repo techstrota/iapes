@@ -24,6 +24,7 @@ class TaskSubmission extends Model
         'admin_feedback',
         'marks',
         'grade',
+        'evaluated_at',
     ];
 
     public function task()

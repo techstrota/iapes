@@ -69,14 +69,68 @@ class Application extends Model
         });
 
         static::updated(function ($application) {
+            // Auto-create draft OfferLetter when candidate status is set to 'shortlisted'
+            if ($application->isDirty('status') && $application->status === 'shortlisted') {
+                $alreadyExists = OfferLetter::where('application_id', $application->id)->exists();
+                if (!$alreadyExists) {
+                    $template = OfferLetter::templateForDuration(
+                        (int) $application->duration,
+                        $application->duration_unit
+                    );
+
+                    $joiningDate = now()->addDays(7)->toDateString();
+                    $completionDate = self::computeCompletionDate($joiningDate, $application->duration, $application->duration_unit);
+                    $workingHours = '42 hours per week';
+
+                    $description = in_array($template, ['4_month_offer_letter', '6_month_offer_letter'])
+                        ? OfferLetter::defaultDescription($joiningDate, $completionDate, $workingHours)
+                        : null;
+
+                    OfferLetter::create([
+                        'application_id'      => $application->id,
+                        'offer_status'        => 'draft',
+                        'is_accepted'         => false,
+                        'template'            => $template,
+                        'name'                => $application->name,
+                        'college'             => $application->college,
+                        'university'          => $application->college,
+                        'degree'              => $application->degree,
+                        'email'               => $application->email,
+                        'phone'               => $application->phone,
+                        'internship_role'     => $application->domain ?? 'Intern',
+                        'internship_position' => ($application->domain ?? 'Intern') . ' Intern',
+                        'working_hours'       => $workingHours,
+                        'joining_date'        => $joiningDate,
+                        'completion_date'     => $completionDate,
+                        'description'         => $description,
+                        'offer_issue_date'    => now()->toDateString(),
+                    ]);
+                }
+            }
+
             // If name or college changes, find the associated offer letter
             $offerLetter = $application->offerLetter;
             if ($offerLetter) {
-                // Note: Since name/college live on Application, this simply 
-                // ensures the relationship stays logically consistent.
-                $offerLetter->touch(); // Refreshes timestamps if needed
+                $offerLetter->touch();
             }
         });
+    }
+
+    public static function computeCompletionDate(string $joiningDate, ?int $duration, ?string $unit): string
+    {
+        if (!$duration || !$unit) {
+            return \Carbon\Carbon::parse($joiningDate)->addMonths(3)->toDateString();
+        }
+        $date = \Carbon\Carbon::parse($joiningDate);
+        $unit = strtolower($unit);
+        if (str_contains($unit, 'month')) {
+            $date->addMonths($duration);
+        } elseif (str_contains($unit, 'week')) {
+            $date->addWeeks($duration);
+        } else {
+            $date->addDays($duration);
+        }
+        return $date->toDateString();
     }
 
     public function intern(): HasOne
@@ -92,6 +146,11 @@ class Application extends Model
     public function offerLetter(): HasOne // Note the singular name
     {
         return $this->hasOne(OfferLetter::class, 'application_id');
+    }
+
+    public function interviewAssignments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\InterviewManagement\InterviewAssignment::class, 'application_id');
     }
 
 }

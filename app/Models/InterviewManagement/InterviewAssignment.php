@@ -44,19 +44,27 @@ class InterviewAssignment extends Model
 
         static::saving(function ($assignment) {
 
-            if ($assignment->problem_solving && $assignment->communication) {
+            $hasProblemSolving = !is_null($assignment->problem_solving) && $assignment->problem_solving !== '';
+            $hasCommunication = !is_null($assignment->communication) && $assignment->communication !== '';
+
+            if ($hasProblemSolving || $hasCommunication) {
                 $assignment->overall_score =
-                    ($assignment->problem_solving + $assignment->communication);
+                    ((float) ($assignment->problem_solving ?? 0)) + ((float) ($assignment->communication ?? 0));
+            } else {
+                $assignment->overall_score = null;
             }
                  
             if ($assignment->overall_score > 50) {
                 throw new \Exception("Total marks cannot exceed 50");
             }
             
-            if ($assignment->attendance === 'present') {
-                $assignment->application->update([
-                    'status' => 'interviewed'
-                ]);
+            // Only advance status to 'interviewed' when BOTH marks are provided AND candidate is present
+            if ($assignment->attendance === 'present' && $hasProblemSolving && $hasCommunication) {
+                if (!in_array($assignment->application->status, ['shortlisted', 'rejected'])) {
+                    $assignment->application->update([
+                        'status' => 'interviewed'
+                    ]);
+                }
             }
 
             if ($assignment->result === 'selected') {
@@ -74,12 +82,15 @@ class InterviewAssignment extends Model
 
         static::updated(function ($assignment) {
 
-            if ($assignment->result) {
+            if ($assignment->isDirty('result') && $assignment->result) {
 
+                // Only update the application status here.
+                // Email dispatch is handled by CandidateResource actions to prevent
+                // double-sending (which causes Gmail SMTP throttling/silent drops).
                 if ($assignment->result === 'selected') {
                     $assignment->application
                         ->update(['status' => 'shortlisted']);
-                } else {
+                } elseif ($assignment->result === 'rejected') {
                     $assignment->application
                         ->update(['status' => 'rejected']);
                 }
