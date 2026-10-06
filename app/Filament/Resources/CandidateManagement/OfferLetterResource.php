@@ -66,7 +66,7 @@ class OfferLetterResource extends Resource
                                         $set('description', OfferLetter::defaultDescription(
                                             $get('joining_date'),
                                             $get('completion_date'),
-                                            $get('working_hours') ?: '42 hours per week'
+                                            $get('working_hours') ?: '11:00 AM to 4:00 PM, Monday to Saturday'
                                         ));
                                     }
                                 }
@@ -254,7 +254,7 @@ class OfferLetterResource extends Resource
                                         $set('description', OfferLetter::defaultDescription(
                                             $state,
                                             $get('completion_date'),
-                                            $get('working_hours') ?: '42 hours per week'
+                                            $get('working_hours') ?: '11:00 AM to 4:00 PM, Monday to Saturday'
                                         ));
                                     }
                                 }
@@ -286,8 +286,8 @@ class OfferLetterResource extends Resource
  
                         TextInput::make('working_hours')
                             ->label('Working Hours')
-                            ->placeholder('e.g. 42 hours per week')
-                            ->default('42 hours per week')
+                            ->placeholder('e.g. 11:00 AM to 4:00 PM, Monday to Saturday')
+                            ->default('11:00 AM to 4:00 PM, Monday to Saturday')
                             ->live(debounce: 250)
                             ->required(),
                         
@@ -296,16 +296,11 @@ class OfferLetterResource extends Resource
                             ->required()
                             ->native(true)
                             ->live(debounce: 250)
-                            ->minDate(fn (Get $get) => $get('joining_date') 
-                                ? \Illuminate\Support\Carbon::parse($get('joining_date'))->subDays(7) 
-                                : null
-                            )
                             ->maxDate(fn (Get $get) => $get('joining_date')
                                 ? \Illuminate\Support\Carbon::parse($get('joining_date'))->subDay() 
                                 : null)
                             ->validationMessages([
                                 'before' => 'The offer issue date must be at least one day before the joining date.',
-                                'after_or_equal' => 'The offer must be issued within 7 days of the joining date.',
                             ]),
  
                         Forms\Components\Section::make('Offer Letter Body')
@@ -321,7 +316,7 @@ class OfferLetterResource extends Resource
                                             return OfferLetter::defaultDescription(
                                                 $get('joining_date'),
                                                 $get('completion_date'),
-                                                $get('working_hours') ?: '42 hours per week'
+                                                $get('working_hours') ?: '11:00 AM to 4:00 PM, Monday to Saturday'
                                             );
                                         }
                                         return null;
@@ -528,7 +523,7 @@ class OfferLetterResource extends Resource
                                     'skills'                     => $record->application?->skills,
                                     'internship_role'            => $record->internship_role ?: ($record->application?->domain ?: 'Intern'),
                                     'internship_position'        => $record->internship_position ?: ($record->internship_role ? $record->internship_role . ' Intern' : 'Intern'),
-                                    'working_hours'              => $record->working_hours ?: '42 hours per week',
+                                    'working_hours'              => $record->working_hours ?: '11:00 AM to 4:00 PM, Monday to Saturday',
                                     'joining_date'               => $record->joining_date,
                                     'completion_date'            => $record->completion_date,
                                     'completion_letter_template' => null,
@@ -738,7 +733,7 @@ class OfferLetterResource extends Resource
                     $set('description', OfferLetter::defaultDescription(
                         $joiningDate,
                         $computedCompletion,
-                        $get('working_hours') ?: '42 hours per week'
+                        $get('working_hours') ?: '11:00 AM to 4:00 PM, Monday to Saturday'
                     ));
                 }
             }

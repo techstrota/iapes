@@ -117,7 +117,7 @@ class OfferLetter extends Model
     public static function defaultDescription(
         ?string $joiningDate = null,
         ?string $completionDate = null,
-        ?string $workingHours = '42 hours per week'
+        ?string $workingHours = '11:00 AM to 4:00 PM, Monday to Saturday'
     ): string {
         $commence = $joiningDate 
             ? \Illuminate\Support\Carbon::parse($joiningDate)->format('jS F, Y') 
@@ -127,7 +127,7 @@ class OfferLetter extends Model
             ? \Illuminate\Support\Carbon::parse($completionDate)->format('jS F, Y') 
             : '30th April, 2026';
 
-        $hours = !empty($workingHours) ? $workingHours : '42 hours per week';
+        $hours = !empty($workingHours) ? $workingHours : '11:00 AM to 4:00 PM, Monday to Saturday';
 
         return "<p>The internship will commence on <strong>{$commence}</strong> and will conclude on <strong>{$conclude}</strong>. You will be expected to work <strong>{$hours}</strong>, from <strong>Monday to Saturday</strong>, between <strong>10:30 AM to 5:30 PM</strong>.</p>\n<p>Upon successful completion of the internship, you will receive a <strong>Certificate of Completion</strong> and a <strong>Letter of Recommendation</strong>. You will also be eligible for certain benefits, including access to the company’s facilities, events, and training programs.</p>";
     }

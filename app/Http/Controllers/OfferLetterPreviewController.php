@@ -30,7 +30,7 @@ class OfferLetterPreviewController extends Controller
         $phone        = trim((string) $request->input('phone', '')) ?: '+91 98765 43210';
         $role         = trim((string) $request->input('internship_role', '')) ?: 'Web Developer';
         $position     = trim((string) $request->input('internship_position', '')) ?: ($role . ' Intern');
-        $workingHours = trim((string) $request->input('working_hours', '')) ?: '42 hours per week';
+        $workingHours = trim((string) $request->input('working_hours', '')) ?: '11:00 AM to 4:00 PM, Monday to Saturday';
         $joiningDate  = $request->input('joining_date') ?: now()->addDays(7)->toDateString();
         $completionDate = $request->input('completion_date') ?: now()->addMonths(4)->toDateString();
         $issueDate    = $request->input('offer_issue_date') ?: now()->toDateString();

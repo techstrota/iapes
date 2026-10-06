@@ -206,7 +206,7 @@
                         @php
                             $commenceDate = $offer->joining_date ? \Carbon\Carbon::parse($offer->joining_date)->format('jS F, Y') : '18th December, 2025';
                             $concludeDate = $offer->completion_date ? \Carbon\Carbon::parse($offer->completion_date)->format('jS F, Y') : '30th April, 2026';
-                            $workingHours = !empty($offer->working_hours) ? $offer->working_hours : '42 hours per week';
+                            $workingHours = !empty($offer->working_hours) ? $offer->working_hours : '11:00 AM to 4:00 PM, Monday to Saturday';
                         @endphp
                         <p>The internship will commence on <strong>{{ $commenceDate }}</strong> and will conclude on <strong>{{ $concludeDate }}</strong>. You will be expected to work <strong>{{ $workingHours }}</strong>, from <strong>Monday to Saturday</strong>, between <strong>10:30 AM to 5:30 PM</strong>.</p>
                         <p>Upon successful completion of the internship, you will receive a <strong>Certificate of Completion</strong> and a <strong>Letter of Recommendation</strong>. You will also be eligible for certain benefits, including access to the company’s facilities, events, and training programs.</p>

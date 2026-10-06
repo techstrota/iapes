@@ -273,7 +273,7 @@
                         </tr>
                         <tr>
                             <td class="label">3) Working Hours:</td>
-                            <td>11:00 AM to 4:00 PM, Monday to Saturday</td>
+                            <td>{{ !empty($offer->working_hours) ? $offer->working_hours : '11:00 AM to 4:00 PM, Monday to Saturday' }}</td>
                         </tr>
                         <tr>
                             <td class="label">4) Internship Type:</td>

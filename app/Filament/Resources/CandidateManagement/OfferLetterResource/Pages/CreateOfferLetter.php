@@ -25,7 +25,7 @@ class CreateOfferLetter extends CreateRecord
         $description = !empty(trim(strip_tags($data['description'] ?? '')))
             ? $data['description']
             : (in_array($data['template'], ['4_month_offer_letter', '6_month_offer_letter'])
-                ? OfferLetter::defaultDescription($data['joining_date'], $data['completion_date'], $data['working_hours'] ?? '42 hours per week')
+                ? OfferLetter::defaultDescription($data['joining_date'], $data['completion_date'], $data['working_hours'] ?? '11:00 AM to 4:00 PM, Monday to Saturday')
                 : null);
 
         // ── GENERAL FLOW: no application selected ──────────────────────────
@@ -44,7 +44,7 @@ class CreateOfferLetter extends CreateRecord
                 'completion_date'     => $data['completion_date'],
                 'internship_role'     => $data['internship_role'],
                 'internship_position' => $data['internship_position'],
-                'working_hours'       => $data['working_hours'] ?? '42 hours per week',
+                'working_hours'       => $data['working_hours'] ?? '11:00 AM to 4:00 PM, Monday to Saturday',
                 'template'            => $data['template'],
                 'description'         => $description,
                 'offer_issue_date'    => $data['offer_issue_date'] ?? now()->toDateString(),
@@ -86,7 +86,7 @@ class CreateOfferLetter extends CreateRecord
                 'completion_date'     => $data['completion_date'],
                 'internship_role'     => $data['internship_role'],
                 'internship_position' => $data['internship_position'],
-                'working_hours'       => $data['working_hours'] ?? '42 hours per week',
+                'working_hours'       => $data['working_hours'] ?? '11:00 AM to 4:00 PM, Monday to Saturday',
                 'template'            => $data['template'],
                 'intern_id'           => $application->intern_id ?? null,
                 'description'         => $description,

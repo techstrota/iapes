@@ -30,6 +30,9 @@ class EditOfferLetter extends EditRecord
         // We wrap the single ID into an array so it shows up in the dropdown.
         $data['applications'] = [$data['application_id']];
         $data['intern_name'] = $data['internship_position'] ?? '';
+        if (empty($data['working_hours'])) {
+            $data['working_hours'] = '11:00 AM to 4:00 PM, Monday to Saturday';
+        }
         return $data;
     }
 
