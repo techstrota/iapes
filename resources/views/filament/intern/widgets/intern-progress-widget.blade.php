@@ -18,11 +18,11 @@
 .ipw-card {
     position: relative;
     overflow: hidden;
-    border-radius: 14px;
-    padding: 20px;
-    background: linear-gradient(145deg, #0d1117 0%, #161b27 50%, #0d1117 100%);
-    border: 1px solid rgba(99,102,241,0.18);
-
+    border-radius: 16px;
+    padding: 22px;
+    background-color: #131b2e;
+    border: 1.5px solid #222a3d;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     height: 100%; 
     min-height: 380px; 
     display: flex;
@@ -35,24 +35,24 @@
     top:-60px; right:-60px;
     width:180px; height:180px;
     border-radius:50%;
-    background: radial-gradient(circle, rgba(99,102,241,0.14) 0%, transparent 65%);
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 65%);
     pointer-events:none;
 }
 .ipw-top {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
     margin-bottom: 18px;
 }
 .ipw-donut {
     position: relative;
-    width: 88px;
-    height: 88px;
+    width: 90px;
+    height: 90px;
     flex-shrink: 0;
 }
 .ipw-donut svg {
-    width: 88px;
-    height: 88px;
+    width: 90px;
+    height: 90px;
     transform: rotate(-90deg);
 }
 .ipw-donut-label {
@@ -65,19 +65,19 @@
     line-height: 1;
 }
 .ipw-donut-pct {
-    font-size: 20px;
+    font-size: 21px;
     font-weight: 800;
-    color: #c7d2fe;
+    color: #ffffff;
     letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
 }
 .ipw-donut-sub {
-    font-size: 9px;
-    font-weight: 600;
-    color: #6366f1;
+    font-size: 10px;
+    font-weight: 700;
+    color: #60a5fa;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    margin-top: 2px;
+    margin-top: 3px;
 }
 .ipw-info {
     flex: 1;
@@ -85,40 +85,40 @@
 .ipw-title-row {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     margin-bottom: 4px;
 }
 .ipw-icon-wrap {
-    width: 24px; height: 24px;
-    border-radius: 7px;
+    width: 26px; height: 26px;
+    border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(99,102,241,0.15);
-    border: 1px solid rgba(99,102,241,0.25);
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
     flex-shrink: 0;
 }
 .ipw-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
-    color: #e2e8f0;
+    color: #ffffff;
     letter-spacing: -0.01em;
 }
 .ipw-subtitle {
-    font-size: 10px;
-    color: #475569;
+    font-size: 11px;
+    color: #8e909f;
     font-weight: 500;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 .ipw-bar-wrap {
     position: relative;
-    height: 5px;
+    height: 6px;
     border-radius: 99px;
-    background: rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.08);
     overflow: visible;
 }
 .ipw-bar-fill {
     height: 100%;
     border-radius: 99px;
-    background: linear-gradient(90deg, #6366f1, #a78bfa);
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
     position: relative;
     transition: width 1s ease;
     min-width: {{ $progress > 0 ? '8px' : '0' }};
@@ -128,90 +128,90 @@
     position: absolute;
     right: -1px; top: 50%;
     transform: translateY(-50%);
-    width: 9px; height: 9px;
+    width: 10px; height: 10px;
     border-radius: 50%;
-    background: #a78bfa;
-    border: 2px solid #0d1117;
+    background: #93c5fd;
+    border: 2px solid #0b1326;
     display: {{ $progress > 0 ? 'block' : 'none' }};
 }
 .ipw-bar-pct {
-    font-size: 9px;
-    font-weight: 700;
-    color: #818cf8;
-    margin-top: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #93c5fd;
+    margin-top: 6px;
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
 .ipw-stats {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 14px;
+    gap: 10px;
+    margin-bottom: 16px;
 }
 .ipw-stat {
-    border-radius: 10px;
-    padding: 10px 10px 8px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 12px 10px 10px;
+    background: #090e1c;
+    border: 1px solid #222a3d;
 }
 .ipw-stat.highlight {
-    background: rgba(99,102,241,0.10);
-    border-color: rgba(99,102,241,0.22);
+    background: rgba(30, 64, 175, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
 }
 .ipw-stat-key {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #334155;
-    margin-bottom: 4px;
+    letter-spacing: 0.08em;
+    color: #8e909f;
+    margin-bottom: 6px;
 }
-.ipw-stat.highlight .ipw-stat-key { color: #6366f1; }
+.ipw-stat.highlight .ipw-stat-key { color: #60a5fa; }
 .ipw-stat-val {
     font-size: 22px;
     font-weight: 800;
-    color: #e2e8f0;
+    color: #ffffff;
     letter-spacing: -0.03em;
     line-height: 1;
     font-variant-numeric: tabular-nums;
 }
-.ipw-stat.highlight .ipw-stat-val { color: #c7d2fe; }
+.ipw-stat.highlight .ipw-stat-val { color: #ffffff; }
 .ipw-stat-unit {
-    font-size: 9px;
-    color: #1e293b;
-    margin-top: 2px;
+    font-size: 10px;
+    color: #8e909f;
+    margin-top: 4px;
 }
-.ipw-stat.highlight .ipw-stat-unit { color: #4f46e5; }
+.ipw-stat.highlight .ipw-stat-unit { color: #93c5fd; }
 .ipw-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 14px;
+    border-top: 1px solid #222a3d;
 }
 .ipw-date-block .ipw-date-key {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #1e293b;
+    letter-spacing: 0.08em;
+    color: #8e909f;
     margin-bottom: 2px;
 }
 .ipw-date-block .ipw-date-val {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    color: #64748b;
+    color: #cbd5e1;
 }
-.ipw-date-block.end .ipw-date-val { color: #818cf8; }
+.ipw-date-block.end .ipw-date-val { color: #60a5fa; }
 .ipw-timeline {
     flex: 1;
     display: flex;
     align-items: center;
     gap: 4px;
-    margin: 0 10px;
+    margin: 0 12px;
 }
-.ipw-tl-line { flex:1; height:1px; background:rgba(99,102,241,0.18); }
-.ipw-tl-dot { width:5px; height:5px; border-radius:50%; background:#6366f1; flex-shrink:0; }
+.ipw-tl-line { flex:1; height:1px; background:#222a3d; }
+.ipw-tl-dot { width:6px; height:6px; border-radius:50%; background:#3b82f6; flex-shrink:0; box-shadow:0 0 8px #3b82f6; }
 </style>
 
 <div class="ipw-card">
@@ -237,13 +237,13 @@
                         stroke-dashoffset="{{ $dashOffset }}" />
                 <defs>
                     <linearGradient id="donutGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stop-color="#6366f1"/>
-                        <stop offset="100%" stop-color="#a78bfa"/>
+                        <stop offset="0%" stop-color="#3b82f6"/>
+                        <stop offset="100%" stop-color="#60a5fa"/>
                     </linearGradient>
                 </defs>
             </svg>
             <div class="ipw-donut-label">
-                <span class="ipw-donut-pct">{{ $progress }}<span style="font-size:11px;color:#818cf8;">%</span></span>
+                <span class="ipw-donut-pct">{{ $progress }}<span style="font-size:12px;color:#60a5fa;">%</span></span>
                 <span class="ipw-donut-sub">done</span>
             </div>
         </div>
@@ -252,9 +252,9 @@
         <div class="ipw-info">
             <div class="ipw-title-row">
                 <div class="ipw-icon-wrap">
-                    <x-heroicon-m-rocket-launch style="width:12px;height:12px;color:#818cf8;" />
+                    <x-heroicon-m-rocket-launch class="w-3.5 h-3.5 text-blue-400" />
                 </div>
-                <span class="ipw-title">Internship Progress</span>
+                <span class="ipw-title">Internship Milestone</span>
             </div>
             <p class="ipw-subtitle">{{ $data['status_message'] }}</p>
 
@@ -278,7 +278,7 @@
             <p class="ipw-stat-unit">days left</p>
         </div>
         <div class="ipw-stat">
-            <p class="ipw-stat-key">Total</p>
+            <p class="ipw-stat-key">Duration</p>
             <p class="ipw-stat-val">{{ $total }}</p>
             <p class="ipw-stat-unit">days</p>
         </div>
@@ -287,16 +287,16 @@
     {{-- Date footer --}}
     <div class="ipw-footer">
         <div class="ipw-date-block">
-            <p class="ipw-date-key">Start</p>
+            <p class="ipw-date-key">Start Date</p>
             <p class="ipw-date-val">{{ $startDate }}</p>
         </div>
         <div class="ipw-timeline">
             <div class="ipw-tl-line"></div>
             <div class="ipw-tl-dot"></div>
-            <div class="ipw-tl-line" style="background:rgba(99,102,241,0.08);"></div>
+            <div class="ipw-tl-line"></div>
         </div>
         <div class="ipw-date-block end" style="text-align:right;">
-            <p class="ipw-date-key">Target</p>
+            <p class="ipw-date-key">Target End</p>
             <p class="ipw-date-val">{{ $endDate }}</p>
         </div>
     </div>

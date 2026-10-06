@@ -37,6 +37,7 @@ class CreateOfferLetter extends CreateRecord
                 'name'                => $data['name'] ?? null,
                 'university'          => $data['university'] ?? null,
                 'college'             => $data['college'] ?? null,
+                'degree'              => $data['degree'] ?? null,
                 'phone'               => $data['phone'] ?? null,
                 'email'               => $data['email'] ?? null,
                 'joining_date'        => $data['joining_date'],
@@ -55,6 +56,7 @@ class CreateOfferLetter extends CreateRecord
         $editedName       = $data['name'];
         $editedUniversity = $data['university'];
         $editedCollege    = $data['college'];
+        $editedDegree     = $data['degree'] ?? null;
         $editedphone      = $data['phone'] ?? null;
         $editedemail      = $data['email'] ?? null;
 
@@ -77,6 +79,7 @@ class CreateOfferLetter extends CreateRecord
                 'name'                => $editedName,
                 'college'             => $editedCollege,
                 'university'          => $editedUniversity,
+                'degree'              => $editedDegree ?: ($application?->degree ?? null),
                 'phone'               => $editedphone,
                 'email'               => $editedemail,
                 'joining_date'        => $data['joining_date'],

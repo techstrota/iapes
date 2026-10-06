@@ -3,18 +3,14 @@
 namespace App\Filament\Intern\Resources;
 
 use App\Filament\Intern\Resources\AttendanceResource\Pages;
-use App\Filament\Intern\Resources\AttendanceResource\RelationManagers;
 use App\Models\Attendance;
-use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\Select;
@@ -23,10 +19,22 @@ use Carbon\Carbon;
 class AttendanceResource extends Resource
 {
     protected static ?string $model = Attendance::class;
-    protected static ?string $navigationIcon = 'heroicon-o-check-circle';
+    protected static ?string $navigationIcon = 'heroicon-o-check-badge';
+    protected static ?string $navigationLabel = 'My Attendance';
+    protected static ?string $navigationGroup = 'Work & Tasks';
+    protected static ?int $navigationSort = 2;
 
-    // Disable Create, Edit, and Delete buttons for Interns
     public static function canCreate(): bool 
+    {
+        return false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete($record): bool
     {
         return false;
     }
@@ -34,53 +42,33 @@ class AttendanceResource extends Resource
     // Global Scope: Show ONLY the logged-in intern's data
     public static function getEloquentQuery(): Builder
     {
-        // The authenticated user in the Intern panel is the Intern model
         return parent::getEloquentQuery()
             ->where('intern_id', auth()->id()); 
     }
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                //
-            ]);
+        return $form->schema([]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-                Stack::make([
-                    TextColumn::make('date')
-                        ->date('D, d M Y')
-                        ->extraAttributes(['class' => 'text-lg font-bold text-primary-600 dark:text-primary-400']),
-                    
-                    BadgeColumn::make('status')
-                        ->colors([
-                            'success' => 'present',
-                            'danger' => 'absent',
-                            'warning' => 'late',
-                            'primary' => 'leave',
-                        ])
-                        ->extraAttributes(['class' => 'my-2 w-fit']),
-
-                    TextColumn::make('note')
-                        ->size('sm')
-                        ->color('gray')
-                        ->prefix('Note: ')
-                        ->placeholder('No notes for this day') 
-                    ->toggleable(isToggledHiddenByDefault: false),
-                ]),
-            ])
-            // This transforms the table rows into a 3-column grid of cards
-            ->contentGrid([
-                'md' => 2,
-                'xl' => 5,
-            ])
+            ->poll('30s')
             ->defaultSort('date', 'desc')
-            ->recordAction(null) // Disables clicking into a view page if not needed
+            ->contentGrid([
+                'default' => 1,
+                'sm'      => 1,
+                'md'      => 2,
+                'lg'      => 3,
+                'xl'      => 3,
+                '2xl'     => 4,
+            ])
+            ->recordAction(null)
             ->recordUrl(null)
+            ->columns([
+                Tables\Columns\Layout\View::make('filament.intern.attendance.intern-attendance-card'),
+            ])
             ->filters([
                 SelectFilter::make('month')
                     ->label('Filter by Month')
@@ -105,54 +93,44 @@ class AttendanceResource extends Resource
                         );
                     }),
 
-                // 2. WEEK FILTER
                 Filter::make('week')
-                    ->label('Filter by Week')
+                    ->label('Filter by Timeframe')
                     ->form([
                         Select::make('week_offset')
-                            ->label('Time Period')
+                            ->label('Time Window')
                             ->options([
                                 '0' => 'This Week',
                                 '1' => 'Last Week',
                                 '2' => '2 Weeks Ago',
+                                '3' => 'Last 30 Days',
                             ]),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['week_offset'] !== null,
                             function (Builder $query) use ($data): Builder {
+                                if ($data['week_offset'] === '3') {
+                                    return $query->where('date', '>=', now()->subDays(30));
+                                }
                                 $startOfWeek = Carbon::now()->subWeeks((int) $data['week_offset'])->startOfWeek();
                                 $endOfWeek = Carbon::now()->subWeeks((int) $data['week_offset'])->endOfWeek();
-                                
                                 return $query->whereBetween('date', [$startOfWeek, $endOfWeek]);
                             },
                         );
-                    })
+                    }),
             ])
             ->filtersFormColumns(2)
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                // Tables\Actions\BulkActionGroup::make([
-                //     Tables\Actions\DeleteBulkAction::make(),
-                // ]),
-            ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
+            ->emptyStateHeading('No Attendance Records Found')
+            ->emptyStateDescription('There are currently no attendance logs matching your filter or tab criteria.')
+            ->emptyStateIcon('heroicon-o-calendar-days')
+            ->actions([])
+            ->bulkActions([]);
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListAttendances::route('/'),
-            'create' => Pages\CreateAttendance::route('/create'),
-            'edit' => Pages\EditAttendance::route('/{record}/edit'),
         ];
     }
 }

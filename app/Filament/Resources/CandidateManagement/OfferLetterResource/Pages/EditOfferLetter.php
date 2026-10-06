@@ -52,12 +52,20 @@ class EditOfferLetter extends EditRecord
         $intern = Intern::where('offer_letter_id', $record->id)->first();
 
         if ($intern) {
-            // Update the intern record with the new data from the offer letter
-            $intern->update([
-                'name' => $record->name,
-               // 'email' => $record->email
-                // You can add other fields here like phone or college if needed
-            ]);
+            // Update the intern record with the complete data from the offer letter
+            $intern->update(array_filter([
+                'name'                => $record->name,
+                'email'               => $record->email,
+                'phone'               => $record->phone,
+                'college'             => $record->college,
+                'degree'              => $record->degree,
+                'university'          => $record->university ?: $record->college,
+                'internship_role'     => $record->internship_role,
+                'internship_position' => $record->internship_position,
+                'joining_date'        => $record->joining_date,
+                'completion_date'     => $record->completion_date,
+                'working_hours'       => $record->working_hours,
+            ], fn ($val) => !is_null($val)));
         }
     }
 }

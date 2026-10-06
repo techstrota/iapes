@@ -14,122 +14,181 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Set; // Add this import
+use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 
 class InternTeamResource extends Resource
 {
     protected static ?string $model = InternTeam::class;
     protected static ?string $navigationGroup = 'Intern Management';
-    protected static ?string $navigationIcon = 'heroicon-s-users';
+    protected static ?string $navigationIcon = 'heroicon-o-squares-plus';
+    protected static ?string $navigationLabel = 'Project Teams';
+    protected static ?string $modelLabel = 'Project Team';
+    protected static ?string $pluralModelLabel = 'Project Teams';
     protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Team Identity')
+                Forms\Components\Section::make('Project Identity & Scope')
+                    ->description('Specify project name, domain track, and deliverables.')
                     ->schema([
-                        Forms\Components\TextInput::make('team_name')
-                            ->required() //
-                            ->maxLength(255),
-                        
-                        Forms\Components\Select::make('internship_batch_id')
-                            ->label('Internship Batch')
-                            ->relationship('batch', 'batch_name')
-                            ->live() //
-                            // Clears selected interns when the batch changes
-                            ->afterStateUpdated(fn (Set $set) => $set('interns', []))
-                            ->required(),
+                        Forms\Components\Grid::make(3)->schema([
+                            Forms\Components\TextInput::make('team_name')
+                                ->label('Project Title / Squad Name')
+                                ->required()
+                                ->maxLength(255)
+                                ->columnSpan(2),
+
+                            Forms\Components\Select::make('track')
+                                ->label('Domain Track')
+                                ->options([
+                                    'Full Stack' => 'Full Stack',
+                                    'Engineering' => 'Engineering',
+                                    'Product & Design' => 'Product & Design',
+                                    'AI Research' => 'AI Research',
+                                    'Cloud & DevOps' => 'Cloud & DevOps',
+                                ])
+                                ->default('Full Stack')
+                                ->required(),
+                        ]),
+
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\Select::make('status')
+                                ->label('Project Health / Status')
+                                ->options([
+                                    'on_track' => 'On Track',
+                                    'attention' => 'Attention Needed',
+                                    'completed' => 'Completed',
+                                ])
+                                ->default('on_track')
+                                ->required(),
+
+                            Forms\Components\TextInput::make('cohort_archive_name')
+                                ->label('Cohort / Archive Cycle (Optional)')
+                                ->placeholder('e.g. 2025-2026 Batch, Summer 2025')
+                                ->maxLength(255),
+                        ]),
+
+                        Forms\Components\RichEditor::make('project_description')
+                            ->label('Project Deliverables & Summary')
+                            ->placeholder('Describe objectives, architectural scope, and key deliverables...')
+                            ->columnSpanFull(),
                     ]),
 
-                Forms\Components\Section::make('Team Members')
+                Forms\Components\Section::make('Lead Mentor & Supervision')
+                    ->description('Mentor or engineering lead guiding this project team.')
+                    ->schema([
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('mentor_name')
+                                ->label('Lead Mentor Name')
+                                ->placeholder('e.g. David Kim, Dr. Sarah Lin')
+                                ->maxLength(255),
+
+                            Forms\Components\TextInput::make('mentor_title')
+                                ->label('Mentor Designation / Role')
+                                ->placeholder('e.g. Staff Software Engineer, Principal AI Scientist')
+                                ->maxLength(255),
+                        ]),
+                    ]),
+
+                Forms\Components\Section::make('Assigned Interns (Project Squad)')
+                    ->description('Assign individual interns to this project. A project squad can have any single (solo), double (pair), triple (trio), or group of interns (1 to N), independent of batch timing.')
+                    ->extraAttributes([
+                        'style' => 'overflow: visible !important; position: relative !important; z-index: 25;',
+                    ])
                     ->schema([
                         Forms\Components\Select::make('interns')
-                            ->label('Select Interns (2-3)')
-                            ->multiple() //
-                            ->minItems(2) //
-                            ->maxItems(3) //
-                            ->relationship(name: 'interns', 
-                                titleAttribute: 'name', 
-                                modifyQueryUsing: function (Builder $query, Get $get, $record) {
-                                $batchId = $get('internship_batch_id');
-
-                                // If no batch is selected, don't show any interns
-                                    if (! $batchId) {
-                                        return $query->whereNull('id'); 
-                                    }
-                                
-                               return $query->where('internship_batch_id', $batchId)
-                ->where(function ($query) use ($record) {
-                    // Show interns who don't have a team...
-                    $query->whereNull('intern_team_id')
-                        // ...OR interns who are already in THIS team (so they show up during edit)
-                        ->when($record, fn ($q) => $q->orWhere('intern_team_id', $record->id));
-                });
+                            ->label('Squad Members')
+                            ->multiple()
+                            ->relationship(
+                                name: 'interns',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function (Builder $query, $record) {
+                                    return $query->where(function ($q) use ($record) {
+                                        $q->whereNull('intern_team_id')
+                                            ->where('is_active', true);
+                                        if ($record) {
+                                            $q->orWhere('intern_team_id', $record->id);
+                                        }
+                                    });
+                                }
+                            )
+                            ->getOptionLabelFromRecordUsing(function ($record) {
+                                $code = $record->intern_code ? " ({$record->intern_code})" : "";
+                                $college = $record->college ? " - {$record->college}" : "";
+                                return "{$record->name}{$code}{$college}";
                             })
-                            ->preload() // This forces the options to load immediately without typing
-                            ->required(),
+                            ->preload()
+                            ->searchable()
+                            ->required()
+                            ->extraAttributes([
+                                'style' => 'position: relative; z-index: 30;',
+                            ]),
                     ]),
+
+                
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->poll('15s')
             ->contentGrid([
-                'md' => 3,
-                'xl' => 4,
+                'sm' => 1,
+                'md' => 1,
+                'lg' => 2,
+                'xl' => 2,
+                '2xl' => 3,
             ])
             ->columns([
-                Tables\Columns\Layout\Stack::make([
-                    // Header: Team Name and Batch Badge
-                    Tables\Columns\Layout\Split::make([
-                        Tables\Columns\TextColumn::make('team_name')
-                            ->label('Team Name')
-                            ->searchable()
-                            ->weight('bold')
-                            ->size('lg')
-                            ->grow(false),
-                        Tables\Columns\TextColumn::make('batch.batch_name')
-                            ->badge()
-                            ->icon('heroicon-m-briefcase') // Changed Icon
-                            ->color('warning')
-                            ->alignEnd(),
+                Tables\Columns\Layout\View::make('filament.intern-management.project-team-card')
+                    ->components([
+                        Tables\Columns\TextColumn::make('team_name')->searchable(),
+                        Tables\Columns\TextColumn::make('track')->searchable(),
+                        Tables\Columns\TextColumn::make('mentor_name')->searchable(),
+                        Tables\Columns\TextColumn::make('cohort_archive_name')->searchable(),
                     ]),
-
-                    // Body: Member Count with Icon
-                    Tables\Columns\TextColumn::make('interns_count')
-                        ->counts('interns')
-                        ->formatStateUsing(fn ($state) => "👥 " . ($state ?? 0) . " Members")
-                        ->color('info')
-                        ->weight('bold')
-                        ->extraAttributes(['class' => 'text-sm mt-2 font-medium']),
-
-                    // Footer: Bulleted List of Names
-                    Tables\Columns\TextColumn::make('interns.name')
-                        ->listWithLineBreaks()
-                        ->bulleted()
-                        ->color('white')
-                        ->weight('medium')
-                        ->extraAttributes(['class' => 'mt-4 text-sm leading-relaxed opacity-90']),
-                ])->space(4),
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make()
-                    ->button()
-                    ->label('Edit Team Details') // Clearer label
-                    ->icon('heroicon-m-pencil-square')
-                    ->outlined()
-                    ->size('md'),
-
-                    // Tables\Actions\EditAction::make(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('track')
+                    ->label('Domain Track')
+                    ->options([
+                        'Full Stack' => 'Full Stack',
+                        'Engineering' => 'Engineering',
+                        'Product & Design' => 'Product & Design',
+                        'AI Research' => 'AI Research',
+                        'Cloud & DevOps' => 'Cloud & DevOps',
+                    ]),
+
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'on_track' => 'On Track',
+                        'attention' => 'Attention Needed',
+                        'completed' => 'Completed',
+                    ])
+                    ->label('Project Status'),
+
+                Tables\Filters\SelectFilter::make('cohort_archive_name')
+                    ->label('Archive Cycle')
+                    ->options(function () {
+                        return InternTeam::whereNotNull('cohort_archive_name')
+                            ->where('cohort_archive_name', '!=', '')
+                            ->distinct()
+                            ->pluck('cohort_archive_name', 'cohort_archive_name')
+                            ->toArray();
+                    }),
+
+                Tables\Filters\TernaryFilter::make('is_archived')
+                    ->label('Archive Status')
+                    ->placeholder('Active Projects')
+                    ->trueLabel('Archived Projects Only')
+                    ->falseLabel('Active Projects Only'),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
-            ]);
+            ->actions([])
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array

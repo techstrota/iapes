@@ -90,20 +90,13 @@ class CertificateController extends Controller
             'offers'  => $offers,
             'isPdf'   => true,
             'logo'    => $logoBase64,
-            'interns'  => $interns,
-
+            'interns' => $interns,
         ])->render();
 
-        $browsershot = Browsershot::html($html)
-            ->setNodeBinary(env('NODE_PATH', '/usr/bin/node'))
-            ->setNpmBinary(env('NPM_PATH', '/usr/bin/npm'))
-            ->setChromePath(env('CHROME_PATH'))
+        $pdf = $this->getBrowsershot($html)
             ->format('A4')
             ->showBackground()
-            ->noSandbox()
-            ->timeout(120);
-
-        $pdf = $browsershot->pdf();
+            ->pdf();
 
         return response($pdf)
             ->header('Content-Type', 'application/pdf')
@@ -143,22 +136,56 @@ class CertificateController extends Controller
             'qrCodes' => $qrCodes,
         ])->render();
 
-        $browsershot = Browsershot::html($html)
-            ->setNodeBinary(env('NODE_PATH', '/usr/bin/node'))
-            ->setNpmBinary(env('NPM_PATH', '/usr/bin/npm'))
-            ->setChromePath(env('CHROME_PATH'))
+        $pdf = $this->getBrowsershot($html)
             ->format('A4')
             ->landscape()
             ->showBackground()
             ->margins(0, 0, 0, 0)
-            ->noSandbox()
-            ->timeout(120);
-
-        $pdf = $browsershot->pdf();
+            ->pdf();
 
         return response($pdf)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    }
+
+    /**
+     * Configures a robust Browsershot instance supporting Windows & Linux environments.
+     */
+    protected function getBrowsershot(string $html): Browsershot
+    {
+        $browsershot = Browsershot::html($html);
+
+        $nodePath = env('NODE_PATH') ?: (PHP_OS_FAMILY === 'Windows' ? 'C:\Program Files\nodejs\node.exe' : '/usr/bin/node');
+        if (is_string($nodePath) && file_exists($nodePath)) {
+            $browsershot->setNodeBinary($nodePath);
+        }
+
+        $npmPath = env('NPM_PATH') ?: (PHP_OS_FAMILY === 'Windows' ? 'C:\Program Files\nodejs\npm.cmd' : '/usr/bin/npm');
+        if (is_string($npmPath) && file_exists($npmPath)) {
+            $browsershot->setNpmBinary($npmPath);
+        }
+
+        $chromePath = env('CHROME_PATH');
+        if ($chromePath && is_string($chromePath) && file_exists($chromePath)) {
+            $browsershot->setChromePath($chromePath);
+        } elseif (PHP_OS_FAMILY === 'Windows') {
+            $possibleChrome = [
+                'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+                'C:\Program Files\Google\Chrome\Application\chrome.exe',
+                'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
+                'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+            ];
+            foreach ($possibleChrome as $path) {
+                if (file_exists($path)) {
+                    $browsershot->setChromePath($path);
+                    break;
+                }
+            }
+        }
+
+        return $browsershot
+            ->noSandbox()
+            ->timeout(120);
     }
 
     public function verifyQR($token = null)
@@ -167,12 +194,23 @@ class CertificateController extends Controller
             abort(404, 'Invalid verification link.');
         }
 
-        // 1. Try to find the token in the Intern model first
-        $intern = \App\Models\InternManagement\Intern::where('cert_token', $token)->first();
+        // 1. Try to find in CompletionCertificate model (by cert_token or cert_ref_id)
+        $compCert = \App\Models\InternManagement\CompletionCertificate::where('cert_token', $token)
+            ->orWhere('cert_ref_id', $token)
+            ->first();
+
+        if ($compCert) {
+            return $this->downloadCertificate(request(), (string) $compCert->intern_id);
+        }
+
+        // 2. Try to find the token in the Intern model
+        $intern = \App\Models\InternManagement\Intern::where('cert_token', $token)
+            ->orWhere('cert_ref_id', $token)
+            ->first();
 
         if ($intern) {
             // If found in Interns, use your existing certificate download logic
-            return $this->downloadCertificate(request(), $intern->id);
+            return $this->downloadCertificate(request(), (string) $intern->id);
         }
 
         // 2. Fallback: Try to find the token in the ManualCertificate model

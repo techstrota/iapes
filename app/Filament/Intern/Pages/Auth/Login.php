@@ -96,7 +96,7 @@ class Login extends BaseLogin
     protected function throwFailureNotification(string $message): void
     {
         Notification::make()
-            ->title('Login Restrictied')
+            ->title('Login Restricted')
             ->body($message)
             ->danger()
             ->send();

@@ -14,7 +14,7 @@ class PendingInternsTableWidget extends BaseWidget
 {
     public ?Model $record = null;
 
-    protected static ?string $heading = '⏳ Pending Interns';
+    protected static ?string $heading = 'Pending Submissions';
     
     // Put it full width
     protected int | string | array $columnSpan = 'full';
@@ -44,20 +44,48 @@ class PendingInternsTableWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('name')
                     ->label('Intern Name')
                     ->weight('bold')
+                    ->icon('heroicon-o-user')
+                    ->iconColor('primary')
+                    ->description(fn (Intern $record): ?string => $record->email ?: ($record->intern_id ?? null))
                     ->searchable(),
+
                 Tables\Columns\TextColumn::make('team.team_name')
-                    ->label('Team')
-                    ->placeholder('—'),
+                    ->label('Project Team')
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('Unassigned'),
+
                 Tables\Columns\TextColumn::make('batch.batch_name')
                     ->label('Batch')
-                    ->placeholder('—'),
+                    ->badge()
+                    ->color('primary')
+                    ->placeholder('Unassigned'),
+
                 Tables\Columns\TextColumn::make('due_date')
-                    ->label('Due Date')
-                    ->state(fn () => $this->record?->due_date?->format('M d, Y') ?? 'No deadline')
-                    ->color(fn () => $this->record?->is_overdue ? 'danger' : 'gray')
-                    ->weight(fn () => $this->record?->is_overdue ? 'bold' : 'regular'),
+                    ->label('Submission Deadline')
+                    ->badge()
+                    ->state(function () {
+                        if (!$this->record?->due_date) {
+                            return 'No Deadline';
+                        }
+                        $due = $this->record->due_date;
+                        if ($this->record->is_overdue) {
+                            return 'Overdue • ' . $due->format('M d, Y');
+                        }
+                        if ($due->isToday()) {
+                            return 'Due Today • ' . $due->format('M d, Y');
+                        }
+                        return 'Due • ' . $due->format('M d, Y');
+                    })
+                    ->color(function () {
+                        if (!$this->record?->due_date) return 'gray';
+                        if ($this->record->is_overdue) return 'danger';
+                        if ($this->record->due_date->isToday()) return 'warning';
+                        return 'info';
+                    }),
             ])
-            ->emptyStateHeading('🎉 All assigned interns have submitted!')
+            ->emptyStateHeading('All Assigned Interns Have Submitted')
+            ->emptyStateDescription('There are currently no pending submissions for this task. Every assigned intern has submitted their deliverable.')
             ->emptyStateIcon('heroicon-o-check-badge');
     }
 }

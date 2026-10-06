@@ -22,9 +22,10 @@ class CandidateStatsOverview extends BaseWidget
 
     protected function getStats(): array
     {
-        // 7-day sparkline data for each status
+        // 7-day sparkline data for each status (active candidates)
         $sparkline = fn (string $status = null) => collect(range(6, 0))->map(function ($day) use ($status) {
-            $query = Application::whereNotIn('status', ['pending', 'verified'])
+            $query = Application::active()
+                ->whereNotIn('status', ['pending', 'verified'])
                 ->whereDate('created_at', Carbon::today()->subDays($day));
             if ($status) {
                 $query->where('status', $status);
@@ -32,11 +33,11 @@ class CandidateStatsOverview extends BaseWidget
             return $query->count();
         })->toArray();
 
-        $total = Application::whereNotIn('status', ['pending', 'verified'])->count();
-        $applied = Application::where('status', 'applied')->count();
-        $scheduled = Application::where('status', 'interview_scheduled')->count();
-        $shortlisted = Application::where('status', 'shortlisted')->count();
-        $rejected = Application::where('status', 'rejected')->count();
+        $total = Application::active()->whereNotIn('status', ['pending', 'verified'])->count();
+        $applied = Application::active()->where('status', 'applied')->count();
+        $scheduled = Application::active()->where('status', 'interview_scheduled')->count();
+        $shortlisted = Application::active()->where('status', 'shortlisted')->count();
+        $rejected = Application::active()->where('status', 'rejected')->count();
 
         return [
             Stat::make('Total Candidates', $total)

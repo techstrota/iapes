@@ -22,15 +22,18 @@ class ViewCandidate extends ViewRecord
     {
         return $infolist
             ->schema([
-                // ── Status Banner (Full Width) ──
-                Components\Section::make()
+                // ── Application Overview Banner (Full Width) ──
+                Components\Section::make('Application Overview')
+                    ->icon('heroicon-o-identification')
                     ->schema([
-                        Components\Grid::make(3)->schema([
+                        Components\Grid::make(4)->schema([
                             Components\TextEntry::make('application_code')
                                 ->label('Application Code')
+                                ->icon('heroicon-m-hashtag')
                                 ->weight('bold')
                                 ->size('lg')
-                                ->copyable(),
+                                ->copyable()
+                                ->color('primary'),
 
                             Components\TextEntry::make('status')
                                 ->label('Current Status')
@@ -62,7 +65,15 @@ class ViewCandidate extends ViewRecord
 
                             Components\TextEntry::make('created_at')
                                 ->label('Applied On')
+                                ->icon('heroicon-m-calendar-days')
                                 ->date('d M, Y  h:i A'),
+
+                            Components\TextEntry::make('current_batch')
+                                ->label('Interview Batch')
+                                ->icon('heroicon-m-user-group')
+                                ->state(fn ($record) => optional($record->interviewAssignments()->latest()->first()?->batch)->interview_batch_name ?? 'Not Assigned Yet')
+                                ->badge(fn ($state) => $state !== 'Not Assigned Yet')
+                                ->color(fn ($state) => $state !== 'Not Assigned Yet' ? 'info' : 'gray'),
                         ]),
                     ]),
 
@@ -73,13 +84,14 @@ class ViewCandidate extends ViewRecord
                         Components\Group::make()
                             ->columnSpan(2)
                             ->schema([
-                                // Personal Information (Includes Resume)
+                                // Personal Information
                                 Components\Section::make('Personal Information')
                                     ->icon('heroicon-o-user')
                                     ->columns(3)
                                     ->schema([
                                         Components\TextEntry::make('name')
                                             ->label('Full Name')
+                                            ->icon('heroicon-m-user')
                                             ->weight('bold')
                                             ->size('lg'),
 
@@ -94,20 +106,27 @@ class ViewCandidate extends ViewRecord
                                             ->copyable(),
                                             
                                         Components\TextEntry::make('college')
-                                            ->label('College'),
+                                            ->label('College / University')
+                                            ->icon('heroicon-m-academic-cap'),
 
                                         Components\TextEntry::make('degree')
-                                            ->label('Degree'),
+                                            ->label('Degree / Branch')
+                                            ->icon('heroicon-m-bookmark'),
 
                                         Components\TextEntry::make('year')
-                                            ->label('Year / Semester'),
+                                            ->label('Passing Year')
+                                            ->icon('heroicon-m-calendar'),
 
                                         Components\TextEntry::make('cgpa')
                                             ->label('CGPA / Percentage')
-                                            ->weight('bold'),
+                                            ->icon('heroicon-m-star')
+                                            ->weight('bold')
+                                            ->badge()
+                                            ->color('success'),
 
                                         Components\TextEntry::make('resume_path')
                                             ->label('Resume Document')
+                                            ->icon('heroicon-m-document-text')
                                             ->formatStateUsing(fn ($state) => $state ? '📄 View Uploaded Resume' : 'No resume uploaded')
                                             ->url(fn ($record) => $record->resume_path
                                                 ? asset('storage/' . $record->resume_path)
@@ -125,18 +144,23 @@ class ViewCandidate extends ViewRecord
                                     ->columns(3)
                                     ->schema([
                                         Components\TextEntry::make('domain')
-                                            ->label('Interested Field')
+                                            ->label('Interested Domain')
+                                            ->icon('heroicon-m-rectangle-group')
                                             ->badge()
                                             ->color('info'),
 
                                         Components\TextEntry::make('duration')
                                             ->label('Duration')
+                                            ->icon('heroicon-m-clock')
                                             ->formatStateUsing(fn ($state, $record) =>
                                                 $state . ' ' . ucfirst($record->duration_unit ?? 'months')
-                                            ),
+                                            )
+                                            ->badge()
+                                            ->color('warning'),
 
                                         Components\TextEntry::make('skills')
                                             ->label('Skills')
+                                            ->icon('heroicon-m-code-bracket')
                                             ->badge()
                                             ->separator(',')
                                             ->columnSpanFull(),
@@ -147,7 +171,7 @@ class ViewCandidate extends ViewRecord
                         Components\Group::make()
                             ->columnSpan(1)
                             ->schema([
-                                // Timeline
+                                // Status Timeline
                                 Components\Section::make('Status Timeline')
                                     ->icon('heroicon-o-clock')
                                     ->schema([
@@ -162,12 +186,14 @@ class ViewCandidate extends ViewRecord
                                     ->schema([
                                         Components\TextEntry::make('latest_assignment_batch')
                                             ->label('Batch Name')
+                                            ->icon('heroicon-m-user-group')
                                             ->state(fn ($record) => optional($record->interviewAssignments()->latest()->first()->batch)->interview_batch_name ?? 'N/A')
                                             ->weight('bold')
                                             ->columnSpan(2),
 
                                         Components\TextEntry::make('latest_assignment_date')
                                             ->label('Interview Date')
+                                            ->icon('heroicon-m-calendar')
                                             ->state(fn ($record) => optional($record->interviewAssignments()->latest()->first()->batch)->interview_date 
                                                 ? \Carbon\Carbon::parse(optional($record->interviewAssignments()->latest()->first()->batch)->interview_date)->format('d M, Y')
                                                 : 'N/A'
@@ -175,6 +201,7 @@ class ViewCandidate extends ViewRecord
 
                                         Components\TextEntry::make('latest_assignment_location')
                                             ->label('Location')
+                                            ->icon('heroicon-m-map-pin')
                                             ->state(fn ($record) => optional($record->interviewAssignments()->latest()->first()->batch)->interview_location ?? 'N/A'),
 
                                         Components\TextEntry::make('latest_attendance')
@@ -198,7 +225,8 @@ class ViewCandidate extends ViewRecord
                                             }),
 
                                         Components\TextEntry::make('latest_problem_solving')
-                                            ->label('Problem Solving')
+                                            ->label('Technical Skills')
+                                            ->icon('heroicon-m-cpu-chip')
                                             ->state(fn ($record) => optional($record->interviewAssignments()->latest()->first())->problem_solving !== null
                                                 ? optional($record->interviewAssignments()->latest()->first())->problem_solving . ' / 25'
                                                 : '-'
@@ -206,6 +234,7 @@ class ViewCandidate extends ViewRecord
 
                                         Components\TextEntry::make('latest_communication')
                                             ->label('Communication')
+                                            ->icon('heroicon-m-chat-bubble-left-right')
                                             ->state(fn ($record) => optional($record->interviewAssignments()->latest()->first())->communication !== null
                                                 ? optional($record->interviewAssignments()->latest()->first())->communication . ' / 25'
                                                 : '-'
@@ -213,16 +242,19 @@ class ViewCandidate extends ViewRecord
 
                                         Components\TextEntry::make('latest_total_score')
                                             ->label('Total Score')
+                                            ->icon('heroicon-m-trophy')
                                             ->state(fn ($record) => optional($record->interviewAssignments()->latest()->first())->overall_score !== null
                                                 ? optional($record->interviewAssignments()->latest()->first())->overall_score . ' / 50'
                                                 : 'Not Evaluated'
                                             )
                                             ->weight('bold')
+                                            ->badge(fn ($state) => str_contains($state, '/'))
                                             ->color(fn ($state) => str_contains($state, '/') ? 'success' : 'gray')
                                             ->columnSpan(2),
 
                                         Components\TextEntry::make('latest_remarks')
                                             ->label('Evaluator Remarks')
+                                            ->icon('heroicon-m-chat-bubble-bottom-center-text')
                                             ->state(fn ($record) => optional($record->interviewAssignments()->latest()->first())->remarks ?? 'No remarks added')
                                             ->columnSpan(2)
                                             ->color('gray'),

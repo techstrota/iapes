@@ -12,32 +12,25 @@ class ViewTask extends ViewRecord
 {
     protected static string $resource = TaskResource::class;
 
+    protected static string $view = 'filament.task-management.view-task';
+
+    public function markTaskCompleted(): void
+    {
+        $this->record->update(['status' => 'completed']);
+        Notification::make()
+            ->title('Task marked as completed.')
+            ->success()
+            ->send();
+    }
+
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\EditAction::make(),
-            
-            Actions\Action::make('markCompleted')
-                ->label('Mark as Completed')
-                ->icon('heroicon-o-check-badge')
-                ->color('success')
-                ->requiresConfirmation()
-                ->hidden(fn (Task $record) => $record->status === 'completed')
-                ->action(function (Task $record) {
-                    $record->update(['status' => 'completed']);
-                    Notification::make()
-                        ->title('Task marked as completed.')
-                        ->success()
-                        ->send();
-                }),
-        ];
+        return [];
     }
 
     protected function getHeaderWidgets(): array
     {
-        return [
-            TaskResource\Widgets\TaskStatsWidget::class,
-        ];
+        return [];
     }
 
     protected function getFooterWidgets(): array

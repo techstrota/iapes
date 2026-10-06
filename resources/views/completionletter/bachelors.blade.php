@@ -2,13 +2,14 @@
 
 @section('content')
     @php
-        $internName = $intern->offer_letters->name ?? $intern->application->name ?? 'Intern';
-        $internUniversity = $intern->offer_letters->university ??  '';
-        $internCollege = $intern->offer_letters->college ?? $intern->application->college ?? '';
-        $internDegree = $intern->offerLetter->degree ?? $intern->application->degree ?? '';
+        $internName = $intern->name ?: ($intern->offer_letters->name ?? $intern->application->name ?? 'Intern');
+        $internUniversity = $intern->university ?: ($intern->offer_letters->university ?? '');
+        $internCollege = $intern->college ?: ($intern->offer_letters->college ?? $intern->application->college ?? '');
+        $internDegree = $intern->degree ?: ($intern->offerLetter->degree ?? $intern->application->degree ?? '');
         $uni = $internCollege ?: $internUniversity;
-        $startDate = \Carbon\Carbon::parse($intern->offer_letters->joining_date);
-        $endDate = \Carbon\Carbon::parse($intern->offer_letters->completion_date);
+        $startDate = \Carbon\Carbon::parse($intern->joining_date ?: ($intern->offer_letters?->joining_date ?? now()));
+        $endDate = \Carbon\Carbon::parse($intern->completion_date ?: ($intern->offer_letters?->completion_date ?? now()));
+        $internRole = $intern->internship_role ?: ($intern->offer_letters?->internship_role ?? 'Software Development');
 
         // Count working days
         $workingDays = 0;
@@ -24,9 +25,7 @@
         $isShortTerm = ($calendarDays <= 31);
 
         // Total hours calculation: Working Days * Hours per day
-        //$workingHoursPerDay = $intern->offer_letters->working_hours /6 ?: 5;
-        //$totalHours = round(($workingHoursPerDay > 40) ? $workingHoursPerDay : ($workingDays * $workingHoursPerDay));
-        $workingHoursPerDay = $intern->offer_letters->working_hours ?? 5;
+        $workingHoursPerDay = 5;
         $totalHours = $workingDays * $workingHoursPerDay;
     @endphp
 
@@ -38,7 +37,7 @@
             <strong>Issued on: {{ \Carbon\Carbon::parse($intern->issuing_date)->format('d/m/Y') }}</strong>
         </div>
         <div class="meta-right">
-            <strong>Certificate ID: {{ $intern->intern_code }}</strong>
+            <strong>Reference ID: {{ $intern->letter_ref_id ?: ($intern->completionLetter?->letter_ref_id ?: ('LET-' . ($intern->intern_code ?: 'INT-' . str_pad($intern->id, 3, '0', STR_PAD_LEFT)))) }}</strong>
         </div>
     </div>
 
@@ -51,7 +50,7 @@
         the internship {!! $intern->grade ? 'with Grade <strong>' . e($intern->grade) . '</strong>' : '' !!}.
         @endif
         The internship was carried out for the course titled
-        <strong>“{{ $intern->offer_letters->internship_role }}”</strong>, conducted by
+        <strong>“{{ $internRole }}”</strong>, conducted by
         <strong>Techstrota</strong>@if($internCollege || $internUniversity) and facilitated by
             <strong>{{ $uni }}</strong>@endif.
         The internship duration was from <strong>{{ $startDate->format('d/m/Y') }}</strong> to

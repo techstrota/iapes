@@ -51,18 +51,19 @@ class Task extends Model
      */
     public function getAssignedInternsAttribute(): Collection
     {
-        $assignment = $this->assignments()->with(['intern', 'team.interns', 'batch.interns'])->first();
+        $assignments = $this->assignments()->with(['intern', 'team.interns', 'batch.interns'])->get();
+        $interns = collect();
 
-        if (!$assignment) {
-            return collect();
+        foreach ($assignments as $assignment) {
+            match ($assignment->assigned_type) {
+                'intern' => $assignment->intern ? $interns->push($assignment->intern) : null,
+                'team'   => $assignment->team ? $interns->push(...$assignment->team->interns) : null,
+                'batch'  => $assignment->batch ? $interns->push(...$assignment->batch->interns) : null,
+                default  => null,
+            };
         }
 
-        return match ($assignment->assigned_type) {
-            'intern' => $assignment->intern ? collect([$assignment->intern]) : collect(),
-            'team'   => $assignment->team?->interns ?? collect(),
-            'batch'  => $assignment->batch?->interns ?? collect(),
-            default  => collect(),
-        };
+        return $interns->unique('id')->values();
     }
 
     /**

@@ -34,6 +34,15 @@ class Application extends Model
         'skills',
         'resume_path',
         'status',
+        'is_archived',
+        'cohort_archive_name',
+        'archive_note',
+        'archived_at',
+    ];
+
+    protected $casts = [
+        'is_archived' => 'boolean',
+        'archived_at' => 'datetime',
     ];
 
     protected static function booted()
@@ -151,6 +160,41 @@ class Application extends Model
     public function interviewAssignments(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Models\InterviewManagement\InterviewAssignment::class, 'application_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_archived', false);
+    }
+
+    public function scopeArchived($query)
+    {
+        return $query->where('is_archived', true);
+    }
+
+    public function scopeInCycle($query, string $cycleName)
+    {
+        return $query->where('cohort_archive_name', $cycleName);
+    }
+
+    public function archive(string $cycleName, ?string $note = null): void
+    {
+        $this->update([
+            'is_archived' => true,
+            'cohort_archive_name' => $cycleName,
+            'archive_note' => $note,
+            'archived_at' => now(),
+        ]);
+    }
+
+    public function unarchive(): void
+    {
+        $this->update([
+            'is_archived' => false,
+            'cohort_archive_name' => null,
+            'archive_note' => null,
+            'archived_at' => null,
+        ]);
     }
 
 }

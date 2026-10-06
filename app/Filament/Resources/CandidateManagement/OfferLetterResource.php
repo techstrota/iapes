@@ -510,15 +510,30 @@ class OfferLetterResource extends Resource
                                 $plainPassword  = "ts{$year}{$paddedSequence}";
 
                                 $intern = Intern::create([
-                                    'application_id'  => $record->application_id,
-                                    'offer_letter_id' => $record->id,
-                                    'intern_code'     => $generatedCode,
-                                    'username'        => $username,
-                                    'password'        => \Illuminate\Support\Facades\Hash::make($plainPassword),
-                                    'name'            => $record->application?->name ?? $record->name ?? 'Intern ' . $sequence,
-                                    'email'           => $record->application?->email ?? $record->email ?? "intern{$sequence}@example.com",
-                                    'joining_date'    => $record->joining_date,
-                                    'is_active'       => true,
+                                    'application_id'             => $record->application_id,
+                                    'offer_letter_id'            => $record->id,
+                                    'intern_code'                => $generatedCode,
+                                    'username'                   => $username,
+                                    'password'                   => \Illuminate\Support\Facades\Hash::make($plainPassword),
+                                    'plain_password'             => $plainPassword,
+                                    'name'                       => $record->name ?: ($record->application?->name ?: 'Intern ' . $sequence),
+                                    'email'                      => $record->email ?: ($record->application?->email ?: "intern{$sequence}@example.com"),
+                                    'phone'                      => $record->phone ?: $record->application?->phone,
+                                    'college'                    => $record->college ?: $record->application?->college,
+                                    'degree'                     => $record->degree ?: $record->application?->degree,
+                                    'university'                 => $record->university ?: ($record->college ?: $record->application?->college),
+                                    'academic_year'              => $record->application?->year,
+                                    'cgpa'                       => $record->application?->cgpa,
+                                    'domain'                     => $record->application?->domain,
+                                    'skills'                     => $record->application?->skills,
+                                    'internship_role'            => $record->internship_role ?: ($record->application?->domain ?: 'Intern'),
+                                    'internship_position'        => $record->internship_position ?: ($record->internship_role ? $record->internship_role . ' Intern' : 'Intern'),
+                                    'working_hours'              => $record->working_hours ?: '42 hours per week',
+                                    'joining_date'               => $record->joining_date,
+                                    'completion_date'            => $record->completion_date,
+                                    'completion_letter_template' => null,
+                                    'cert_token'                 => null,
+                                    'is_active'                  => true,
                                 ]);
 
                                 // ✉️ Send User ID & Password email automatically
@@ -544,6 +559,26 @@ class OfferLetterResource extends Resource
                         } else {
                             $intern = $record->intern;
                             if ($intern) {
+                                // Sync all details from offer letter and application to existing intern
+                                $intern->update(array_filter([
+                                    'name'                => $record->name ?: $record->application?->name,
+                                    'email'               => $record->email ?: $record->application?->email,
+                                    'phone'               => $record->phone ?: $record->application?->phone,
+                                    'college'             => $record->college ?: $record->application?->college,
+                                    'degree'              => $record->degree ?: $record->application?->degree,
+                                    'university'          => $record->university ?: ($record->college ?: $record->application?->college),
+                                    'academic_year'       => $record->application?->year,
+                                    'cgpa'                => $record->application?->cgpa,
+                                    'domain'              => $record->application?->domain,
+                                    'skills'              => $record->application?->skills,
+                                    'internship_role'     => $record->internship_role ?: $record->application?->domain,
+                                    'internship_position' => $record->internship_position,
+                                    'working_hours'       => $record->working_hours,
+                                    'joining_date'        => $record->joining_date,
+                                    'completion_date'     => $record->completion_date,
+                                    'is_active'           => true,
+                                ], fn ($val) => !is_null($val)));
+
                                 try {
                                     Mail::to($intern->email)->send(new InternWelcomeMail($intern));
                                 } catch (\Throwable $mailErr) {

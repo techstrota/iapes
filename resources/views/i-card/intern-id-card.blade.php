@@ -131,22 +131,23 @@
 
         <div class="name">
             @php
-                $nameParts = explode(' ', trim($intern->application->name ?? $intern->offerLetter->name));
+                $rawName = trim($intern->name ?: ($intern->application?->name ?? ($intern->offerLetter?->name ?? 'INTERN')));
+                $nameParts = explode(' ', $rawName);
                 $firstName = $nameParts[0];
                 $lastName = count($nameParts) > 1 ? end($nameParts) : '';
             @endphp
             {{ strtoupper($firstName . ' ' . $lastName) }}
         </div>
-        <div class="role">INTERN</div>
+        <div class="role">{{ strtoupper($intern->internship_role ?: ($intern->offerLetter?->internship_role ?: 'INTERN')) }}</div>
         <div class="int-id">{{ $intern->intern_code }}</div>
         <div class="date">
-            [{{ \Carbon\Carbon::parse($intern->offer_letters->joining_date)->format('d M Y') }}
+            [{{ \Carbon\Carbon::parse($intern->joining_date ?: ($intern->offer_letters?->joining_date ?? now()))->format('d M Y') }}
         -
-        {{ $intern->offer_letters?->completion_date 
-            ? \Carbon\Carbon::parse($intern->offer_letters->completion_date)->format('d M Y') 
+        {{ ($intern->completion_date ?: $intern->offer_letters?->completion_date)
+            ? \Carbon\Carbon::parse($intern->completion_date ?: $intern->offer_letters?->completion_date)->format('d M Y') 
             : 'PRESENT' }}]
         </div>
-        <div class="contact">{{ $intern->application->phone ??  $intern->offerLetter->phone}}</div>
+        <div class="contact">{{ $intern->phone ?: ($intern->offerLetter?->phone ?? ($intern->application?->phone ?? '')) }}</div>
         <div class="address">
             TechSrota, Alkapuri,<br>
             Vadodara, Gujarat - 390007

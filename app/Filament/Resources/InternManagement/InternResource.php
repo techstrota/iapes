@@ -14,8 +14,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\{Action, BulkAction, DeleteBulkAction, EditAction, ActionGroup};
-use Filament\Tables\Columns\{TextColumn, ToggleColumn, BadgeColumn, IconColumn};
+use Filament\Tables\Columns\{TextColumn, ToggleColumn, BadgeColumn, IconColumn, ImageColumn};
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Support\Enums\FontWeight;
 use Illuminate\Support\Facades\View;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +25,7 @@ use Spatie\Browsershot\Browsershot;
 use ZipArchive;
 use Filament\Forms\Set;
 use Filament\Forms\Get;
+use App\Services\CompletionDocumentService;
 
 class InternResource extends Resource
 {
@@ -31,360 +33,488 @@ class InternResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-s-user-group';
     protected static ?string $navigationGroup = 'Intern Management';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
 
     
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Intern Selection')
-                    ->description('Select an intern to generate or edit their completion details.')
-                    ->schema([
-                        Select::make('application_id') // Binds to the Intern ID
-                            // ->relationship('application', 'name')
-                            ->label('Select Intern')
-                            ->options(function (?Intern $record) {
-                                return Intern::with(['application', 'offerletter'])
-                                    ->where(function ($query) use ($record) {
-                                        // Always include the current intern when editing
-                                        if ($record?->id) {
-                                            $query->where('id', $record->id);
-                                        }
-                                    })
-                                    ->orWhereHas('offerletter', fn($q) => $q->where('is_accepted', true))
-                                    ->get()
-                                    ->mapWithKeys(function (Intern $intern) {
-                                        // Priority: offerLetter name → application name → intern_code
-                                        $name = $intern->offerletter?->name
-                                            ?? $intern->application?->name
-                                            ?? $intern->intern_code;
+                Forms\Components\Tabs::make('Intern Profile Details')
+                    ->tabs([
+                        Forms\Components\Tabs\Tab::make('Identity & Profile')
+                            ->icon('heroicon-m-identification')
+                            ->schema([
+                                Grid::make(12)->schema([
+                                    FileUpload::make('intern_image')
+                                        ->label('Profile Photo')
+                                        ->image()
+                                        ->avatar()
+                                        ->imageEditor()
+                                        ->directory('intern-profiles')
+                                        ->visibility('public')
+                                        ->columnSpan(['sm' => 12, 'md' => 3]),
 
-                                        return [$intern->application_id ?? $intern->id => $name];
-                                    });
-                            })
-                            ->searchable()
-                            ->preload()
-                            // ->required()
-                            ->live()
-                            ->afterStateUpdated(function (Set $set, $state) {
-                                if (!$state) return;
+                                    Grid::make(2)->columnSpan(['sm' => 12, 'md' => 9])->schema([
+                                        TextInput::make('name')
+                                            ->label('Full Name')
+                                            ->required()
+                                            ->maxLength(255),
 
-                                $app = Application::with([
-                                    'offer_letters' => fn($q) => $q->where('is_accepted', true)
-                                ])->find($state);
+                                        TextInput::make('intern_code')
+                                            ->label('Intern Code')
+                                            ->placeholder('e.g. INT-001')
+                                            ->maxLength(255),
 
-                                if ($app) {
-                                    $offer = $app->offer_letters->first();
+                                        TextInput::make('email')
+                                            ->label('Email Address')
+                                            ->email()
+                                            ->required()
+                                            ->maxLength(255),
 
-                                    // Always prefer offer letter name as that's the legal name
-                                    $set('intern_name',          $offer?->name          ?? $app->name);
-                                    $set('college',              $offer?->college        ?? $app->college);
-                                    $set('degree',               $offer?->degree         ?? $app->degree);
-                                    $set('university',           $offer?->university     ?? $app->university);
-                                    $set('joining_date',         $offer?->joining_date);
-                                    $set('internship_role',      $offer?->internship_role);
-                                    $set('internship_position',  $offer?->internship_position);
-                                    $set('completion_date',      $offer?->completion_date);
-                                }
-                            }),
-                    ]),
+                                        TextInput::make('phone')
+                                            ->label('Phone Number')
+                                            ->tel()
+                                            ->placeholder('+91 ...')
+                                            ->maxLength(255),
 
-                Section::make('Completion Details')
-                    ->schema([
-                        Grid::make(3)->schema([
-                            TextInput::make('project_name')
-                                ->label('Project Name')
-                                ->required(),
-                            
-                            TextInput::make('grade')
-                                ->label('Grade')
-                                ->placeholder('A, B, etc.')
-                                ->maxLength(255),
-                            
-                            // DatePicker::make('completion_date')
-                            //     ->label('Completion Date')
-                            //     ->default(now())
-                            //     ->afterStateHydrated(fn ($component, $record) => $component->state($record?->offer_letters?->completion_date))
-                            //     ->required(),
+                                        Forms\Components\Toggle::make('is_active')
+                                            ->label('Account Active Status')
+                                            ->helperText('Active interns appear in active rosters and can authenticate to the portal.')
+                                            ->default(true),
+                                    ]),
+                                ]),
+                            ]),
 
-                            DatePicker::make('issuing_date')
-                                ->label('Issuing Date')
-                                ->required()
-                                ->after('completion_date')
-                                ->minDate(fn (Get $get) => $get('completion_date')),
+                        Forms\Components\Tabs\Tab::make('Academic Background')
+                            ->icon('heroicon-m-academic-cap')
+                            ->schema([
+                                Grid::make(3)->schema([
+                                    TextInput::make('college')
+                                        ->label('College / Institution')
+                                        ->maxLength(255),
 
-                            Select::make('completion_letter_template')
-                            ->label('Completion Letter Template')
-                            ->options([
-                                'bachelors' => 'Bachelor Degree Completion Letter',
-                                'masters' => 'Master Degree Completion Letter',
-                            ])
-                            ->required()
-                            ->native(false) // This makes it look like the modern dropdown in your image
-                            ->searchable()   // Optional: allows HR to type and find the template quickly
-                            ->placeholder('Select a template')
-                            ->columnSpan(1),
-                        ]),
-                        
-                        RichEditor::make('project_description')
-                            ->label('Project Description')
-                            ->columnSpanFull(),
-                    ]),
+                                    TextInput::make('university')
+                                        ->label('University')
+                                        ->maxLength(255),
 
-                Section::make('Editable Fetched Information')
-                    ->description('Changes here will update the Offer Letter and Application records.')
-                    ->schema([
-                        Grid::make(2)->schema([
-                            TextInput::make('intern_name')
-                                ->label('Full Name')
-                                ->required()
-                                ->dehydrated(true) // Keep value on submit
-                                ->afterStateHydrated(function ($component, $record) {
-                                    $component->state(
-                                        $record?->offerletter?->name
-                                        ?? $record?->application?->name
-                                    );
-                                }),
- 
-                            TextInput::make('degree')
-                                ->label('Degree/Course')
-                                ->dehydrated(true)
-                                ->afterStateHydrated(fn ($component, $record) => $component->state(
-                                    $record?->offerletter?->degree ?? $record?->application?->degree
-                                )),
- 
-                            TextInput::make('college')
-                                ->label('College')
-                                ->dehydrated(true)
-                                ->afterStateHydrated(fn ($component, $record) => $component->state(
-                                    $record?->offerletter?->college ?? $record?->application?->college
-                                )),
- 
-                            TextInput::make('university')
-                                ->label('University')
-                                ->dehydrated(true)
-                                ->afterStateHydrated(fn ($component, $record) => $component->state(
-                                    $record?->offerletter?->university
-                                )),
- 
-                            TextInput::make('internship_role')
-                                ->label('Role')
-                                ->dehydrated(true)
-                                ->afterStateHydrated(fn ($component, $record) => $component->state(
-                                    $record?->offerletter?->internship_role
-                                )),
- 
-                            TextInput::make('internship_position')
-                                ->label('Position')
-                                ->dehydrated(true)
-                                ->afterStateHydrated(fn ($component, $record) => $component->state(
-                                    $record?->offerletter?->internship_position
-                                )),
+                                    TextInput::make('degree')
+                                        ->label('Degree / Course')
+                                        ->maxLength(255),
 
-                            DatePicker::make('joining_date')
-                                ->label('Joining Date')
-                                ->native(false)
-                                ->displayFormat('d-m-Y')
-                                ->dehydrated(true)
-                                ->afterStateHydrated(function ($component, $record) {
-                                    $date = $record?->offerletter?->joining_date;
-                                    if ($date) {
-                                        $component->state(\Carbon\Carbon::parse($date)->format('Y-m-d'));
-                                    }
-                                }),
- 
-                            DatePicker::make('completion_date')
-                                ->label('Completion Date')
-                                ->native(false)
-                                ->dehydrated(true)
-                                ->afterStateHydrated(function ($component, $record) {
-                                    $date = $record?->offerletter?->completion_date;
-                                    if ($date) {
-                                        $component->state(\Carbon\Carbon::parse($date)->format('Y-m-d'));
-                                    }
-                                }),
-                        ]),
-                    ]),
+                                    TextInput::make('academic_year')
+                                        ->label('Academic Year')
+                                        ->placeholder('e.g. 3rd Year, 2026')
+                                        ->maxLength(255),
+
+                                    TextInput::make('cgpa')
+                                        ->label('CGPA / Percentage')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->maxValue(100),
+
+                                    TextInput::make('domain')
+                                        ->label('Domain Interest')
+                                        ->placeholder('e.g. Web Development, AI')
+                                        ->maxLength(255),
+
+                                    TextArea::make('skills')
+                                        ->label('Skills / Competencies')
+                                        ->placeholder('e.g. Laravel, React, Python')
+                                        ->rows(3)
+                                        ->columnSpanFull(),
+                                ]),
+                            ]),
+
+                        Forms\Components\Tabs\Tab::make('Placement & Terms')
+                            ->icon('heroicon-m-briefcase')
+                            ->schema([
+                                Grid::make(3)->schema([
+                                    TextInput::make('internship_role')
+                                        ->label('Internship Role')
+                                        ->placeholder('e.g. Full Stack Developer')
+                                        ->required(),
+
+                                    TextInput::make('internship_position')
+                                        ->label('Position')
+                                        ->placeholder('e.g. Intern, Associate')
+                                        ->maxLength(255),
+
+                                    TextInput::make('working_hours')
+                                        ->label('Working Hours')
+                                        ->default('42 hours per week')
+                                        ->maxLength(255),
+
+                                    Select::make('internship_batch_id')
+                                        ->label('Cohort Batch')
+                                        ->relationship('batch', 'batch_name')
+                                        ->searchable()
+                                        ->preload()
+                                        ->nullable(),
+
+                                    Select::make('intern_team_id')
+                                        ->label('Project Squad / Team')
+                                        ->relationship('team', 'team_name')
+                                        ->searchable()
+                                        ->preload()
+                                        ->nullable(),
+
+                                    DatePicker::make('joining_date')
+                                        ->label('Joining Date')
+                                        ->native(false)
+                                        ->displayFormat('d-m-Y'),
+
+                                    DatePicker::make('completion_date')
+                                        ->label('Completion Date')
+                                        ->native(false)
+                                        ->displayFormat('d-m-Y'),
+                                ]),
+                            ]),
+
+                        Forms\Components\Tabs\Tab::make('Project & Completion')
+                            ->icon('heroicon-m-document-check')
+                            ->schema([
+                                Grid::make(3)->schema([
+                                    TextInput::make('project_name')
+                                        ->label('Project Name')
+                                        ->placeholder('e.g. FinTech Core Checkout')
+                                        ->maxLength(255),
+
+                                    TextInput::make('grade')
+                                        ->label('Final Grade')
+                                        ->placeholder('e.g. A+, O, A')
+                                        ->maxLength(10),
+
+                                    DatePicker::make('issuing_date')
+                                        ->label('Certificate Issuing Date')
+                                        ->native(false)
+                                        ->displayFormat('d-m-Y'),
+                                ]),
+
+                                Grid::make(3)->schema([
+                                    TextInput::make('cohort_archive_name')
+                                        ->label('Archived Cohort Cycle')
+                                        ->placeholder('e.g. 2025-2026 Annual Cohort')
+                                        ->maxLength(255),
+
+                                    Textarea::make('archive_note')
+                                        ->label('Archival Action Note')
+                                        ->placeholder('Milestones or remarks recorded during completion promotion')
+                                        ->rows(2)
+                                        ->columnSpan(2),
+                                ]),
+
+                                Grid::make(3)->schema([
+                                    Select::make('completion_letter_template')
+                                        ->label('Completion Letter Template')
+                                        ->options([
+                                            'bachelors' => 'Bachelor Degree Completion Letter',
+                                            'masters' => 'Master Degree Completion Letter',
+                                        ])
+                                        ->native(false)
+                                        ->placeholder('Select a template')
+                                        ->columnSpan(1),
+                                ]),
+
+                                RichEditor::make('project_description')
+                                    ->label('Project Description & Summary')
+                                    ->columnSpanFull(),
+                            ]),
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('3s') // ⬅ auto refresh
-            ->columns([
-                //
-                TextColumn::make('intern_code')
-                    ->label('Intern ID')
-                    ->sortable(),
-
-                TextColumn::make('application.application_code')
-                    ->label('Application ID')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Intern Name')
-                    ->getStateUsing(function ($record) {
-                        return $record->offerletter?->name 
-                            ?? $record->application?->name 
-                            ?? '';
-                    })
-                    ->description(fn ($record): string => $record->offerletter->internship_role ?? 'Not Allocated')
-                    ->searchable(['name']) // Allows searching if 'name' is a column in 'interns' table
-                    ->sortable(),
-                    
-                TextColumn::make('offerletter.internship_role')
-                    ->label('Intern Role')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('internship_duration')
-                    ->label('Internship Duration')
-                    ->getStateUsing(function ($record) {
-                        if (!$record->application) 
-                        {
-                            $start = \Carbon\Carbon::parse($record->offerletter->joining_date);
-                            $end = \Carbon\Carbon::parse($record->offerletter->completion_date);
-                            $days = (int) $start->diffInDays($end);
-
-                            // If less than 30 days, show in Days
-                            if ($days < 30) {
-                                return "{$days} " . \Illuminate\Support\Str::plural('Day', $days);
-                            }
-
-                            // Otherwise, show in Months (rounded to whole number)
-                            $months = (int) round($start->floatDiffInMonths($end));
-                            return "{$months} " . \Illuminate\Support\Str::plural('Month', $months);
-                        }
-
-                        return $record->application->duration . ' ' . $record->application->duration_unit . '';
-                    }),
-                TextColumn::make('completion_letter_template')
-                    ->label('Letter Template')
-                    ->placeholder('Not Selected')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'bachelors',
-                        'info' => 'masters',
-                        'gray' => null, // Shows gray if no template is selected yet
-                    ])
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state))
-                    ->sortable(),
-
-                TextColumn::make('offer_letters.completion_date')
-                    ->label('Completion Date')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->placeholder('Not Completed'),
-
-                TextColumn::make('project_name')
-                    ->label('Project Name')
-                    ->sortable()
-                    ->toggleable()
-                    ->placeholder('Not Allocated'),
-
-                ToggleColumn::make('is_active')
-                    ->label('Intern Status')
-                    ->disabled(fn ($record) => 
-                    // Deactivate/Disable toggle if completion date has passed
-                    $record->offerletter?->completion_date && 
-                    \Carbon\Carbon::parse($record->offerletter->completion_date)->isPast()
-                )
-                ->afterStateUpdated(function ($record, $state) {
-                    // Optional: Send a notification when manually toggled
-                    Notification::make()
-                        ->title($state ? 'Intern Activated' : 'Intern Deactivated')
-                        ->success()
-                        ->send();
-                }),
-
-                // Adding a status badge next to it makes it even clearer for HR
-                TextColumn::make('status_label')
-                    ->label('Intenrnship ')
-                    ->badge()
-                    ->getStateUsing(fn ($record) => 
-                        \Carbon\Carbon::parse($record->offerletter?->completion_date)->isPast() 
-                            ? 'Completed' 
-                            : 'On-going'
-                    )
-                    ->colors([
-                        'danger' => 'Completed',
-                        'success' => 'On-going',
-                    ]),
-
+            ->poll('10s')
+            ->defaultSort('intern_code', 'desc')
+            ->contentGrid([
+                'sm' => 1,
+                'md' => 2,
+                'lg' => 3,
+                'xl' => 3,
             ])
-        
+            ->recordUrl(fn ($record) => Pages\ViewIntern::getUrl(['record' => $record]))
+            ->columns([
+                Tables\Columns\Layout\View::make('filament.intern-management.intern-card')
+                    ->components([
+                        TextColumn::make('intern_code')->searchable(),
+                        TextColumn::make('name')->searchable(),
+                        TextColumn::make('email')->searchable(),
+                        TextColumn::make('cert_ref_id')->searchable(),
+                        TextColumn::make('letter_ref_id')->searchable(),
+                        TextColumn::make('offerletter.name')->searchable(),
+                        TextColumn::make('offerletter.internship_role')->searchable(),
+                        TextColumn::make('application.name')->searchable(),
+                        TextColumn::make('batch.batch_name')->searchable(),
+                        TextColumn::make('team.team_name')->searchable(),
+                    ]),
+            ])
             ->filters([
-                //
+                SelectFilter::make('internship_batch_id')
+                    ->relationship('batch', 'batch_name')
+                    ->label('Cohort Batch')
+                    ->searchable()
+                    ->preload(),
+
+                SelectFilter::make('intern_team_id')
+                    ->relationship('team', 'team_name')
+                    ->label('Squad Team')
+                    ->searchable()
+                    ->preload(),
+
+                SelectFilter::make('completion_letter_template')
+                    ->options([
+                        'bachelors' => 'Bachelor Degree',
+                        'masters' => 'Master Degree',
+                    ])
+                    ->label('Letter Template'),
+
+                SelectFilter::make('is_active')
+                    ->options([
+                        1 => 'Active Interns',
+                        0 => 'Inactive Interns',
+                    ])
+                    ->label('Account Status'),
             ])
             ->actions([
-            Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->color('info'),
 
-            Tables\Actions\ActionGroup::make([
-                Tables\Actions\Action::make('view_id_card')
-                    ->label('I-Card')
-                    ->icon('heroicon-o-identification')
-                    ->visible(fn ($record) => $record->offerLetter?->is_accepted ?? false)
-                    ->url(fn ($record) => route('print-id-card', ['id' => $record->id]))
-                    ->openUrlInNewTab(),
+                Tables\Actions\EditAction::make(),
 
-                Tables\Actions\Action::make('view_completion_letter')
-                    ->label('View Completion Letter')
-                    ->icon('heroicon-o-eye')
-                    ->color('success')
-                    ->visible(fn (Intern $record) => 
-                        ($record->offerLetter?->is_accepted ?? false) && 
-                        filled($record->completion_letter_template) &&
-                        filled($record->project_name)
-                    )
-                    ->url(fn (Intern $record) => route('intern.completion_letter.view', ['id' => $record->id]))
-                    ->openUrlInNewTab(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('completion_certificate')
+                        ->label('Completion Certificate')
+                        ->icon('heroicon-o-academic-cap')
+                        ->color('warning')
+                        ->modalHeading('Intern Completion Documents (Certificate & Letter)')
+                        ->modalDescription('Verify or modify details to generate both the Certificate and Completion Letter at the same time.')
+                        ->modalSubmitActionLabel(fn (Intern $record): string => 
+                            ($record->completionCertificate()->exists() || filled($record->cert_ref_id) || $record->completionLetter()->exists() || filled($record->letter_ref_id))
+                                ? 'Update & Re-generate Both'
+                                : 'Generate Both Documents'
+                        )
+                        ->fillForm(fn (Intern $record): array => [
+                            'template' => $record->completionLetter?->template 
+                                ?? ($record->completion_letter_template ?? 'bachelors'),
+                            'project_name' => $record->completionCertificate?->project_name 
+                                ?? ($record->completionLetter?->project_name 
+                                ?? ($record->team?->team_name 
+                                ?? ($record->project_name ?? ''))),
+                            'grade' => $record->completionCertificate?->grade 
+                                ?? ($record->completionLetter?->grade 
+                                ?? ($record->grade ?? 'A')),
+                            'issuing_date' => $record->completionCertificate?->issuing_date 
+                                ?? ($record->completionLetter?->issuing_date 
+                                ?? ($record->issuing_date ?? now()->toDateString())),
+                            'joining_date' => $record->completionCertificate?->joining_date 
+                                ?? ($record->completionLetter?->joining_date 
+                                ?? ($record->joining_date ?? $record->offerletter?->joining_date)),
+                            'completion_date' => $record->completionCertificate?->completion_date 
+                                ?? ($record->completionLetter?->completion_date 
+                                ?? ($record->completion_date ?? $record->offerletter?->completion_date)),
+                            'internship_role' => $record->completionCertificate?->internship_role 
+                                ?? ($record->completionLetter?->internship_role 
+                                ?? ($record->internship_role ?: ($record->offerletter?->internship_role ?? 'Software Development'))),
+                            'working_hours' => $record->completionLetter?->working_hours 
+                                ?? ($record->working_hours ?? '42 hours per week'),
+                            'degree' => $record->completionLetter?->degree 
+                                ?? ($record->degree ?? $record->offerletter?->degree),
+                            'college' => $record->completionLetter?->college 
+                                ?? ($record->college ?? $record->offerletter?->college),
+                            'university' => $record->completionLetter?->university 
+                                ?? ($record->university ?? $record->offerletter?->university),
+                            'project_description' => $record->completionLetter?->project_description 
+                                ?? ($record->team?->project_description ?? $record->project_description),
+                        ])
+                        ->form([
+                            Forms\Components\Grid::make(3)->schema([
+                                Forms\Components\Select::make('template')
+                                    ->label('Letter Template')
+                                    ->options([
+                                        'bachelors' => 'Bachelor Degree Completion Letter',
+                                        'masters'   => 'Master Degree Completion Letter',
+                                    ])
+                                    ->required(),
 
-                Tables\Actions\Action::make('download_completion_letter')
-                    ->label('Download Completion Letter')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->visible(fn (Intern $record) => 
-                        ($record->offerLetter?->is_accepted ?? false) && 
-                        filled($record->completion_letter_template) &&
-                        filled($record->project_name)
-                    )
-                    ->url(fn (Intern $record) => route('intern.completion_letter.download', ['id' => $record->id]))
-                    ->openUrlInNewTab(),
+                                Forms\Components\TextInput::make('project_name')
+                                    ->label('Assigned Project')
+                                    ->required(),
 
-                Tables\Actions\Action::make('view_certificate')
-                    ->label('View Certificate')
-                    ->icon('heroicon-o-eye')
-                    ->color('info')
-                    ->visible(fn (Intern $record) => 
-                        ($record->offerLetter?->is_accepted ?? false) && 
-                        filled($record->completion_letter_template) &&
-                        filled($record->project_name)
-                    )
-                    ->url(fn (Intern $record) => route('intern.certificate.view', ['id' => $record->id]))
-                    ->openUrlInNewTab(),
+                                Forms\Components\TextInput::make('grade')
+                                    ->label('Awarded Grade')
+                                    ->placeholder('e.g. A+, O, A')
+                                    ->required(),
+                            ]),
 
-                Tables\Actions\Action::make('print_certificate')
-                    ->label('Download Certificate')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('info')
-                    ->visible(fn (Intern $record) => 
-                        ($record->offerLetter?->is_accepted ?? false) && 
-                        filled($record->completion_letter_template) &&
-                        filled($record->project_name)
-                    )
-                    ->url(fn (Intern $record) => route('intern.certificate.download', ['id' => $record->id]))
-                    ->openUrlInNewTab(),
-            ])
-            ->icon('heroicon-m-ellipsis-vertical')
-            ->color('gray')
-            ->button() // Optional: makes the group look like a button
-            ->label('Actions'),
+                            Forms\Components\Grid::make(3)->schema([
+                                Forms\Components\DatePicker::make('issuing_date')
+                                    ->label('Document Issuing Date')
+                                    ->required()
+                                    ->default(now()),
+
+                                Forms\Components\DatePicker::make('joining_date')
+                                    ->label('Joining Date'),
+
+                                Forms\Components\DatePicker::make('completion_date')
+                                    ->label('Completion Date'),
+                            ]),
+
+                            Forms\Components\Grid::make(2)->schema([
+                                Forms\Components\TextInput::make('internship_role')
+                                    ->label('Internship Role'),
+
+                                Forms\Components\TextInput::make('working_hours')
+                                    ->label('Working Schedule'),
+                            ]),
+
+                            Forms\Components\Grid::make(3)->schema([
+                                Forms\Components\TextInput::make('degree')
+                                    ->label('Degree / Course'),
+
+                                Forms\Components\TextInput::make('college')
+                                    ->label('College / Institution'),
+
+                                Forms\Components\TextInput::make('university')
+                                    ->label('University'),
+                            ]),
+
+                            Forms\Components\RichEditor::make('project_description')
+                                ->label('Project Description')
+                                ->columnSpanFull(),
+                        ])
+                        ->action(function (array $data, Intern $record) {
+                            $service = app(CompletionDocumentService::class);
+                            $cert = $service->generateCertificate($record, $data, auth()->user()?->email ?? 'Admin');
+                            $letter = $service->generateLetter($record, $data, auth()->user()?->email ?? 'Admin');
+
+                            Notification::make()
+                                ->title("Certificate & Completion Letter Generated Successfully! 🎓📄")
+                                ->body("Certificate: {$cert->cert_ref_id} • Letter: {$letter->letter_ref_id}")
+                                ->success()
+                                ->actions([
+                                    \Filament\Notifications\Actions\Action::make('view_cert')
+                                        ->label('View Certificate')
+                                        ->url(route('intern.certificate.view', ['id' => $record->id]), shouldOpenInNewTab: true),
+                                    \Filament\Notifications\Actions\Action::make('view_letter')
+                                        ->label('View Letter')
+                                        ->url(route('intern.completion_letter.view', ['id' => $record->id]), shouldOpenInNewTab: true),
+                                    \Filament\Notifications\Actions\Action::make('download_cert')
+                                        ->label('Download Cert PDF')
+                                        ->url(route('intern.certificate.download', ['id' => $record->id]), shouldOpenInNewTab: true),
+                                    \Filament\Notifications\Actions\Action::make('download_letter')
+                                        ->label('Download Letter PDF')
+                                        ->url(route('intern.completion_letter.download', ['id' => $record->id]), shouldOpenInNewTab: true),
+                                ])
+                                ->persistent()
+                                ->send();
+                        }),
+
+                    Tables\Actions\Action::make('view_id_card')
+                        ->label('I-Card')
+                        ->icon('heroicon-o-identification')
+                        ->visible(fn ($record) => $record->offerletter?->is_accepted ?? false)
+                        ->url(fn ($record) => route('print-id-card', ['id' => $record->id]))
+                        ->openUrlInNewTab(),
+
+                    Tables\Actions\Action::make('view_completion_letter')
+                        ->label('View Completion Letter')
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(fn (Intern $record) => 
+                            filled($record->letter_ref_id) || 
+                            (($record->offerletter?->is_accepted ?? false) && filled($record->completion_letter_template) && filled($record->project_name))
+                        )
+                        ->url(fn (Intern $record) => route('intern.completion_letter.view', ['id' => $record->id]))
+                        ->openUrlInNewTab(),
+
+                    Tables\Actions\Action::make('download_completion_letter')
+                        ->label('Download Completion Letter')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('success')
+                        ->visible(fn (Intern $record) => 
+                            filled($record->letter_ref_id) || 
+                            (($record->offerletter?->is_accepted ?? false) && filled($record->completion_letter_template) && filled($record->project_name))
+                        )
+                        ->url(fn (Intern $record) => route('intern.completion_letter.download', ['id' => $record->id]))
+                        ->openUrlInNewTab(),
+
+                    Tables\Actions\Action::make('view_certificate')
+                        ->label('View Certificate')
+                        ->icon('heroicon-o-academic-cap')
+                        ->color('warning')
+                        ->visible(fn (Intern $record) => 
+                            filled($record->cert_ref_id) || 
+                            (($record->offerletter?->is_accepted ?? false) && filled($record->project_name))
+                        )
+                        ->url(fn (Intern $record) => route('intern.certificate.view', ['id' => $record->id]))
+                        ->openUrlInNewTab(),
+
+                    Tables\Actions\Action::make('print_certificate')
+                        ->label('Download Certificate')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('warning')
+                        ->visible(fn (Intern $record) => 
+                            filled($record->cert_ref_id) || 
+                            (($record->offerletter?->is_accepted ?? false) && filled($record->project_name))
+                        )
+                        ->url(fn (Intern $record) => route('intern.certificate.download', ['id' => $record->id]))
+                        ->openUrlInNewTab(),
+                ])
+                ->icon('heroicon-m-ellipsis-vertical')
+                ->color('gray')
+                ->button()
+                ->label('Actions'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    BulkAction::make('mark_attendance_present')
+                        ->label('Mark Attendance (Present)')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function ($records) {
+                            foreach ($records as $intern) {
+                                \App\Models\Attendance::updateOrCreate(
+                                    [
+                                        'intern_id' => $intern->id,
+                                        'date' => now()->toDateString(),
+                                    ],
+                                    [
+                                        'status' => 'present',
+                                    ]
+                                );
+                            }
+                            Notification::make()
+                                ->title('Attendance marked as Present for ' . count($records) . ' interns')
+                                ->success()
+                                ->send();
+                        }),
+
+                    BulkAction::make('mark_attendance_wfh')
+                        ->label('Mark Attendance (WFH)')
+                        ->icon('heroicon-o-home')
+                        ->color('info')
+                        ->action(function ($records) {
+                            foreach ($records as $intern) {
+                                \App\Models\Attendance::updateOrCreate(
+                                    [
+                                        'intern_id' => $intern->id,
+                                        'date' => now()->toDateString(),
+                                    ],
+                                    [
+                                        'status' => 'wfh',
+                                    ]
+                                );
+                            }
+                            Notification::make()
+                                ->title('Attendance marked as WFH for ' . count($records) . ' interns')
+                                ->success()
+                                ->send();
+                        }),
+
                     // --- COMPLETION LETTERS ---
                     BulkAction::make('bulk_download_completion_letters')
                         ->label('Bulk Download Letters (ZIP)')
@@ -574,6 +704,7 @@ class InternResource extends Resource
         return [
             'index' => Pages\ListInterns::route('/'),
             'create' => Pages\CreateIntern::route('/create'),
+            'view' => Pages\ViewIntern::route('/{record}'),
             'edit' => Pages\EditIntern::route('/{record}/edit'),
             'certificate' => Pages\ViewCertificate::route('/{record}/certificate'),
         ];

@@ -347,20 +347,23 @@
                                     style="font-size:22pt;color:black;margin:6mm 0;font-weight:900;font-family:'Cormorant Garamond',serif;">
                                     This is to certify that</p>
                                 @php
-                                    $recipientName = Str::title($offer->application?->name ?? $offer->name);
+                                    $recipientName = Str::title($offer->intern?->name ?: ($offer->name ?: ($offer->application?->name ?? 'Intern')));
                                     $fontSize = strlen($recipientName) > 23 ? '40pt' : '52pt';
+                                    $roleName = $offer->intern?->internship_role ?: ($offer->internship_role ?? 'Software Development');
+                                    $certJoining = $offer->intern?->joining_date ?: $offer->joining_date;
+                                    $certCompletion = $offer->intern?->completion_date ?: $offer->completion_date;
                                 @endphp
                                 <div class="recipient"style="font-size:{{ $fontSize }};">
                                     {{ $recipientName }}
                                 </div>
                                 <div class="underline"></div>
                                 <div class="body-text">
-                                    has successfully completed a <b>{{ $offer->internship_role ?? 'Software Development' }}</b>
+                                    has successfully completed a <b>{{ $roleName }}</b>
                                     internship
                                     at <b>TechStrota</b>. The internship was conducted from
-                                    <b>{!! !empty($offer->joining_date) ? \Carbon\Carbon::parse($offer->joining_date)->format('dS F Y') : '01 Dec 2025' !!}</b>
+                                    <b>{!! !empty($certJoining) ? \Carbon\Carbon::parse($certJoining)->format('dS F Y') : '01 Dec 2025' !!}</b>
                                     to
-                                    <b>{!! !empty($offer->completion_date) ? \Carbon\Carbon::parse($offer->completion_date)->format('dS F Y') : '31 Dec 2025' !!}</b>.
+                                    <b>{!! !empty($certCompletion) ? \Carbon\Carbon::parse($certCompletion)->format('dS F Y') : '31 Dec 2025' !!}</b>.
                                     During this tenure, the intern demonstrated exceptional professional 
                                     conduct and technical proficiency.
                                 </div>
@@ -378,11 +381,11 @@
                                             {!! QrCode::size(200)
                     ->color(0, 0, 0) // Black Color 
                     ->margin(1)
-                    ->generate(route('certificate.verify', $offer->intern->cert_token)) !!}
+                    ->generate(route('certificate.verify', $offer->intern->cert_token ?: ($offer->intern->completionCertificate?->cert_token ?? ($offer->intern->intern_code ?? 'cert')))) !!}
                                         </div>
                                         <span
-                                            style="font-size:12pt;color:#000000;margin-top:1.5mm;margin-right:-15mm;font-family:monospace;font-weight:700;">
-                                            ID:{{ $offer->intern->intern_code ?? '000' }}
+                                            style="font-size:10pt;color:#000000;margin-top:1.5mm;margin-right:-15mm;font-family:monospace;font-weight:700;white-space:nowrap;">
+                                            {{ $offer->intern->cert_ref_id ?: ($offer->intern->completionCertificate?->cert_ref_id ?: ('CERT-' . ($offer->intern->intern_code ?? '000'))) }}
                                         </span>
                                     </div>
                                 </div>

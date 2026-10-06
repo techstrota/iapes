@@ -9,8 +9,8 @@ use Carbon\Carbon;
 
 class AttendanceChart extends ChartWidget
 {
-    protected static ?string $heading = 'Daily Attendance';
-    protected static ?string $description = 'Your activity over the last 30 days';
+    protected static ?string $heading = '30-Day Attendance Trend';
+    protected static ?string $description = 'Daily presence and punctuality log';
     protected static ?int $sort = 3;
     protected int | string | array $columnSpan = 1;
 
@@ -25,8 +25,8 @@ class AttendanceChart extends ChartWidget
 
         $labels = $attendanceData->map(fn ($r) => Carbon::parse($r->date)->format('M d'));
         $data   = $attendanceData->map(fn ($r) => match ($r->status) {
-            'present' => 1,
-            'late'    => 0.6,
+            'present' => 1.0,
+            'late'    => 0.7,
             'leave'   => 0.4,
             'absent'  => 0.1,
             default   => 0,
@@ -35,18 +35,18 @@ class AttendanceChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label'                => 'Activity',
+                    'label'                => 'Status',
                     'data'                 => $data,
                     'fill'                 => 'start',
-                    'borderColor'          => 'rgb(99, 102, 241)',
-                    'backgroundColor'      => 'rgba(99, 102, 241, 0.08)',
-                    'tension'              => 0.45,
-                    'pointRadius'          => 3,
+                    'borderColor'          => 'rgb(59, 130, 246)',
+                    'backgroundColor'      => 'rgba(59, 130, 246, 0.12)',
+                    'tension'              => 0.4,
+                    'pointRadius'          => 4,
                     'pointHoverRadius'     => 6,
-                    'pointBackgroundColor' => 'rgb(129, 140, 248)',
-                    'pointBorderColor'     => '#1e293b',
+                    'pointBackgroundColor' => 'rgb(96, 165, 250)',
+                    'pointBorderColor'     => '#0b1326',
                     'pointBorderWidth'     => 2,
-                    'borderWidth'          => 2,
+                    'borderWidth'          => 2.5,
                 ],
             ],
             'labels' => $labels,
@@ -61,26 +61,34 @@ class AttendanceChart extends ChartWidget
     protected function getOptions(): array
     {
         return [
-            'maintainAspectRatio' => false, // Allows the chart to fill the container height
-            'aspectRatio' => 2,
+            'maintainAspectRatio' => false,
             'plugins' => [
                 'legend'  => ['display' => false],
                 'tooltip' => [
-                    'backgroundColor' => '#1e293b',
-                    'borderColor'     => 'rgba(99,102,241,0.3)',
+                    'backgroundColor' => '#131b2e',
+                    'borderColor'     => '#222a3d',
                     'borderWidth'     => 1,
-                    'titleColor'      => '#818cf8',
-                    'bodyColor'       => '#94a3b8',
-                    'padding'         => 10,
+                    'titleColor'      => '#ffffff',
+                    'bodyColor'       => '#93c5fd',
+                    'padding'         => 12,
+                    'callbacks'       => [
+                        'label' => "function(context) {
+                            var val = context.parsed.y;
+                            if (val >= 1.0) return 'Present (Full Day)';
+                            if (val >= 0.7) return 'Late Arrival';
+                            if (val >= 0.4) return 'Approved Leave';
+                            return 'Absent';
+                        }",
+                    ],
                 ],
             ],
             'scales' => [
                 'x' => [
                     'grid'  => ['display' => false, 'drawBorder' => false],
                     'ticks' => [
-                        'color'          => '#334155',
-                        'font'           => ['size' => 10],
-                        'maxTicksLimit'  => 6,
+                        'color'         => '#8e909f',
+                        'font'          => ['size' => 11],
+                        'maxTicksLimit' => 6,
                     ],
                     'border' => ['display' => false],
                 ],

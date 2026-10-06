@@ -145,6 +145,24 @@ class OfferLetter extends Model
                     'college' => $offerLetter->college,
                 ]);
             }
+
+            // Keep the associated intern record in sync with offer letter changes
+            $intern = $offerLetter->intern ?? Intern::where('offer_letter_id', $offerLetter->id)->first();
+            if ($intern) {
+                $intern->update(array_filter([
+                    'name'                => $offerLetter->name,
+                    'email'               => $offerLetter->email,
+                    'phone'               => $offerLetter->phone,
+                    'college'             => $offerLetter->college,
+                    'degree'              => $offerLetter->degree,
+                    'university'          => $offerLetter->university ?: $offerLetter->college,
+                    'internship_role'     => $offerLetter->internship_role,
+                    'internship_position' => $offerLetter->internship_position,
+                    'joining_date'        => $offerLetter->joining_date,
+                    'completion_date'     => $offerLetter->completion_date,
+                    'working_hours'       => $offerLetter->working_hours,
+                ], fn ($val) => !is_null($val)));
+            }
         });
     }
 }

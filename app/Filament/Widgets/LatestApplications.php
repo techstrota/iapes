@@ -20,7 +20,7 @@ class LatestApplications extends BaseWidget
     // 2. TELL THE CLASS TO USE THE TRAIT
     use HasInterviewActions;
 
-    protected static ?string $heading = 'Latest Pending Applications';
+    protected static ?string $heading = null;
 
     protected int | string | array $columnSpan = 'full'; // optional (makes it full width)
 
@@ -38,15 +38,18 @@ class LatestApplications extends BaseWidget
                     ->limit(5)
             )
             ->columns([
-                // ...
                 Tables\Columns\TextColumn::make('name')
+                    ->weight('bold')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('email')
+                    ->color('gray')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('domain')
+                    ->badge()
+                    ->color('info')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('updated_at')

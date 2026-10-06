@@ -17,6 +17,7 @@ use Filament\Tables\Actions\{Action, BulkAction};
 use Filament\Tables\Columns\{TextColumn, ToggleColumn, BadgeColumn, IconColumn};
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -49,10 +50,8 @@ class InternshipBatchResource extends Resource
                     ->relationship('interns', 'name', modifyQueryUsing: function ($query, $record) {
                         return $query->where(function ($q) use ($record) {
                             // Include interns who don't have a batch assigned yet
-                            $q->whereNull('internship_batch_id');
-                            $q->where('is_active', true);
-                            // ALSO include interns who don't have a team assigned yet
-                            $q->whereNull('intern_team_id'); 
+                            $q->whereNull('internship_batch_id')
+                              ->where('is_active', true);
 
                             // If you are EDITING an existing batch, keep the interns already in it
                             if ($record) {
@@ -61,7 +60,7 @@ class InternshipBatchResource extends Resource
                         });
                     })
                     ->getOptionLabelFromRecordUsing(function ($record) {
-                        $college = ($record->application?->college) ?? 'N/A';
+                        $college = ($record->college ?? $record->application?->college) ?? 'N/A';
                         return "{$record->name} ({$college})";
                     })
                     ->preload()
@@ -83,9 +82,8 @@ class InternshipBatchResource extends Resource
                                     ->get();
 
                                 $currentOccupancy = 0;
-                                $totalCapacity = 3;
+                                $totalCapacity = 50; // Flexible batch capacity
                                 foreach ($allBatches as $batch) {
-                                    // 2. Parse the string "10:00 AM - 02:00 PM" back into start/end times
                                     if (!$batch->batch_timing) continue;
                                     
                                     $times = explode(' - ', $batch->batch_timing);
@@ -94,16 +92,13 @@ class InternshipBatchResource extends Resource
                                     $existingStart = \Illuminate\Support\Carbon::parse($times[0])->format('H:i');
                                     $existingEnd = \Illuminate\Support\Carbon::parse($times[1])->format('H:i');
                                     
-                                    // 3. Check if this batch overlaps with the one we are creating
-                                    // Logic: (StartA < EndB) and (EndA > StartB)
                                     if ($existingStart < $newEnd && $existingEnd > $newStart) {
                                         $currentOccupancy += $batch->no_of_interns;
                                     }
                                 }
 
-                                // 4. Final Capacity Check
                                 if (($currentOccupancy + $newCount) > $totalCapacity) {
-                                    $fail("Capacity Exceeded! The overlapping batches already have {$currentOccupancy} interns. You can only add " . ($totalCapacity - $currentOccupancy) . " more.");
+                                    $fail("Capacity Exceeded! The overlapping batches already have {$currentOccupancy} interns. Maximum capacity is {$totalCapacity}.");
                                 }
                             };
                         },
@@ -131,11 +126,21 @@ class InternshipBatchResource extends Resource
                     ->label('Number of Interns')
                     ->readonly(),
 
-                // Select::make('team_id')
-                //     ->label('Associated Team')
-                //     ->relationship('team', 'team_name') // Ensure 'team' relation is defined in model
-                //     ->searchable()
-                //     ->preload(),
+                Section::make('Batch Status & Archival')
+                    ->schema([
+                        Grid::make(2)->schema([
+                            Forms\Components\Toggle::make('is_archived')
+                                ->label('Archived Cohort')
+                                ->helperText('Mark this batch as archived / completed.')
+                                ->live(),
+
+                            TextInput::make('cohort_archive_name')
+                                ->label('Archive Cycle Name')
+                                ->placeholder('e.g. 2025-2026 Batch, Summer 2026')
+                                ->visible(fn (Forms\Get $get) => (bool) $get('is_archived')),
+                        ]),
+                    ])
+                    ->collapsible(),
             ]);
     }
 
@@ -144,86 +149,33 @@ class InternshipBatchResource extends Resource
         return $table
             ->poll('15s')
             ->contentGrid([
-                'md' => 3,
-                'xl' => 4,
+                'sm' => 1,
+                'md' => 1,
+                'lg' => 2,
+                'xl' => 2,
+                '2xl' => 3,
             ])
             ->columns([
-                Tables\Columns\Layout\Stack::make([
-                    // Header: Batch Name and Duration Badge
-                    Tables\Columns\Layout\Split::make([
-                        Tables\Columns\TextColumn::make('batch_name')
-                            ->searchable()
-                            ->weight('bold')
-                            ->size('lg')
-                            ->grow(false),
-                        
-                        Tables\Columns\TextColumn::make('batch_timing')
-                            ->badge()
-                            ->icon('heroicon-m-clock')
-                            ->color('warning') // Amber color for timing visibility
-                            ->alignEnd()
-                            ->formatStateUsing(function ($record) {
-                                if ($record->start_time && $record->end_time) {
-                                    $start = \Carbon\Carbon::parse($record->start_time)->format('g:i A');
-                                    $end = \Carbon\Carbon::parse($record->end_time)->format('g:i A');
-                                    return "{$start} - {$end}";
-                                }
-                                return $record->batch_timing ?? 'N/A';
-                            }),
-                    ]),
-
-                    // Middle: Occupancy Info
-                    Tables\Columns\TextColumn::make('no_of_interns')
-                        ->formatStateUsing(fn ($state) => "👨‍🎓 " . ($state ?? 0) . " Interns Enrolled")
-                        ->color('success') // Green for active enrollment
-                        ->weight('bold')
-                        ->size('lg')
-                        ->extraAttributes([
-                            'class' => 'text-base mt-2 font-bold'
-                        ]),
-
-                    // Bottom: List of Teams or Interns
-                    Tables\Columns\TextColumn::make('teams.team_name')
-                        ->label('Assigned Teams')
-                        ->badge()
-                        ->color('info')
-                        ->size('lg')
-                        ->listWithLineBreaks()
-                        ->placeholder('No Teams Formed Yet')
-                        ->extraAttributes([
-                            'class' => 'mt-4 text-base font-bold'
-                        ]),
-                    
-                    // Optional: List of Intern Names
-                    Tables\Columns\TextColumn::make('interns.name')
-                        ->listWithLineBreaks()
-                        ->bulleted()
-                        ->color('white')
-                        ->size('m')
-                        ->limitList(3)
-                        ->expandableLimitedList()
-                        ->extraAttributes([
-                            'class' => 'mt-2 opacity-80'
-                        ]),
-                ])->space(4),
+                Tables\Columns\Layout\View::make('filament.intern-management.batch-card'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()
-                    ->button()
-                    ->label('Modify Batch')
-                    ->icon('heroicon-m-pencil-square')
-                    ->color('primary')
-                    ->size('md'),
-            ])
+            ->actions([])
+            ->bulkActions([])
             ->filters([
-                Tables\Filters\SelectFilter::make('team_id')
-                    ->relationship('team', 'team_name')
-                    ->label('Filter by Team'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                Tables\Filters\SelectFilter::make('cohort_archive_name')
+                    ->label('Archive Cycle')
+                    ->options(function () {
+                        return InternshipBatch::whereNotNull('cohort_archive_name')
+                            ->where('cohort_archive_name', '!=', '')
+                            ->distinct()
+                            ->pluck('cohort_archive_name', 'cohort_archive_name')
+                            ->toArray();
+                    }),
+
+                Tables\Filters\TernaryFilter::make('is_archived')
+                    ->label('Archive Status')
+                    ->placeholder('All Statuses')
+                    ->trueLabel('Archived Batches Only')
+                    ->falseLabel('Active Batches Only'),
             ]);
     }
 

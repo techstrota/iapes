@@ -4,11 +4,24 @@ namespace App\Filament\Resources\TaskManagement\TaskResource\Pages;
 
 use App\Filament\Resources\TaskManagement\TaskResource;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
 class EditTask extends EditRecord
 {
     protected static string $resource = TaskResource::class;
+
+    protected static string $view = 'filament.task-management.edit-task';
+
+    public function getTitle(): string
+    {
+        return 'Edit Task: ' . ($this->record->title ?: 'Task');
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Update task deliverables, due dates, priority SLA, and audience target scope.';
+    }
 
     // After save → go back to the task detail page
     protected function getRedirectUrl(): string
@@ -19,40 +32,79 @@ class EditTask extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->label('Delete Task')
+                ->color('danger'),
         ];
     }
 
-    // Fill the form with existing assignment + status data
+    protected function getSaveFormAction(): Actions\Action
+    {
+        return parent::getSaveFormAction()
+            ->label('Save Changes & Update Assignment')
+            ->icon('heroicon-m-check')
+            ->color('primary');
+    }
+
+    protected function getCancelFormAction(): Actions\Action
+    {
+        return parent::getCancelFormAction()
+            ->label('Discard Changes');
+    }
+
+    // Fill the form with existing assignment data
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $assignment = $this->record->assignments()->first();
+        $assignedInternIds = $this->record->assigned_interns->pluck('id')->values()->toArray();
 
-        if ($assignment) {
-            $data['assigned_type'] = $assignment->assigned_type;
-            $data['intern_id']     = $assignment->intern_id;
-            $data['team_id']       = $assignment->team_id;
-            $data['batch_id']      = $assignment->batch_id;
-        }
-
-        // 'status' is already on the Task model, no extra mapping needed
+        $data['assigned_type'] = 'intern';
+        $data['intern_ids']    = $assignedInternIds;
+        $data['team_ids']      = [];
+        $data['batch_ids']     = [];
 
         return $data;
     }
 
-    // Update the assignment record after the task is saved
+    // Update the assignment records after the task is saved
     protected function afterSave(): void
     {
         $data = $this->form->getRawState();
+        $type = $data['assigned_type'] ?? 'intern';
 
-        $this->record->assignments()->updateOrCreate(
-            ['task_id' => $this->record->task_id],
-            [
-                'assigned_type' => $data['assigned_type'],
-                'intern_id'     => $data['assigned_type'] === 'intern' ? ($data['intern_id'] ?? null) : null,
-                'team_id'       => $data['assigned_type'] === 'team'   ? ($data['team_id']   ?? null) : null,
-                'batch_id'      => $data['assigned_type'] === 'batch'  ? ($data['batch_id']  ?? null) : null,
-            ]
-        );
+        $resolvedInternIds = collect();
+
+        if ($type === 'intern') {
+            $resolvedInternIds = collect(array_filter((array) ($data['intern_ids'] ?? [])));
+        } elseif ($type === 'team') {
+            $teamIds = array_filter((array) ($data['team_ids'] ?? []));
+            $resolvedInternIds = \App\Models\InternManagement\Intern::whereIn('intern_team_id', $teamIds)
+                ->where('is_active', true)
+                ->pluck('id');
+        } elseif ($type === 'batch') {
+            $batchIds = array_filter((array) ($data['batch_ids'] ?? []));
+            $resolvedInternIds = \App\Models\InternManagement\Intern::whereIn('internship_batch_id', $batchIds)
+                ->where('is_active', true)
+                ->pluck('id');
+        }
+
+        $uniqueInternIds = $resolvedInternIds->map(fn ($id) => (int) $id)->filter()->unique()->values();
+
+        // Synchronize assignments: delete existing assignments and create individual intern records
+        $this->record->assignments()->delete();
+
+        foreach ($uniqueInternIds as $internId) {
+            $this->record->assignments()->create([
+                'assigned_type' => 'intern',
+                'intern_id'     => $internId,
+            ]);
+        }
+
+        $count = $uniqueInternIds->count();
+
+        Notification::make()
+            ->title('Task updated & assignments synchronized! 🚀')
+            ->body("Synchronized individual assignments for {$count} " . ($count === 1 ? 'intern' : 'interns') . '.')
+            ->success()
+            ->send();
     }
 }

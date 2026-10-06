@@ -42,11 +42,12 @@ class AdminPanelProvider extends PanelProvider
             ->collapsedSidebarWidth('4.5rem')
              // ✅ FULL WIDTH CONTENT
             ->maxContentWidth('full')
+            ->defaultThemeMode(\Filament\Enums\ThemeMode::Dark)
 
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                \App\Filament\Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
@@ -71,55 +72,88 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
-                fn(): string => '
+                fn(): string => <<<'HTML'
+                    <script>
+                        // Permanently force Dark Theme and disable Light Theme
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('theme', 'dark');
+                        window.addEventListener('DOMContentLoaded', () => {
+                            document.documentElement.classList.add('dark');
+                            localStorage.setItem('theme', 'dark');
+                        });
+                        window.addEventListener('storage', () => {
+                            if (localStorage.getItem('theme') !== 'dark') {
+                                localStorage.setItem('theme', 'dark');
+                                document.documentElement.classList.add('dark');
+                            }
+                        });
+                    </script>
                     <style>
+                        /* Disable Light Theme Completely - Hide Theme Switcher */
+                        .fi-theme-switcher,
+                        [data-theme-switcher],
+                        button[aria-label*="theme" i],
+                        button[title*="theme" i] {
+                            display: none !important;
+                        }
+
+                        html {
+                            color-scheme: dark !important;
+                        }
+
+                        html:not(.dark),
+                        html:not(.dark) body,
+                        html:not(.dark) .fi-layout,
+                        html:not(.dark) .fi-main {
+                            background-color: #0b1326 !important;
+                            color: #dae2fd !important;
+                        }
+
+                        /* Stitch Enterprise Dark Theme Palette */
+                        :is(.dark) {
+                            --stitch-bg: #0b1326;
+                            --stitch-surface: #131b2e;
+                            --stitch-surface-container: #171f33;
+                            --stitch-surface-high: #222a3d;
+                            --stitch-surface-highest: #2d3449;
+                            --stitch-surface-lowest: #060e20;
+                            --stitch-on-surface: #dae2fd;
+                            --stitch-on-surface-variant: #c4c5d5;
+                            --stitch-outline: #8e909f;
+                            --stitch-outline-variant: #2d3449;
+                            --stitch-border: #222a3d;
+                            --stitch-primary: #b8c4ff;
+                            --stitch-primary-container: #1e40af;
+                        }
+
+                        :is(.dark) body,
+                        :is(.dark) .fi-layout,
+                        :is(.dark) .fi-main {
+                            background-color: #0b1326 !important;
+                            color: #dae2fd !important;
+                        }
+
+                        :is(.dark) .fi-sidebar {
+                            background-color: #060e20 !important;
+                            border-color: #222a3d !important;
+                        }
+
+                        :is(.dark) .fi-topbar {
+                            background-color: rgba(11, 19, 38, 0.9) !important;
+                            backdrop-filter: blur(12px) !important;
+                            border-color: #222a3d !important;
+                        }
+
                         /* Align selection checkbox to top-left of candidate card */
                         .fi-ta-content-grid .fi-ta-record > div.flex {
                             align-items: flex-start !important;
                         }
+                        /* Selection checkbox styling */
                         .fi-ta-content-grid .fi-ta-record-checkbox {
-                            margin-top: 1.15rem !important;
-                            margin-inline-start: 0.75rem !important;
+                            margin-top: 0.95rem !important;
+                            margin-inline-start: 0.5rem !important;
                         }
-                        /* Place edit button in top-right corner of card */
-                        .fi-ta-card-edit-btn {
-                            position: absolute !important;
-                            top: 0.75rem !important;
-                            right: 0.75rem !important;
-                            z-index: 2 !important;
-                            display: flex !important;
-                            align-items: center !important;
-                            justify-content: center !important;
-                            width: 2rem !important;
-                            height: 2rem !important;
-                            border-radius: 0.5rem !important;
-                            background-color: rgba(243, 244, 246, 0.8) !important;
-                            border: 1px solid rgba(209, 213, 219, 0.8) !important;
-                            transition: all 0.15s ease !important;
-                        }
-                        :is(.dark) .fi-ta-card-edit-btn {
-                            background-color: rgba(31, 41, 55, 0.8) !important;
-                            border-color: rgba(75, 85, 99, 0.7) !important;
-                        }
-                        .fi-ta-card-edit-btn:hover {
-                            background-color: rgba(229, 231, 235, 1) !important;
-                            transform: scale(1.05) !important;
-                        }
-                        :is(.dark) .fi-ta-card-edit-btn:hover {
-                            background-color: rgba(55, 65, 81, 1) !important;
-                        }
-                        /* Place resume button in top-right corner next to edit icon */
-                        .fi-ta-card-resume-btn {
-                            position: absolute !important;
-                            top: 0.85rem !important;
-                            right: 2.75rem !important;
-                            z-index: 2 !important;
-                        }
-                        .fi-ta-card-resume-btn:disabled,
-                        .fi-ta-card-resume-btn[disabled] {
-                            opacity: 0.35 !important;
-                            cursor: not-allowed !important;
-                        }
+
                         /* Ensure dropdown panels (like table filters popover) always sit cleanly above cards and actions */
                         .fi-dropdown-panel {
                             z-index: 40 !important;
@@ -134,6 +168,11 @@ class AdminPanelProvider extends PanelProvider
                         }
                         /* Responsive card record container & flex min-width reset */
                         .fi-ta-content-grid .fi-ta-record {
+                            background-color: #0b1326 !important;
+                            border: 1.5px solid #1c2638 !important;
+                            border-radius: 1rem !important;
+                            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4) !important;
+                            transition: all 0.2s ease !important;
                             position: relative !important;
                             isolation: isolate !important;
                             z-index: 1 !important;
@@ -141,6 +180,10 @@ class AdminPanelProvider extends PanelProvider
                             min-width: 0 !important;
                             width: 100% !important;
                             box-sizing: border-box !important;
+                        }
+                        .fi-ta-content-grid .fi-ta-record:hover {
+                            border-color: #2e3d57 !important;
+                            box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.6) !important;
                         }
                         .fi-ta-content-grid .fi-ta-record > div {
                             min-width: 0 !important;
@@ -193,29 +236,32 @@ class AdminPanelProvider extends PanelProvider
                         /* Responsive Action Buttons container at bottom of card */
                         .fi-ta-content-grid .fi-ta-record .fi-ta-actions {
                             display: flex !important;
+                            align-items: center !important;
+                            justify-content: flex-end !important;
                             flex-wrap: wrap !important;
                             gap: 0.45rem !important;
                             width: 100% !important;
                             margin-top: 0.75rem !important;
+                            padding-top: 0.65rem !important;
+                            border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
                             box-sizing: border-box !important;
                         }
-                        /* Each action button (excluding the absolute top-right icons) */
-                        .fi-ta-content-grid .fi-ta-record .fi-ta-actions .fi-ta-action:not(.fi-ta-card-edit-btn):not(.fi-ta-card-resume-btn) {
-                            flex: 1 1 calc(33.333% - 0.45rem) !important;
-                            min-width: 90px !important;
+                        /* Each action button in card */
+                        .fi-ta-content-grid .fi-ta-record .fi-ta-actions .fi-ta-action {
+                            flex: 0 1 auto !important;
+                            min-width: 0 !important;
                             box-sizing: border-box !important;
                         }
                         /* Fill button width with centered text and zero cut-off */
-                        .fi-ta-content-grid .fi-ta-record .fi-ta-actions .fi-ta-action:not(.fi-ta-card-edit-btn):not(.fi-ta-card-resume-btn) .fi-btn {
-                            width: 100% !important;
-                            justify-content: center !important;
+                        .fi-ta-content-grid .fi-ta-record .fi-ta-actions .fi-ta-action .fi-btn {
                             white-space: nowrap !important;
-                            font-size: 0.8rem !important;
-                            padding: 0.45rem 0.5rem !important;
+                            font-size: 0.78rem !important;
+                            padding: 0.35rem 0.6rem !important;
                             box-sizing: border-box !important;
+                            border-radius: 0.5rem !important;
                         }
                         @media (max-width: 420px) {
-                            .fi-ta-content-grid .fi-ta-record .fi-ta-actions .fi-ta-action:not(.fi-ta-card-edit-btn):not(.fi-ta-card-resume-btn) {
+                            .fi-ta-content-grid .fi-ta-record .fi-ta-actions .fi-ta-action {
                                 flex: 1 1 100% !important;
                             }
                         }
@@ -847,8 +893,802 @@ class AdminPanelProvider extends PanelProvider
                             color: #f472b6;
                             border-color: rgba(236, 72, 153, 0.3);
                         }
+
+                        /* ────────────────────────── Stitch Global Tables, Tabs & Empty State ────────────────────────── */
+                        .fi-ta-ctn,
+                        .fi-wi-table {
+                            background-color: #131b2e !important;
+                            border: 1.5px solid #222a3d !important;
+                            border-radius: 16px !important;
+                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+                            overflow: hidden !important;
+                        }
+                        .fi-ta-header,
+                        .fi-ta-header-ctn {
+                            background-color: #131b2e !important;
+                            border-bottom: 1.5px solid #1c2638 !important;
+                            padding: 1rem 1.25rem !important;
+                        }
+                        .fi-ta-header-heading {
+                            color: #ffffff !important;
+                            font-size: 0.95rem !important;
+                            font-weight: 700 !important;
+                            letter-spacing: -0.01em !important;
+                        }
+                        .fi-ta-header-description {
+                            color: #8e909f !important;
+                            font-size: 0.8rem !important;
+                        }
+                        .fi-ta-content {
+                            background-color: #0b1326 !important;
+                        }
+                        .fi-ta-row {
+                            transition: background-color 0.15s ease !important;
+                        }
+                        .fi-ta-row:hover {
+                            background-color: rgba(255, 255, 255, 0.03) !important;
+                        }
+                        .fi-ta-cell {
+                            border-bottom: 1px solid rgba(34, 42, 61, 0.6) !important;
+                            color: #dae2fd !important;
+                            font-size: 0.85rem !important;
+                        }
+                        .fi-ta-pagination {
+                            background-color: #131b2e !important;
+                            border-top: 1px solid #1c2638 !important;
+                        }
+
+                        /* Global Stitch Tabs */
+                        .fi-tabs {
+                            background-color: #131b2e !important;
+                            border: 1.5px solid #222a3d !important;
+                            border-radius: 14px !important;
+                            padding: 6px !important;
+                            gap: 6px !important;
+                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+                            display: inline-flex !important;
+                            align-items: center !important;
+                            flex-wrap: wrap !important;
+                        }
+                        .fi-tabs-item {
+                            border-radius: 10px !important;
+                            padding: 8px 16px !important;
+                            font-size: 13px !important;
+                            font-weight: 600 !important;
+                            color: #8e909f !important;
+                            border: none !important;
+                            transition: all 0.15s ease !important;
+                            background-color: transparent !important;
+                            display: inline-flex !important;
+                            align-items: center !important;
+                            gap: 8px !important;
+                        }
+                        .fi-tabs-item:hover {
+                            background-color: #171f33 !important;
+                            color: #dae2fd !important;
+                        }
+                        .fi-tabs-item.fi-active,
+                        .fi-tabs-item[aria-selected="true"] {
+                            background-color: #1e40af !important;
+                            color: #ffffff !important;
+                            border: 1px solid #3b82f6 !important;
+                            box-shadow: 0 2px 10px rgba(30, 64, 175, 0.45) !important;
+                            font-weight: 700 !important;
+                        }
+                        .fi-tabs-item.fi-active svg,
+                        .fi-tabs-item[aria-selected="true"] svg,
+                        .fi-tabs-item.fi-active .fi-tabs-item-icon,
+                        .fi-tabs-item[aria-selected="true"] .fi-tabs-item-icon {
+                            color: #ffffff !important;
+                        }
+                        .fi-tabs-item .fi-badge {
+                            font-size: 11px !important;
+                            font-weight: 700 !important;
+                            border-radius: 9999px !important;
+                            padding: 2px 7px !important;
+                            background-color: rgba(255, 255, 255, 0.1) !important;
+                            color: #dae2fd !important;
+                            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                        }
+                        .fi-tabs-item.fi-active .fi-badge,
+                        .fi-tabs-item[aria-selected="true"] .fi-badge {
+                            background-color: rgba(255, 255, 255, 0.25) !important;
+                            color: #ffffff !important;
+                            border-color: rgba(255, 255, 255, 0.4) !important;
+                        }
+
+                        /* Global Search & Filter Controls */
+                        .fi-ta-search-field .fi-input-wrp {
+                            background-color: #090e1c !important;
+                            border: 1px solid #222a3d !important;
+                            border-radius: 10px !important;
+                            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+                        }
+                        .fi-ta-search-field input {
+                            color: #dae2fd !important;
+                            font-size: 13px !important;
+                        }
+                        .fi-ta-search-field input::placeholder {
+                            color: #8e909f !important;
+                        }
+                        .fi-ta-search-field .fi-input-wrp:focus-within {
+                            border-color: #3b82f6 !important;
+                            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+                        }
+                        .fi-ta-filters-trigger-btn,
+                        .fi-ta-filter-trigger-action button,
+                        .fi-ta-filter-trigger button {
+                            background-color: #090e1c !important;
+                            border: 1px solid #222a3d !important;
+                            border-radius: 10px !important;
+                            color: #dae2fd !important;
+                            transition: all 0.15s ease !important;
+                        }
+                        .fi-ta-filters-trigger-btn:hover,
+                        .fi-ta-filter-trigger-action button:hover {
+                            border-color: #3b82f6 !important;
+                            color: #ffffff !important;
+                        }
+
+                        /* Global Empty State */
+                        .fi-ta-empty-state {
+                            background-color: #131b2e !important;
+                            border-radius: 16px !important;
+                            padding: 50px 24px !important;
+                        }
+                        .fi-ta-empty-state-icon-ctn {
+                            background-color: rgba(99, 102, 241, 0.15) !important;
+                            border: 1px solid rgba(99, 102, 241, 0.3) !important;
+                            color: #b8c4ff !important;
+                            width: 58px !important;
+                            height: 58px !important;
+                            border-radius: 16px !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            margin: 0 auto 16px auto !important;
+                        }
+                        .fi-ta-empty-state-icon-ctn svg {
+                            width: 28px !important;
+                            height: 28px !important;
+                            color: #b8c4ff !important;
+                        }
+                        .fi-ta-empty-state-heading {
+                            color: #ffffff !important;
+                            font-size: 18px !important;
+                            font-weight: 700 !important;
+                            margin-bottom: 6px !important;
+                        }
+                        .fi-ta-empty-state-description {
+                            color: #8e909f !important;
+                            font-size: 13px !important;
+                            max-width: 440px !important;
+                            margin: 0 auto 18px auto !important;
+                            line-height: 1.5 !important;
+                        }
+                        .fi-ta-empty-state-actions .fi-btn {
+                            background-color: #1e40af !important;
+                            border: 1px solid #3b82f6 !important;
+                            color: #ffffff !important;
+                            font-weight: 700 !important;
+                            border-radius: 10px !important;
+                            box-shadow: 0 2px 10px rgba(30, 64, 175, 0.45) !important;
+                            padding: 8px 18px !important;
+                        }
+                        .fi-ta-empty-state-actions .fi-btn:hover {
+                            background-color: #1d4ed8 !important;
+                        }
+
+                        .fi-wi-stats-overview-stat {
+                            background-color: #131b2e !important;
+                            border: 1px solid #222a3d !important;
+                            border-radius: 14px !important;
+                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+                            color: #dae2fd !important;
+                        }
+                        .fi-wi-stats-overview-stat-value {
+                            color: #ffffff !important;
+                            font-weight: 800 !important;
+                        }
+                        .fi-wi-stats-overview-stat-label {
+                            color: #8e909f !important;
+                            text-transform: uppercase !important;
+                            font-weight: 700 !important;
+                            font-size: 0.72rem !important;
+                            letter-spacing: 0.05em !important;
+                        }
+
+                        /* ── Stitch Modals & Dialogs ── */
+                        :is(.dark) .fi-modal-window,
+                        .fi-modal-window {
+                            background-color: #131b2e !important;
+                            border: 1.5px solid #222a3d !important;
+                            border-radius: 16px !important;
+                            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8) !important;
+                            color: #dae2fd !important;
+                            overflow: hidden !important;
+                        }
+                        :is(.dark) .fi-modal-header,
+                        .fi-modal-header {
+                            background-color: #0b1326 !important;
+                            border-bottom: 1.5px solid #222a3d !important;
+                            padding: 16px 24px !important;
+                        }
+                        :is(.dark) .fi-modal-heading,
+                        .fi-modal-heading {
+                            color: #ffffff !important;
+                            font-size: 1.15rem !important;
+                            font-weight: 700 !important;
+                            letter-spacing: -0.01em !important;
+                        }
+                        :is(.dark) .fi-modal-description,
+                        .fi-modal-description {
+                            color: #8e909f !important;
+                            font-size: 0.82rem !important;
+                        }
+                        :is(.dark) .fi-modal-content,
+                        .fi-modal-content {
+                            background-color: #131b2e !important;
+                            padding: 22px !important;
+                        }
+                        :is(.dark) .fi-modal-footer,
+                        .fi-modal-footer {
+                            background-color: #0b1326 !important;
+                            border-top: 1.5px solid #222a3d !important;
+                            padding: 14px 24px !important;
+                        }
+
+                        /* Modal Inner Sections */
+                        :is(.dark) .fi-modal-window .fi-section,
+                        .fi-modal-window .fi-section {
+                            background-color: #090e1c !important;
+                            border: 1.5px solid #222a3d !important;
+                            border-radius: 12px !important;
+                            overflow: visible !important;
+                        }
+                        :is(.dark) .fi-modal-window .fi-section-header,
+                        .fi-modal-window .fi-section-header {
+                            background-color: rgba(11, 19, 38, 0.7) !important;
+                            border-bottom: 1px solid #222a3d !important;
+                            padding: 12px 18px !important;
+                            border-top-left-radius: 11px !important;
+                            border-top-right-radius: 11px !important;
+                        }
+                        :is(.dark) .fi-modal-window .fi-section-header-heading,
+                        .fi-modal-window .fi-section-header-heading {
+                            color: #dae2fd !important;
+                            font-size: 0.88rem !important;
+                            font-weight: 700 !important;
+                        }
+                        :is(.dark) .fi-modal-window .fi-section-content,
+                        .fi-modal-window .fi-section-content {
+                            padding: 16px 18px !important;
+                        }
+
+                        /* Modal Form Inputs */
+                        :is(.dark) .fi-modal-window .fi-input-wrp,
+                        .fi-modal-window .fi-input-wrp {
+                            background-color: #131b2e !important;
+                            border: 1px solid #222a3d !important;
+                            border-radius: 9px !important;
+                            color: #dae2fd !important;
+                        }
+                        :is(.dark) .fi-modal-window input,
+                        :is(.dark) .fi-modal-window textarea,
+                        :is(.dark) .fi-modal-window select,
+                        .fi-modal-window input,
+                        .fi-modal-window textarea,
+                        .fi-modal-window select {
+                            color: #ffffff !important;
+                        }
+
+                        /* Modal Buttons - Fix Stark Orange Buttons */
+                        :is(.dark) .fi-modal-footer .fi-btn-color-primary,
+                        :is(.dark) .fi-modal .fi-btn-color-primary,
+                        .fi-modal-footer .fi-btn-color-primary,
+                        .fi-modal .fi-btn-color-primary,
+                        :is(.dark) .fi-modal-footer button[type="submit"],
+                        .fi-modal-footer button[type="submit"] {
+                            background-color: #1e40af !important;
+                            border: 1px solid #3b82f6 !important;
+                            color: #ffffff !important;
+                            font-weight: 700 !important;
+                            border-radius: 9px !important;
+                            box-shadow: 0 2px 10px rgba(30, 64, 175, 0.45) !important;
+                            padding: 8px 18px !important;
+                            transition: background-color 0.15s ease !important;
+                        }
+                        :is(.dark) .fi-modal-footer .fi-btn-color-primary:hover,
+                        :is(.dark) .fi-modal-footer button[type="submit"]:hover,
+                        .fi-modal-footer .fi-btn-color-primary:hover,
+                        .fi-modal-footer button[type="submit"]:hover {
+                            background-color: #1d4ed8 !important;
+                        }
+                        :is(.dark) .fi-modal-footer .fi-btn-color-gray,
+                        .fi-modal-footer .fi-btn-color-gray {
+                            background-color: #171f33 !important;
+                            border: 1px solid #222a3d !important;
+                            color: #cbd5e1 !important;
+                            font-weight: 600 !important;
+                            border-radius: 9px !important;
+                            padding: 8px 16px !important;
+                            transition: all 0.15s ease !important;
+                        }
+                        :is(.dark) .fi-modal-footer .fi-btn-color-gray:hover,
+                        .fi-modal-footer .fi-btn-color-gray:hover {
+                            border-color: #3b82f6 !important;
+                            color: #ffffff !important;
+                        }
+
+                        /* ── Form Section Containers ── */
+                        :is(.dark) .fi-page form .fi-section,
+                        .fi-page form .fi-section {
+                            background-color: #111a2e !important;
+                            border: 1.5px solid #1e2a42 !important;
+                            border-radius: 16px !important;
+                            box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.45) !important;
+                            overflow: visible !important;
+                            position: relative;
+                        }
+                        :is(.dark) .fi-page form .fi-section-header,
+                        .fi-page form .fi-section-header {
+                            background: linear-gradient(180deg, #152037 0%, #0f182c 100%) !important;
+                            border-bottom: 1.5px solid #1e2a42 !important;
+                            padding: 16px 24px !important;
+                            border-top-left-radius: 15px !important;
+                            border-top-right-radius: 15px !important;
+                        }
+
+                        /* Ensure any section containing an active or focused dropdown sits above subsequent sections */
+                        :is(.dark) .fi-page form .fi-section:focus-within,
+                        .fi-page form .fi-section:focus-within,
+                        :is(.dark) .fi-page form .fi-section:has(.choices.is-open),
+                        .fi-page form .fi-section:has(.choices.is-open),
+                        :is(.dark) .fi-page form .fi-section:has(.is-open),
+                        .fi-page form .fi-section:has(.is-open),
+                        :is(.dark) .fi-page form .fi-section:has([aria-expanded="true"]),
+                        .fi-page form .fi-section:has([aria-expanded="true"]) {
+                            position: relative !important;
+                            z-index: 40 !important;
+                        }
+
+                        :is(.dark) .fi-page form .fi-section-content-ctn,
+                        .fi-page form .fi-section-content-ctn,
+                        :is(.dark) .fi-page form .fi-section-content,
+                        .fi-page form .fi-section-content {
+                            overflow: visible !important;
+                        }
+
+                        /* ── Choices.js & Select Dropdown Styling & High Stacking ── */
+                        .fi-fo-select,
+                        .choices {
+                            position: relative !important;
+                        }
+
+                        .fi-fo-select:focus-within,
+                        .choices.is-open {
+                            z-index: 45 !important;
+                        }
+
+                        .choices__list--dropdown,
+                        .choices.is-open .choices__list--dropdown,
+                        .is-active.choices__list--dropdown {
+                            position: absolute !important;
+                            z-index: 9999 !important;
+                            background-color: #0b1224 !important;
+                            border: 1.5px solid #2d3b55 !important;
+                            border-radius: 10px !important;
+                            box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.85) !important;
+                        }
+
+                        :is(.dark) .choices__list--dropdown .choices__list,
+                        .choices__list--dropdown .choices__list {
+                            background-color: #0b1224 !important;
+                            max-height: 280px !important;
+                            overflow-y: auto !important;
+                        }
+
+                        :is(.dark) .choices__list--dropdown .choices__item,
+                        .choices__list--dropdown .choices__item {
+                            color: #dae2fd !important;
+                            padding: 10px 14px !important;
+                            font-size: 0.88rem !important;
+                            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+                        }
+
+                        :is(.dark) .choices__list--dropdown .choices__item:last-child,
+                        .choices__list--dropdown .choices__item:last-child {
+                            border-bottom: none !important;
+                        }
+
+                        :is(.dark) .choices__list--dropdown .choices__item--selectable.is-highlighted,
+                        .choices__list--dropdown .choices__item--selectable.is-highlighted {
+                            background-color: #1e40af !important;
+                            color: #ffffff !important;
+                        }
+
+                        :is(.dark) .choices__list--dropdown .choices__input,
+                        .choices__list--dropdown .choices__input {
+                            background-color: #090e1c !important;
+                            border: 1px solid #222a3d !important;
+                            color: #ffffff !important;
+                            border-radius: 8px !important;
+                            margin: 8px !important;
+                            width: calc(100% - 16px) !important;
+                            padding: 8px 12px !important;
+                        }
+
+                        :is(.dark) .choices__list--dropdown .choices__placeholder,
+                        .choices__list--dropdown .choices__placeholder {
+                            color: #8e909f !important;
+                        }
+
+                        /* Choices selected tags in multi-select */
+                        :is(.dark) .choices__list--multiple .choices__item,
+                        .choices__list--multiple .choices__item {
+                            background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%) !important;
+                            border: 1px solid #3b82f6 !important;
+                            color: #ffffff !important;
+                            border-radius: 6px !important;
+                            font-size: 0.8rem !important;
+                            font-weight: 600 !important;
+                            padding: 3px 8px !important;
+                        }
+                        :is(.dark) .choices__list--multiple .choices__item .choices__button,
+                        .choices__list--multiple .choices__item .choices__button {
+                            border-inline-start: 1px solid rgba(255, 255, 255, 0.3) !important;
+                        }
+                        :is(.dark) .fi-page form .fi-section-header-heading,
+                        .fi-page form .fi-section-header-heading {
+                            color: #ffffff !important;
+                            font-size: 1.05rem !important;
+                            font-weight: 700 !important;
+                            letter-spacing: -0.01em !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            gap: 8px !important;
+                        }
+                        :is(.dark) .fi-page form .fi-section-header-heading svg,
+                        .fi-page form .fi-section-header-heading svg {
+                            color: #60a5fa !important;
+                        }
+                        :is(.dark) .fi-page form .fi-section-header-description,
+                        .fi-page form .fi-section-header-description {
+                            color: #94a3b8 !important;
+                            font-size: 0.85rem !important;
+                            margin-top: 2px !important;
+                        }
+                        :is(.dark) .fi-page form .fi-section-content,
+                        .fi-page form .fi-section-content {
+                            background-color: #111a2e !important;
+                            padding: 24px !important;
+                        }
+
+                        /* ── Form Field Labels & Required Markers ── */
+                        :is(.dark) .fi-fo-field-wrp-label span,
+                        .fi-fo-field-wrp-label span {
+                            color: #dae2fd !important;
+                            font-size: 0.82rem !important;
+                            font-weight: 600 !important;
+                            letter-spacing: 0.01em !important;
+                        }
+                        :is(.dark) .fi-fo-field-wrp-label sup,
+                        .fi-fo-field-wrp-label sup {
+                            color: #f87171 !important;
+                            font-weight: 700 !important;
+                        }
+                        :is(.dark) .fi-fo-field-wrp-helper-text,
+                        .fi-fo-field-wrp-helper-text {
+                            color: #8e909f !important;
+                            font-size: 0.78rem !important;
+                        }
+
+                        /* ── Form Input Fields ── */
+                        :is(.dark) .fi-page form .fi-input-wrp,
+                        .fi-page form .fi-input-wrp {
+                            background-color: #090e1c !important;
+                            border: 1.5px solid #1e293b !important;
+                            border-radius: 10px !important;
+                            transition: all 0.2s ease !important;
+                        }
+                        :is(.dark) .fi-page form .fi-input-wrp:hover,
+                        .fi-page form .fi-input-wrp:hover {
+                            border-color: #2d3b55 !important;
+                        }
+                        :is(.dark) .fi-page form .fi-input-wrp:focus-within,
+                        .fi-page form .fi-input-wrp:focus-within {
+                            border-color: #3b82f6 !important;
+                            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
+                            background-color: #0b1224 !important;
+                        }
+                        :is(.dark) .fi-page form input,
+                        :is(.dark) .fi-page form select,
+                        :is(.dark) .fi-page form textarea,
+                        .fi-page form input,
+                        .fi-page form select,
+                        .fi-page form textarea {
+                            color: #ffffff !important;
+                            font-size: 0.88rem !important;
+                        }
+                        :is(.dark) .fi-page form input::placeholder,
+                        :is(.dark) .fi-page form textarea::placeholder,
+                        .fi-page form input::placeholder,
+                        .fi-page form textarea::placeholder {
+                            color: #55627a !important;
+                        }
+                        :is(.dark) .fi-page form .fi-input-wrp-prefix,
+                        :is(.dark) .fi-page form .fi-input-wrp-suffix,
+                        .fi-page form .fi-input-wrp-prefix,
+                        .fi-page form .fi-input-wrp-suffix {
+                            color: #60a5fa !important;
+                        }
+                        :is(.dark) .fi-page form .fi-input-wrp-prefix svg,
+                        :is(.dark) .fi-page form .fi-input-wrp-suffix svg,
+                        .fi-page form .fi-input-wrp-prefix svg,
+                        .fi-page form .fi-input-wrp-suffix svg {
+                            color: #60a5fa !important;
+                        }
+                        :is(.dark) .fi-page form .fi-input-wrp:has(input:disabled),
+                        .fi-page form .fi-input-wrp:has(input:disabled) {
+                            background-color: rgba(9, 14, 28, 0.6) !important;
+                            border-color: rgba(30, 41, 59, 0.6) !important;
+                            opacity: 0.8 !important;
+                        }
+                        :is(.dark) .fi-page form input:disabled,
+                        .fi-page form input:disabled {
+                            color: #94a3b8 !important;
+                        }
+
+                        /* ── File Upload (FilePond Dropzone) ── */
+                        :is(.dark) .filepond--panel-root {
+                            background-color: #090e1c !important;
+                            border: 1.5px dashed #22314e !important;
+                            border-radius: 12px !important;
+                            transition: all 0.2s ease !important;
+                        }
+                        :is(.dark) .filepond--root:hover .filepond--panel-root {
+                            border-color: #3b82f6 !important;
+                            background-color: rgba(59, 130, 246, 0.04) !important;
+                        }
+                        :is(.dark) .filepond--drop-label {
+                            color: #94a3b8 !important;
+                        }
+                        :is(.dark) .filepond--drop-label label span {
+                            color: #60a5fa !important;
+                            font-weight: 600 !important;
+                        }
+
+                        /* ── Form Bottom Action Buttons ── */
+                        :is(.dark) .fi-page form .fi-form-actions,
+                        .fi-page form .fi-form-actions {
+                            display: flex !important;
+                            align-items: center !important;
+                            gap: 10px !important;
+                            margin-top: 1.5rem !important;
+                            padding-top: 1rem !important;
+                        }
+                        :is(.dark) .fi-page form .fi-form-actions .fi-btn-color-primary,
+                        .fi-page form .fi-form-actions .fi-btn-color-primary,
+                        :is(.dark) .fi-page form button[type="submit"].fi-btn-color-primary,
+                        .fi-page form button[type="submit"].fi-btn-color-primary {
+                            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+                            border: 1px solid #3b82f6 !important;
+                            color: #ffffff !important;
+                            font-weight: 700 !important;
+                            border-radius: 10px !important;
+                            padding: 9px 22px !important;
+                            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4) !important;
+                            transition: all 0.15s ease !important;
+                        }
+                        :is(.dark) .fi-page form .fi-form-actions .fi-btn-color-primary:hover,
+                        .fi-page form .fi-form-actions .fi-btn-color-primary:hover {
+                            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+                            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55) !important;
+                            transform: translateY(-1px) !important;
+                        }
+                        :is(.dark) .fi-page form .fi-form-actions .fi-btn-color-gray,
+                        .fi-page form .fi-form-actions .fi-btn-color-gray {
+                            background-color: #131b2e !important;
+                            border: 1px solid #233149 !important;
+                            color: #cbd5e1 !important;
+                            font-weight: 600 !important;
+                            border-radius: 10px !important;
+                            padding: 9px 20px !important;
+                            transition: all 0.15s ease !important;
+                        }
+                        :is(.dark) .fi-page form .fi-form-actions .fi-btn-color-gray:hover,
+                        .fi-page form .fi-form-actions .fi-btn-color-gray:hover {
+                            border-color: #3b82f6 !important;
+                            color: #ffffff !important;
+                            background-color: #172238 !important;
+                        }
+
+                        /* ── View Candidate Infolists & Sections ── */
+                        :is(.dark) .fi-infolist .fi-section,
+                        .fi-infolist .fi-section {
+                            background-color: #111a2e !important;
+                            border: 1.5px solid #1e2a42 !important;
+                            border-radius: 16px !important;
+                            box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4) !important;
+                            overflow: hidden !important;
+                        }
+                        :is(.dark) .fi-infolist .fi-section-header,
+                        .fi-infolist .fi-section-header {
+                            background: linear-gradient(180deg, #152037 0%, #0f182c 100%) !important;
+                            border-bottom: 1.5px solid #1e2a42 !important;
+                            padding: 14px 22px !important;
+                        }
+                        :is(.dark) .fi-infolist .fi-section-header-heading,
+                        .fi-infolist .fi-section-header-heading {
+                            color: #ffffff !important;
+                            font-size: 15px !important;
+                            font-weight: 700 !important;
+                            letter-spacing: -0.01em !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            gap: 8px !important;
+                        }
+                        :is(.dark) .fi-infolist .fi-section-header-heading svg,
+                        .fi-infolist .fi-section-header-heading svg {
+                            color: #60a5fa !important;
+                            width: 1.25rem !important;
+                            height: 1.25rem !important;
+                        }
+                        :is(.dark) .fi-infolist .fi-section-content,
+                        .fi-infolist .fi-section-content {
+                            background-color: #111a2e !important;
+                            padding: 22px !important;
+                        }
+                        :is(.dark) .fi-infolist .fi-in-entry-wrp-label span,
+                        :is(.dark) .fi-infolist dt.fi-in-entry-wrp-label span,
+                        :is(.dark) .fi-infolist .fi-in-entry-label,
+                        .fi-infolist .fi-in-entry-wrp-label span {
+                            color: #8e909f !important;
+                            font-size: 0.72rem !important;
+                            text-transform: uppercase !important;
+                            font-weight: 700 !important;
+                            letter-spacing: 0.05em !important;
+                        }
+                        :is(.dark) .fi-infolist .fi-in-text,
+                        :is(.dark) .fi-infolist .fi-in-text-item,
+                        :is(.dark) .fi-infolist dd.fi-in-entry-wrp-content,
+                        .fi-infolist .fi-in-text {
+                            color: #f1f5f9 !important;
+                            font-size: 0.92rem !important;
+                            font-weight: 500 !important;
+                        }
+                        :is(.dark) .fi-infolist .fi-in-text svg,
+                        :is(.dark) .fi-infolist .fi-in-entry-wrp svg,
+                        .fi-infolist .fi-in-text svg {
+                            color: #60a5fa !important;
+                        }
+                        :is(.dark) .fi-infolist .fi-badge {
+                            font-weight: 700 !important;
+                            border-radius: 9999px !important;
+                            padding: 0.2rem 0.65rem !important;
+                        }
+                        :is(.dark) .fi-infolist button.fi-in-copy-btn,
+                        :is(.dark) .fi-infolist button:has(svg) {
+                            color: #94a3b8 !important;
+                            transition: all 0.15s ease !important;
+                        }
+                        :is(.dark) .fi-infolist button.fi-in-copy-btn:hover,
+                        :is(.dark) .fi-infolist button:has(svg):hover {
+                            color: #38bdf8 !important;
+                        }
+
+                        /* ── View Page & Resource Header Action Buttons ── */
+                        :is(.dark) .fi-page-header-actions .fi-btn,
+                        .fi-page-header-actions .fi-btn {
+                            border-radius: 10px !important;
+                            font-weight: 700 !important;
+                            font-size: 0.84rem !important;
+                            padding: 8px 16px !important;
+                            transition: all 0.15s ease !important;
+                            display: inline-flex !important;
+                            align-items: center !important;
+                            gap: 6px !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-primary,
+                        .fi-page-header-actions .fi-btn-color-primary {
+                            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+                            border: 1px solid #3b82f6 !important;
+                            color: #ffffff !important;
+                            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-primary:hover {
+                            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+                            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55) !important;
+                            transform: translateY(-1px) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-success,
+                        .fi-page-header-actions .fi-btn-color-success {
+                            background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+                            border: 1px solid #10b981 !important;
+                            color: #ffffff !important;
+                            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-success:hover {
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+                            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5) !important;
+                            transform: translateY(-1px) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-warning,
+                        .fi-page-header-actions .fi-btn-color-warning {
+                            background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+                            border: 1px solid #f59e0b !important;
+                            color: #ffffff !important;
+                            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-warning:hover {
+                            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+                            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5) !important;
+                            transform: translateY(-1px) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-danger,
+                        .fi-page-header-actions .fi-btn-color-danger {
+                            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+                            border: 1px solid #ef4444 !important;
+                            color: #ffffff !important;
+                            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-danger:hover {
+                            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+                            box-shadow: 0 6px 18px rgba(239, 68, 68, 0.5) !important;
+                            transform: translateY(-1px) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-info,
+                        .fi-page-header-actions .fi-btn-color-info {
+                            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+                            border: 1px solid #38bdf8 !important;
+                            color: #ffffff !important;
+                            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-info:hover {
+                            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%) !important;
+                            box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5) !important;
+                            transform: translateY(-1px) !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-gray,
+                        .fi-page-header-actions .fi-btn-color-gray {
+                            background-color: #131b2e !important;
+                            border: 1px solid #233149 !important;
+                            color: #cbd5e1 !important;
+                        }
+                        :is(.dark) .fi-page-header-actions .fi-btn-color-gray:hover {
+                            border-color: #3b82f6 !important;
+                            color: #ffffff !important;
+                            background-color: #172238 !important;
+                            transform: translateY(-1px) !important;
+                        }
+
+                        /* ── Relation Manager on View Page ── */
+                        :is(.dark) .fi-resource-relation-manager,
+                        .fi-resource-relation-manager {
+                            margin-top: 2rem !important;
+                        }
+                        :is(.dark) .fi-resource-relation-manager .fi-ta-ctn,
+                        .fi-resource-relation-manager .fi-ta-ctn {
+                            background-color: #111a2e !important;
+                            border: 1.5px solid #1e2a42 !important;
+                            border-radius: 16px !important;
+                            box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4) !important;
+                            overflow: hidden !important;
+                        }
+                        :is(.dark) .fi-resource-relation-manager .fi-ta-header,
+                        .fi-resource-relation-manager .fi-ta-header {
+                            background: linear-gradient(180deg, #152037 0%, #0f182c 100%) !important;
+                            border-bottom: 1.5px solid #1e2a42 !important;
+                            padding: 14px 22px !important;
+                        }
+                        :is(.dark) .fi-resource-relation-manager .fi-ta-header-heading,
+                        .fi-resource-relation-manager .fi-ta-header-heading {
+                            color: #ffffff !important;
+                            font-size: 15px !important;
+                            font-weight: 700 !important;
+                        }
                     </style>
-                '
+HTML
             )
             ->renderHook(
                 PanelsRenderHook::TOPBAR_END,

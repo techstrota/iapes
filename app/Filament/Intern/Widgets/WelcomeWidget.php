@@ -15,6 +15,7 @@ class WelcomeWidget extends Widget
 
     protected function getViewData(): array
     {
+        /** @var \App\Models\InternManagement\Intern|null $user */
         $user = Auth::user();
         $hour = now()->hour;
 
@@ -24,10 +25,18 @@ class WelcomeWidget extends Widget
             default     => 'Good morning',
         };
 
+        $role = $user?->internship_role ?: ($user?->offerletter?->internship_role ?? 'Engineering Intern');
+        $batch = $user?->batch?->batch_name ?? 'Active Cohort';
+        $code = $user?->intern_code;
+
         return [
             'greeting' => $greeting,
-            'name'     => $user->name,
+            'name'     => $user?->name ?? 'Intern',
+            'role'     => $role,
+            'batch'    => $batch,
+            'code'     => $code,
             'date'     => now()->format('l, F j, Y'),
+            'internId' => $user?->id,
         ];
     }
 }

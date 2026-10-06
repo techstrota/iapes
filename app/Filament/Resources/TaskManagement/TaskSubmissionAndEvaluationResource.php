@@ -18,10 +18,10 @@ class TaskSubmissionAndEvaluationResource extends Resource
 {
     protected static ?string $model = TaskSubmission::class;
     protected static bool $shouldRegisterNavigation = false;
-    protected static ?string $navigationGroup = 'Task And Evaluation Management';
+    protected static ?string $navigationGroup = 'Intern Management';
     protected static ?string $navigationLabel = 'Submission And Evaluation';
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 7;
 
     public static function form(Form $form): Form
     {
@@ -107,26 +107,28 @@ class TaskSubmissionAndEvaluationResource extends Resource
 
 
                 Tables\Actions\Action::make('evaluate')
-                    ->label('Review Task')
                     ->label('Review & Evaluate')
                     ->icon('heroicon-m-clipboard-document-check')
                     ->color('primary')
+                    ->extraAttributes([
+                        'style' => 'background-color: #1e40af !important; border: 1px solid #3b82f6 !important; color: #ffffff !important; border-radius: 8px !important; font-weight: 600 !important;',
+                    ])
                     ->modalHeading('Evaluate Submission')
-                    ->modalWidth('2xl') // Increased width to handle two sections better
+                    ->modalSubmitActionLabel('Save Evaluation')
+                    ->modalWidth('6xl')
                     ->mountUsing(fn (Forms\ComponentContainer $form, $record) => $form->fill([
                         'status' => $record->status,
                         'marks' => $record->marks,
                         'grade' => $record->grade,
                         'admin_feedback' => $record->admin_feedback,
-            ]))
-            ->form([
-        Forms\Components\Grid::make(2) // This creates the side-by-side layout
-        ->schema([
-            // SECTION 1: LEFT SIDE - INTERN'S SUBMISSION (READ-ONLY)
-            Forms\Components\Section::make('Intern Submission')
-                ->collapsible()
-                ->compact()
-                ->schema([
+                    ]))
+                    ->form([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                // SECTION 1: LEFT SIDE - INTERN'S SUBMISSION (READ-ONLY)
+                                Forms\Components\Section::make('Intern Deliverable Details')
+                                    ->description('Review the submitted content and attachments.')
+                                    ->schema([
                     Forms\Components\Placeholder::make('intern_name')
                         ->label('Submitted By')
                         ->content(fn ($record) => $record->intern?->name ?? 'Unknown'),

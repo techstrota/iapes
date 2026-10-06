@@ -14,7 +14,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Components\{TextInput, Textarea, FileUpload, Select, DatePicker, TimePicker, Section, Grid};
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Tables\Actions\{Action, BulkAction};
+use Filament\Tables\Actions\{Action, BulkAction, ActionGroup};
 use Filament\Tables\Columns\{TextColumn, BadgeColumn, IconColumn};
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Notifications\Notification;
@@ -37,28 +37,51 @@ class CandidateResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?int $navigationSort = 1;
 
-    // Candidates come from public application form — no manual creation
     public static function canCreate(): bool
     {
-        return false;
+        return true;
     }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Candidate Details')
-                    ->icon('heroicon-o-user')
+                Section::make('Candidate Application Details')
+                    ->description('Complete candidate personal details, academic background, and internship preferences')
+                    ->icon('heroicon-o-user-circle')
                     ->schema([
-                        Grid::make(2)->schema([
+                        Grid::make(3)->schema([
                             TextInput::make('application_code')
                                 ->label('Application Code')
+                                ->prefixIcon('heroicon-m-hashtag')
                                 ->placeholder('Auto-generated on save')
                                 ->disabled()
                                 ->dehydrated(false),
 
+                            Select::make('status')
+                                ->label('Application Status')
+                                ->prefixIcon('heroicon-m-flag')
+                                ->options([
+                                    'applied' => 'Applied',
+                                    'interview_scheduled' => 'Interview Scheduled',
+                                    'interviewed' => 'Interviewed',
+                                    'shortlisted' => 'Shortlisted',
+                                    'rejected' => 'Rejected',
+                                ])
+                                ->default('applied')
+                                ->required(),
+
+                            TextInput::make('domain')
+                                ->label('Field / Role Applied')
+                                ->prefixIcon('heroicon-m-briefcase')
+                                ->placeholder('e.g. Web Development, AI/ML, UI/UX')
+                                ->required(),
+                        ]),
+
+                        Grid::make(3)->schema([
                             TextInput::make('name')
                                 ->label('Full Name')
+                                ->prefixIcon('heroicon-m-user')
                                 ->required()
                                 ->maxLength(255)
                                 ->regex('/^(?=(?:.*?\s){1,5}(?![^\s]*\s))[a-zA-Z\s]+$/')
@@ -68,82 +91,85 @@ class CandidateResource extends Resource
 
                             TextInput::make('email')
                                 ->email()
+                                ->prefixIcon('heroicon-m-envelope')
                                 ->required()
                                 ->maxLength(255),
 
                             TextInput::make('phone')
                                 ->label('Phone Number')
+                                ->prefixIcon('heroicon-m-phone')
                                 ->required()
                                 ->maxLength(15),
+                        ]),
 
+                        Grid::make(4)->schema([
                             TextInput::make('college')
-                                ->label('College Name')
+                                ->label('College / Institution')
+                                ->prefixIcon('heroicon-m-academic-cap')
                                 ->required()
-                                ->maxLength(255),
+                                ->maxLength(255)
+                                ->columnSpan(2),
 
                             TextInput::make('degree')
+                                ->label('Degree / Branch')
+                                ->prefixIcon('heroicon-m-bookmark')
+                                ->placeholder('e.g. B.Tech Computer Engineering')
                                 ->required()
                                 ->maxLength(100),
 
                             TextInput::make('year')
                                 ->label('Year / Semester')
-                                ->placeholder('e.g. Sem 3, Sem 6')
+                                ->prefixIcon('heroicon-m-calendar')
+                                ->placeholder('e.g. Sem 6 / 3rd Year')
                                 ->required()
                                 ->maxLength(255),
+                        ]),
 
+                        Grid::make(3)->schema([
                             TextInput::make('cgpa')
                                 ->label('CGPA / Percentage')
+                                ->prefixIcon('heroicon-m-star')
                                 ->numeric()
                                 ->step(0.01)
                                 ->required()
                                 ->maxValue(100),
 
-                            TextInput::make('domain')
-                                ->label('Interested Internship Field')
+                            TextInput::make('duration')
+                                ->label('Duration')
+                                ->prefixIcon('heroicon-m-clock')
+                                ->numeric()
+                                ->required(),
+
+                            Select::make('duration_unit')
+                                ->label('Duration Unit')
+                                ->prefixIcon('heroicon-m-scale')
+                                ->options([
+                                    'months' => 'Months',
+                                    'days' => 'Days',
+                                    'hours' => 'Hours',
+                                ])
+                                ->default('months')
                                 ->required(),
                         ]),
-                    ]),
 
-                Section::make('Internship Duration')
-                    ->icon('heroicon-o-clock')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('duration')
-                            ->label('Duration')
-                            ->numeric()
-                            ->required(),
-
-                        Select::make('duration_unit')
-                            ->label('Unit')
-                            ->options([
-                                'months' => 'Months',
-                                'days' => 'Days',
-                                'hours' => 'Hours',
-                            ])
-                            ->required(),
-                    ]),
-
-                Section::make('Skills')
-                    ->icon('heroicon-o-wrench-screwdriver')
-                    ->schema([
                         Textarea::make('skills')
-                            ->label('Skills (comma separated)')
+                            ->label('Skills & Technologies (comma separated)')
+                            ->placeholder('e.g. PHP, Laravel, React, Tailwind CSS, MySQL')
                             ->rows(3)
-                            ->required(),
-                    ]),
+                            ->required()
+                            ->columnSpanFull(),
 
-                Section::make('Resume')
-                    ->icon('heroicon-o-paper-clip')
-                    ->schema([
                         FileUpload::make('resume_path')
-                            ->label('Resume')
+                            ->label('Resume / Curriculum Vitae (PDF)')
                             ->disk('public')
                             ->directory('resumes')
                             ->acceptedFileTypes(['application/pdf'])
                             ->downloadable()
                             ->openable()
-                            ->preserveFilenames(),
-                    ]),
+                            ->preserveFilenames()
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -152,140 +178,62 @@ class CandidateResource extends Resource
         return $table
             ->contentGrid([
                 'sm' => 1,
-                'md' => 1,
-                'lg' => 2,
-                '2xl' => 3,
+                'md' => 2,
+                'lg' => 3,
+                'xl' => 3,
             ])
             ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
             ->poll('5s')
             ->columns([
-                Tables\Columns\Layout\Stack::make([
-                    // Row 1: Application Code & Status Badge (responsive wrap with safe icon padding)
-                    Tables\Columns\Layout\Split::make([
-                        TextColumn::make('application_code')
-                            ->weight('bold')
-                            ->size('sm')
-                            ->copyable()
-                            ->color('primary')
-                            ->searchable()
-                            ->grow(false),
-
-                        TextColumn::make('status')
-                            ->badge()
-                            ->formatStateUsing(fn (string $state) => match ($state) {
-                                'applied' => 'Applied',
-                                'interview_scheduled' => 'Scheduled',
-                                'interviewed' => 'Interviewed',
-                                'shortlisted' => 'Shortlisted',
-                                'rejected' => 'Rejected',
-                                default => ucfirst($state),
-                            })
-                            ->color(fn (string $state) => match ($state) {
-                                'applied' => 'gray',
-                                'interview_scheduled' => 'info',
-                                'interviewed' => 'warning',
-                                'shortlisted' => 'success',
-                                'rejected' => 'danger',
-                                default => 'gray',
-                            })
-                            ->grow(false),
-                    ])->extraAttributes([
-                        'class' => 'fi-ta-card-header-split',
+                Tables\Columns\Layout\View::make('filament.candidate-management.candidate-card')
+                    ->components([
+                        TextColumn::make('application_code')->searchable(),
+                        TextColumn::make('name')->searchable(),
+                        TextColumn::make('email')->searchable(),
+                        TextColumn::make('phone')->searchable(),
+                        TextColumn::make('college')->searchable(),
+                        TextColumn::make('degree')->searchable(),
+                        TextColumn::make('domain')->searchable(),
                     ]),
-
-                    // Row 2: Candidate Name (responsive word wrapping)
-                    TextColumn::make('name')
-                        ->weight('bold')
-                        ->size('lg')
-                        ->searchable()
-                        ->extraAttributes([
-                            'class' => 'fi-ta-card-name',
-                        ]),
-
-                    // Row 3: Domain Badge (on its own line so long text never wraps)
-                    TextColumn::make('domain')
-                        ->badge()
-                        ->color('info')
-                        ->size('sm'),
-
-                    // Row 4: Contact & Education with icons and ellipsis truncation
-                    Tables\Columns\Layout\Stack::make([
-                        TextColumn::make('email')
-                            ->icon('heroicon-m-envelope')
-                            ->size('sm')
-                            ->color('gray')
-                            ->searchable()
-                            ->extraAttributes([
-                                'class' => 'fi-ta-card-truncate',
-                            ]),
-
-                        TextColumn::make('college')
-                            ->icon('heroicon-m-academic-cap')
-                            ->size('sm')
-                            ->color('gray')
-                            ->searchable()
-                            ->extraAttributes([
-                                'class' => 'fi-ta-card-truncate',
-                            ]),
-                    ])->space(1),
-
-                    // Row 5: Interview Batch Badge (Visible for Scheduled / Interviewed candidates)
-                    TextColumn::make('interview_batch')
-                        ->html()
-                        ->placeholder(null)
-                        ->state(function ($record) {
-                            if (!in_array($record->status, ['interview_scheduled', 'interviewed', 'shortlisted'])) {
-                                return null;
-                            }
-                            $assignment = $record->interviewAssignments->sortByDesc('id')->first();
-                            $batch = $assignment?->batch;
-                            if (!$batch) return null;
-
-                            $date = $batch->interview_date ? \Carbon\Carbon::parse($batch->interview_date)->format('d M') : '';
-                            $time = $batch->start_time ? \Carbon\Carbon::parse($batch->start_time)->format('h:i A') : '';
-                            $meta = trim("{$date} {$time}");
-
-                            return new \Illuminate\Support\HtmlString('
-                                <div class="fi-ta-card-batch-badge" title="Interview Batch: ' . e($batch->interview_batch_name) . '">
-                                    <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                                    </svg>
-                                    <span style="font-weight: 700;">' . e($batch->interview_batch_name) . '</span>' .
-                                    ($meta ? '<span style="opacity: 0.75; font-size: 0.72rem; margin-left: 0.25rem;">(' . e($meta) . ')</span>' : '') . '
-                                </div>
-                            ');
-                        }),
-
-                    // Row 6: CGPA & Applied Date (responsive split)
-                    Tables\Columns\Layout\Split::make([
-                        TextColumn::make('cgpa')
-                            ->formatStateUsing(fn ($state) => "CGPA: {$state}")
-                            ->size('sm')
-                            ->weight('bold')
-                            ->color('warning')
-                            ->grow(false),
-
-                        TextColumn::make('created_at')
-                            ->date('d M, Y')
-                            ->size('sm')
-                            ->color('gray')
-                            ->grow(false),
-                    ])->extraAttributes([
-                        'class' => 'fi-ta-card-meta-split',
-                    ]),
-
-                    // Row 7: Interview Evaluation Marks (Visible for scheduled & interviewed candidates)
-                    TextColumn::make('interview_marks')
-                        ->html()
-                        ->placeholder(null)
-                        ->extraAttributes([
-                            'class' => 'fi-ta-marks-col w-full',
-                        ])
-                        ->state(fn ($record) => static::getInterviewMarksHtml($record)),
-                ])->space(3),
             ])
 
             ->filters([
+                SelectFilter::make('archive_status')
+                    ->label('Archival Status')
+                    ->options([
+                        'active' => 'Active Candidates',
+                        'archived' => 'Archived Candidates',
+                        'all' => 'All Candidates',
+                    ])
+                    ->default('active')
+                    ->query(function (Builder $query, array $data) {
+                        $value = $data['value'] ?? 'active';
+                        if ($value === 'active') {
+                            return $query->where(function ($q) {
+                                $q->where('is_archived', false)->orWhereNull('is_archived');
+                            });
+                        } elseif ($value === 'archived') {
+                            return $query->where('is_archived', true);
+                        }
+                        return $query;
+                    }),
+
+                SelectFilter::make('cohort_archive_name')
+                    ->label('Recruitment Cycle')
+                    ->placeholder('All Cycles')
+                    ->options(fn () => Application::whereNotNull('cohort_archive_name')
+                        ->where('cohort_archive_name', '!=', '')
+                        ->distinct()
+                        ->pluck('cohort_archive_name', 'cohort_archive_name')
+                        ->toArray()
+                    )
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            return $query->where('cohort_archive_name', $data['value']);
+                        }
+                        return $query;
+                    }),
+
                 SelectFilter::make('interview_batch_id')
                     ->label('Filter by Batch')
                     ->placeholder('All Batches')
@@ -327,6 +275,8 @@ class CandidateResource extends Resource
             ->actions([
                 // Schedule Interview Action (Visible when Applied)
                 static::getScheduleInterviewAction()
+                    ->button()
+                    ->size('sm')
                     ->visible(fn ($record) => $record->status === 'applied'),
 
                 // Evaluate Candidate Action (Visible when Scheduled)
@@ -335,6 +285,7 @@ class CandidateResource extends Resource
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('warning')
                     ->button()
+                    ->size('sm')
                     ->visible(fn ($record) => $record->status === 'interview_scheduled' && $record->interviewAssignments()->exists())
                     ->modalHeading('Evaluate Interview')
                     ->fillForm(function ($record) {
@@ -440,6 +391,7 @@ class CandidateResource extends Resource
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
                     ->button()
+                    ->size('sm')
                     ->visible(fn ($record) => $record->status === 'interview_scheduled' && $record->interviewAssignments()->exists())
                     ->modalHeading('Reschedule Interview')
                     ->modalDescription('Select a new interview batch for this candidate. A new schedule invitation email will be sent.')
@@ -520,10 +472,11 @@ class CandidateResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->button()
+                    ->size('sm')
                     ->requiresConfirmation()
                     ->modalHeading('Select Candidate')
                     ->modalDescription('Are you sure you want to select/shortlist this candidate? A selection email will be sent.')
-                    ->visible(fn ($record) => in_array($record->status, ['interview_scheduled', 'interviewed']))
+                    ->visible(fn ($record) => $record->status === 'interviewed')
                     ->action(function ($record) {
                         $record->update(['status' => 'shortlisted']);
                         $assignment = $record->interviewAssignments()->latest()->first();
@@ -550,6 +503,7 @@ class CandidateResource extends Resource
                     ->icon('heroicon-o-paper-airplane')
                     ->color('warning')
                     ->button()
+                    ->size('sm')
                     ->requiresConfirmation()
                     ->modalHeading('Resend Selection Email')
                     ->modalDescription(fn ($record) => "Resend congratulations & selection email to {$record->email}?")
@@ -569,16 +523,17 @@ class CandidateResource extends Resource
                         }
                     }),
 
-                // Reject Action (Visible when candidate is Scheduled or Interviewed)
+                // Reject Action (Visible as primary button when candidate is Interviewed)
                 Tables\Actions\Action::make('rejectCandidate')
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->button()
+                    ->size('sm')
                     ->requiresConfirmation()
                     ->modalHeading('Reject Candidate')
                     ->modalDescription('Are you sure you want to reject this candidate? A rejection email will be sent.')
-                    ->visible(fn ($record) => in_array($record->status, ['interview_scheduled', 'interviewed']))
+                    ->visible(fn ($record) => $record->status === 'interviewed')
                     ->action(function ($record) {
                         $record->update(['status' => 'rejected']);
                         $assignment = $record->interviewAssignments()->latest()->first();
@@ -595,134 +550,215 @@ class CandidateResource extends Resource
                         Notification::make()->title('Candidate Rejected & Email Sent')->danger()->send();
                     }),
 
-                // Edit Marks Action (For interviewed/shortlisted/rejected candidates)
-                Tables\Actions\Action::make('editMarks')
-                    ->label('Edit Marks')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('gray')
-                    ->button()
-                    ->visible(fn ($record) => in_array($record->status, ['interviewed', 'shortlisted', 'rejected']) && $record->interviewAssignments()->exists() && $record->interviewAssignments()->latest()->first()?->overall_score !== null)
-                    ->modalHeading('Edit Interview Evaluation')
-                    ->fillForm(function ($record) {
-                        $assignment = $record->interviewAssignments()->latest()->first();
-                        return [
-                            'attendance' => $assignment?->attendance,
-                            'problem_solving' => $assignment?->problem_solving,
-                            'communication' => $assignment?->communication,
-                            'overall_score' => $assignment?->overall_score,
-                            'remarks' => $assignment?->remarks,
-                        ];
-                    })
-                    ->form([
-                        Forms\Components\Select::make('attendance')
-                            ->label('Attendance')
-                            ->options([
-                                'present' => '✅ Present',
-                                'absent' => '❌ Absent',
-                            ])
-                            ->required()
-                            ->live(),
+                // Compact Dropdown for Secondary & Management Actions
+                ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('View Details')
+                        ->icon('heroicon-o-eye'),
 
-                        Forms\Components\Grid::make(2)->schema([
-                            Forms\Components\TextInput::make('problem_solving')
-                                ->label('Technical Skills (Max 25)')
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit Candidate')
+                        ->icon('heroicon-o-pencil-square'),
+
+                    // Edit Marks Action (For evaluated candidates)
+                    Tables\Actions\Action::make('editMarks')
+                        ->label('Edit Interview Marks')
+                        ->icon('heroicon-o-academic-cap')
+                        ->color('gray')
+                        ->visible(fn ($record) => in_array($record->status, ['interviewed', 'shortlisted', 'rejected']) && $record->interviewAssignments()->exists() && $record->interviewAssignments()->latest()->first()?->overall_score !== null)
+                        ->modalHeading('Edit Interview Evaluation')
+                        ->fillForm(function ($record) {
+                            $assignment = $record->interviewAssignments()->latest()->first();
+                            return [
+                                'attendance' => $assignment?->attendance,
+                                'problem_solving' => $assignment?->problem_solving,
+                                'communication' => $assignment?->communication,
+                                'overall_score' => $assignment?->overall_score,
+                                'remarks' => $assignment?->remarks,
+                            ];
+                        })
+                        ->form([
+                            Forms\Components\Select::make('attendance')
+                                ->label('Attendance')
+                                ->options([
+                                    'present' => '✅ Present',
+                                    'absent' => '❌ Absent',
+                                ])
+                                ->required()
+                                ->live(),
+
+                            Forms\Components\Grid::make(2)->schema([
+                                Forms\Components\TextInput::make('problem_solving')
+                                    ->label('Technical Skills (Max 25)')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(25)
+                                    ->disabled(fn (Forms\Get $get) => $get('attendance') !== 'present')
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        $ps = ($state !== null && $state !== '') ? (float) $state : null;
+                                        $comm = ($get('communication') !== null && $get('communication') !== '') ? (float) $get('communication') : null;
+                                        $set('overall_score', ($ps !== null || $comm !== null) ? (($ps ?? 0) + ($comm ?? 0)) : null);
+                                    }),
+
+                                Forms\Components\TextInput::make('communication')
+                                    ->label('Communication (Max 25)')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(25)
+                                    ->disabled(fn (Forms\Get $get) => $get('attendance') !== 'present')
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        $comm = ($state !== null && $state !== '') ? (float) $state : null;
+                                        $ps = ($get('problem_solving') !== null && $get('problem_solving') !== '') ? (float) $get('problem_solving') : null;
+                                        $set('overall_score', ($ps !== null || $comm !== null) ? (($ps ?? 0) + ($comm ?? 0)) : null);
+                                    }),
+                            ]),
+
+                            Forms\Components\TextInput::make('overall_score')
+                                ->label('Total Score (Auto-calculated)')
                                 ->numeric()
-                                ->minValue(0)
-                                ->maxValue(25)
-                                ->disabled(fn (Forms\Get $get) => $get('attendance') !== 'present')
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $ps = ($state !== null && $state !== '') ? (float) $state : null;
-                                    $comm = ($get('communication') !== null && $get('communication') !== '') ? (float) $get('communication') : null;
-                                    $set('overall_score', ($ps !== null || $comm !== null) ? (($ps ?? 0) + ($comm ?? 0)) : null);
-                                }),
+                                ->disabled()
+                                ->dehydrated(false),
 
-                            Forms\Components\TextInput::make('communication')
-                                ->label('Communication (Max 25)')
-                                ->numeric()
-                                ->minValue(0)
-                                ->maxValue(25)
-                                ->disabled(fn (Forms\Get $get) => $get('attendance') !== 'present')
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $comm = ($state !== null && $state !== '') ? (float) $state : null;
-                                    $ps = ($get('problem_solving') !== null && $get('problem_solving') !== '') ? (float) $get('problem_solving') : null;
-                                    $set('overall_score', ($ps !== null || $comm !== null) ? (($ps ?? 0) + ($comm ?? 0)) : null);
-                                }),
-                        ]),
+                            Forms\Components\Textarea::make('remarks')
+                                ->label('Remarks / Notes')
+                                ->rows(3),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $assignment = $record->interviewAssignments()->latest()->first();
+                            if (!$assignment) return;
 
-                        Forms\Components\TextInput::make('overall_score')
-                            ->label('Total Score (Auto-calculated)')
-                            ->numeric()
-                            ->disabled()
-                            ->dehydrated(false),
+                            $updateData = [
+                                'attendance' => $data['attendance'],
+                                'remarks' => $data['remarks'] ?? null,
+                            ];
 
-                        Forms\Components\Textarea::make('remarks')
-                            ->label('Remarks / Notes')
-                            ->rows(3),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $assignment = $record->interviewAssignments()->latest()->first();
-                        if (!$assignment) return;
+                            $hasProblemSolving = isset($data['problem_solving']) && $data['problem_solving'] !== '' && $data['problem_solving'] !== null;
+                            $hasCommunication = isset($data['communication']) && $data['communication'] !== '' && $data['communication'] !== null;
 
-                        $updateData = [
-                            'attendance' => $data['attendance'],
-                            'remarks' => $data['remarks'] ?? null,
-                        ];
-
-                        $hasProblemSolving = isset($data['problem_solving']) && $data['problem_solving'] !== '' && $data['problem_solving'] !== null;
-                        $hasCommunication = isset($data['communication']) && $data['communication'] !== '' && $data['communication'] !== null;
-
-                        if ($data['attendance'] === 'present') {
-                            $updateData['problem_solving'] = $hasProblemSolving ? (float) $data['problem_solving'] : null;
-                            $updateData['communication'] = $hasCommunication ? (float) $data['communication'] : null;
-                            $updateData['overall_score'] = ($hasProblemSolving || $hasCommunication)
-                                ? ((float)($updateData['problem_solving'] ?? 0)) + ((float)($updateData['communication'] ?? 0))
-                                : null;
-                        } else {
-                            $updateData['problem_solving'] = null;
-                            $updateData['communication'] = null;
-                            $updateData['overall_score'] = null;
-                        }
-
-                        $assignment->update($updateData);
-
-                        // Only mark as interviewed when BOTH marks are given AND candidate is present!
-                        if ($data['attendance'] === 'present' && $hasProblemSolving && $hasCommunication) {
-                            if (!in_array($record->status, ['shortlisted', 'rejected'])) {
-                                $record->update(['status' => 'interviewed']);
+                            if ($data['attendance'] === 'present') {
+                                $updateData['problem_solving'] = $hasProblemSolving ? (float) $data['problem_solving'] : null;
+                                $updateData['communication'] = $hasCommunication ? (float) $data['communication'] : null;
+                                $updateData['overall_score'] = ($hasProblemSolving || $hasCommunication)
+                                    ? ((float)($updateData['problem_solving'] ?? 0)) + ((float)($updateData['communication'] ?? 0))
+                                    : null;
+                            } else {
+                                $updateData['problem_solving'] = null;
+                                $updateData['communication'] = null;
+                                $updateData['overall_score'] = null;
                             }
-                        }
 
-                        Notification::make()
-                            ->title('Evaluation Updated Successfully')
-                            ->success()
-                            ->send();
-                    }),
+                            $assignment->update($updateData);
 
-                // Top-Right Corner Resume Icon Action
-                Tables\Actions\Action::make('viewResume')
-                    ->label('')
-                    ->icon('heroicon-o-document-text')
-                    ->iconButton()
-                    ->color('info')
-                    ->tooltip(fn ($record) => $record->resume_path ? 'View Resume (PDF)' : 'No resume uploaded')
-                    ->url(fn ($record) => $record->resume_path ? asset('storage/' . $record->resume_path) : null, shouldOpenInNewTab: true)
-                    ->disabled(fn ($record) => empty($record->resume_path))
-                    ->extraAttributes([
-                        'class' => 'fi-ta-card-resume-btn',
-                    ]),
+                            // Only mark as interviewed when BOTH marks are given AND candidate is present!
+                            if ($data['attendance'] === 'present' && $hasProblemSolving && $hasCommunication) {
+                                if (!in_array($record->status, ['shortlisted', 'rejected'])) {
+                                    $record->update(['status' => 'interviewed']);
+                                }
+                            }
 
-                // Top-Right Corner Edit Icon Action
-                Tables\Actions\EditAction::make()
-                    ->label('')
-                    ->icon('heroicon-o-pencil-square')
-                    ->iconButton()
-                    ->color('gray')
-                    ->tooltip('Edit Candidate Application')
-                    ->extraAttributes([
-                        'class' => 'fi-ta-card-edit-btn',
-                    ]),
+                            Notification::make()
+                                ->title('Evaluation Updated Successfully')
+                                ->success()
+                                ->send();
+                        }),
+
+                    // Direct Select for Scheduled candidates (bypassing evaluation if needed)
+                    Tables\Actions\Action::make('directSelect')
+                        ->label('Direct Select')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Direct Select Candidate')
+                        ->modalDescription('Select this candidate directly without evaluation? A selection email will be sent.')
+                        ->visible(fn ($record) => $record->status === 'interview_scheduled')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'shortlisted']);
+                            $assignment = $record->interviewAssignments()->latest()->first();
+                            if ($assignment) {
+                                $assignment->update(['result' => 'selected']);
+                            }
+                            try {
+                                Mail::to($record->email)->send(new \App\Mail\CandidateSelectedMail($assignment ?? $record));
+                                Notification::make()->title('Candidate Shortlisted & Email Sent')->success()->send();
+                            } catch (\Throwable $e) {
+                                Notification::make()->title('Shortlisted, but Email Failed')->body($e->getMessage())->warning()->send();
+                            }
+                        }),
+
+                    // Quick Reject for Applied or Scheduled
+                    Tables\Actions\Action::make('quickReject')
+                        ->label('Reject Candidate')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Reject Candidate')
+                        ->modalDescription('Are you sure you want to reject this candidate? A rejection email will be sent.')
+                        ->visible(fn ($record) => in_array($record->status, ['applied', 'interview_scheduled']))
+                        ->action(function ($record) {
+                            $record->update(['status' => 'rejected']);
+                            $assignment = $record->interviewAssignments()->latest()->first();
+                            if ($assignment) {
+                                $assignment->update(['result' => 'rejected']);
+                            }
+                            try {
+                                Mail::to($record->email)->send(new \App\Mail\CandidateRejectedMail($record));
+                            } catch (\Throwable $e) {
+                                \Illuminate\Support\Facades\Log::error("Failed sending candidate rejected mail: " . $e->getMessage());
+                            }
+                            Notification::make()->title('Candidate Rejected & Email Sent')->danger()->send();
+                        }),
+
+                    // Archive Single Candidate
+                    Tables\Actions\Action::make('archiveCandidate')
+                        ->label('Archive Candidate')
+                        ->icon('heroicon-o-archive-box')
+                        ->color('warning')
+                        ->visible(fn ($record) => !(bool) $record->is_archived)
+                        ->modalHeading('Archive Candidate Application')
+                        ->modalDescription('Archive this candidate into a recruitment cycle so active views stay clean.')
+                        ->form([
+                            Forms\Components\TextInput::make('cohort_archive_name')
+                                ->label('Recruitment Cycle / Archive Name')
+                                ->default(fn () => 'Recruitment Cycle ' . date('M Y'))
+                                ->required(),
+                            Forms\Components\Textarea::make('archive_note')
+                                ->label('Archive Note (Optional)')
+                                ->placeholder('e.g. End of 2026 hiring cycle')
+                                ->rows(2),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $record->archive($data['cohort_archive_name'], $data['archive_note'] ?? null);
+                            Notification::make()
+                                ->title('Candidate Archived')
+                                ->body("Moved to cycle: {$data['cohort_archive_name']}")
+                                ->warning()
+                                ->send();
+                        }),
+
+                    // Restore Single Candidate
+                    Tables\Actions\Action::make('restoreCandidate')
+                        ->label('Restore to Active')
+                        ->icon('heroicon-o-arrow-path-rounded-square')
+                        ->color('success')
+                        ->visible(fn ($record) => (bool) $record->is_archived)
+                        ->requiresConfirmation()
+                        ->modalHeading('Restore Candidate')
+                        ->modalDescription('Restore this candidate application back to the active pipeline?')
+                        ->action(function ($record) {
+                            $record->unarchive();
+                            Notification::make()
+                                ->title('Candidate Restored to Active')
+                                ->success()
+                                ->send();
+                        }),
+                ])
+                ->label('Actions')
+                ->icon('heroicon-m-ellipsis-vertical')
+                ->color('gray')
+                ->button()
+                ->size('sm'),
             ])
 
             ->bulkActions([
@@ -799,7 +835,59 @@ class CandidateResource extends Resource
                     })
                     ->deselectRecordsAfterCompletion(),
 
-                
+                BulkAction::make('bulkArchive')
+                    ->label('Archive Selected')
+                    ->icon('heroicon-o-archive-box')
+                    ->color('warning')
+                    ->modalHeading('Archive Selected Candidates')
+                    ->modalDescription('Move selected candidate applications into an archive cycle so they do not clutter active hiring.')
+                    ->form([
+                        TextInput::make('cohort_archive_name')
+                            ->label('Recruitment Cycle / Cohort Name')
+                            ->default(fn () => 'Recruitment Cycle ' . date('M Y'))
+                            ->required(),
+                        Textarea::make('archive_note')
+                            ->label('Archive Note (Optional)')
+                            ->placeholder('e.g. Winter 2026 Recruitment Drive')
+                            ->rows(2),
+                    ])
+                    ->action(function (Collection $records, array $data) {
+                        $cycleName = trim($data['cohort_archive_name']);
+                        $note = $data['archive_note'] ?? null;
+                        $count = $records->count();
+
+                        $records->each(function ($record) use ($cycleName, $note) {
+                            $record->archive($cycleName, $note);
+                        });
+
+                        Notification::make()
+                            ->title("{$count} Candidates Archived")
+                            ->body("Archived under cycle: {$cycleName}")
+                            ->warning()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                BulkAction::make('bulkRestore')
+                    ->label('Restore to Active')
+                    ->icon('heroicon-o-arrow-path-rounded-square')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Restore Selected Candidates')
+                    ->modalDescription('Are you sure you want to restore all selected candidates back to active status?')
+                    ->action(function (Collection $records) {
+                        $count = $records->count();
+                        $records->each(function ($record) {
+                            $record->unarchive();
+                        });
+
+                        Notification::make()
+                            ->title("{$count} Candidates Restored to Active")
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
                 Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
@@ -813,6 +901,7 @@ class CandidateResource extends Resource
     {
         return [
             'index' => Pages\ListCandidates::route('/'),
+            'create' => Pages\CreateCandidate::route('/create'),
             'view' => Pages\ViewCandidate::route('/{record}'),
             'edit' => Pages\EditCandidate::route('/{record}/edit'),
         ];
