@@ -1098,7 +1098,7 @@ class AdminPanelProvider extends PanelProvider
                             letter-spacing: 0.05em !important;
                         }
 
-                        /* ── Stitch Modals & Dialogs ── */
+                        /* ── Stitch Modals & Dialogs (Scrollable Content + Sticky Header/Footer) ── */
                         :is(.dark) .fi-modal-window,
                         .fi-modal-window {
                             background-color: #131b2e !important;
@@ -1106,13 +1106,23 @@ class AdminPanelProvider extends PanelProvider
                             border-radius: 16px !important;
                             box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8) !important;
                             color: #dae2fd !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            max-height: 90dvh !important;
                             overflow: hidden !important;
+                        }
+                        :is(.dark) .fi-modal-slide-over .fi-modal-window,
+                        .fi-modal-slide-over .fi-modal-window {
+                            max-height: 100dvh !important;
+                            height: 100dvh !important;
+                            border-radius: 16px 0 0 16px !important;
                         }
                         :is(.dark) .fi-modal-header,
                         .fi-modal-header {
                             background-color: #0b1326 !important;
                             border-bottom: 1.5px solid #222a3d !important;
                             padding: 16px 24px !important;
+                            flex-shrink: 0 !important;
                         }
                         :is(.dark) .fi-modal-heading,
                         .fi-modal-heading {
@@ -1130,12 +1140,17 @@ class AdminPanelProvider extends PanelProvider
                         .fi-modal-content {
                             background-color: #131b2e !important;
                             padding: 22px !important;
+                            overflow-y: auto !important;
+                            overflow-x: hidden !important;
+                            flex: 1 1 auto !important;
+                            min-height: 0 !important;
                         }
                         :is(.dark) .fi-modal-footer,
                         .fi-modal-footer {
                             background-color: #0b1326 !important;
                             border-top: 1.5px solid #222a3d !important;
                             padding: 14px 24px !important;
+                            flex-shrink: 0 !important;
                         }
 
                         /* Modal Inner Sections */

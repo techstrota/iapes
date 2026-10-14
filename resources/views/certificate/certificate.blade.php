@@ -364,8 +364,7 @@
                                     <b>{!! !empty($certJoining) ? \Carbon\Carbon::parse($certJoining)->format('dS F Y') : '01 Dec 2025' !!}</b>
                                     to
                                     <b>{!! !empty($certCompletion) ? \Carbon\Carbon::parse($certCompletion)->format('dS F Y') : '31 Dec 2025' !!}</b>.
-                                    During this tenure, the intern demonstrated exceptional professional 
-                                    conduct and technical proficiency.
+                                    During this tenure, the intern demonstrated exceptional professional conduct and technical proficiency.
                                 </div>
                                 <div class="footer">
                                     <div class="sig-box sig">

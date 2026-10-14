@@ -13,7 +13,7 @@
     $projectDisplay = $hasProject ? $rawProject : 'Project';
 
     // Mentor name
-    $mentorName = $intern->team?->mentor_name ?: 'David Kim';
+    $mentorName = $intern->team?->mentor_name ?: 'Mentor not assigned';
 
     // Attendance status resolution for TODAY
     $status = $intern->today_status;

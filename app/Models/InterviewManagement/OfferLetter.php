@@ -12,10 +12,12 @@ class OfferLetter extends Model
         'application_id',
         'joining_date',
         'completion_date',
+        'duration',
         'internship_role',
         'working_hours',
        // 'intern_id',
         'template',
+        'offer_letter_template_id',
         'description',
         'college',
         'degree',   // ← add this too
@@ -77,6 +79,11 @@ class OfferLetter extends Model
         return $this->hasOne(Intern::class, 'offer_letter_id');
     }
 
+    public function templatePreset()
+    {
+        return $this->belongsTo(OfferLetterTemplate::class, 'offer_letter_template_id');
+    }
+
     public function isDraft(): bool
     {
         return $this->offer_status === 'draft';
@@ -92,23 +99,79 @@ class OfferLetter extends Model
         return $this->offer_status === 'rejected';
     }
 
+    public const DURATION_SUGGESTIONS = [
+        '15 days'  => '15 Days',
+        '21 days'  => '21 Days',
+        '26 days'  => '26 Days',
+        '30 days'  => '30 Days',
+        '1 month'  => '1 Month',
+        '2 months' => '2 Months',
+        '3 months' => '3 Months',
+        '4 months' => '4 Months',
+        '6 months' => '6 Months',
+        '1 year'   => '1 Year',
+    ];
+
+    /**
+     * Calculate completion date dynamically from joining date and duration.
+     * Supports standard options and custom expressions (e.g. "45 days", "8 weeks", "2 months", "1 year").
+     */
+    public static function calculateCompletionDate(?string $joiningDate, ?string $duration): ?string
+    {
+        if (!$joiningDate || !$duration) {
+            return null;
+        }
+
+        try {
+            $start = \Illuminate\Support\Carbon::parse($joiningDate);
+            $d = trim(strtolower($duration));
+
+            if (preg_match('/^(\d+)\s*(day|week|month|year)s?$/i', $d, $matches)) {
+                $count = (int) $matches[1];
+                $unit  = strtolower($matches[2]);
+
+                return match ($unit) {
+                    'day'   => $start->copy()->addDays($count)->format('Y-m-d'),
+                    'week'  => $start->copy()->addWeeks($count)->format('Y-m-d'),
+                    'month' => $start->copy()->addMonths($count)->format('Y-m-d'),
+                    'year'  => $start->copy()->addYears($count)->format('Y-m-d'),
+                    default => null,
+                };
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return null;
+    }
+
+    public function getDurationLabelAttribute(): string
+    {
+        $d = trim((string) ($this->duration ?: ''));
+        if (empty($d)) {
+            return '3 Months';
+        }
+
+        return self::DURATION_SUGGESTIONS[strtolower($d)] ?? ucwords($d);
+    }
+
+    public function getLayoutLabelAttribute(): string
+    {
+        $tpl = $this->template ?: 'single_page';
+
+        return match ($tpl) {
+            'single_page', 'one_month', '3_month_offer_letter', 'general' => 'Single Page Offer Letter',
+            'multi_page', '4_month_offer_letter', '6_month_offer_letter'  => 'Multi Page Offer Letter',
+            default => ucfirst(str_replace('_', ' ', $tpl)),
+        };
+    }
+
     /**
      * Auto-select template based on application duration.
      */
     public static function templateForDuration(?int $duration, ?string $unit): string
     {
-        if (!$duration || !$unit) return 'general';
-        $unit = strtolower($unit);
-        $months = str_contains($unit, 'month') ? $duration
-                : (str_contains($unit, 'week') ? round($duration / 4.3) : round($duration / 30));
-
-        return match(true) {
-            $months <= 1  => 'one_month',
-            $months <= 3  => '3_month_offer_letter',
-            $months <= 4  => '4_month_offer_letter',
-            $months >= 6  => '6_month_offer_letter',
-            default       => 'general',
-        };
+        return 'single_page';
     }
 
     /**
@@ -129,7 +192,7 @@ class OfferLetter extends Model
 
         $hours = !empty($workingHours) ? $workingHours : '11:00 AM to 4:00 PM, Monday to Saturday';
 
-        return "<p>The internship will commence on <strong>{$commence}</strong> and will conclude on <strong>{$conclude}</strong>. You will be expected to work <strong>{$hours}</strong>, from <strong>Monday to Saturday</strong>, between <strong>10:30 AM to 5:30 PM</strong>.</p>\n<p>Upon successful completion of the internship, you will receive a <strong>Certificate of Completion</strong> and a <strong>Letter of Recommendation</strong>. You will also be eligible for certain benefits, including access to the company’s facilities, events, and training programs.</p>";
+        return "<p>The internship will commence on <strong>{$commence}</strong> and will conclude on <strong>{$conclude}</strong>. You will be expected to work <strong>{$hours}</strong>.</p>\n<p>Upon successful completion of the internship, you will receive a <strong>Certificate of Completion</strong> and a <strong>Letter of Recommendation</strong>. You will also be eligible for certain benefits, including access to the company’s facilities, events, and training programs.</p><p>To accept this offer, please sign and return this letter by <strong>{$commence}</strong>. If you have any questions or concerns, please feel free to contact us at any time. </p>";
     }
 
     protected static function booted()

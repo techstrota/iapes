@@ -83,7 +83,7 @@ class InternTeamResource extends Resource
                         Forms\Components\Grid::make(2)->schema([
                             Forms\Components\TextInput::make('mentor_name')
                                 ->label('Lead Mentor Name')
-                                ->placeholder('e.g. David Kim, Dr. Sarah Lin')
+                                ->placeholder('Mentor Name')
                                 ->maxLength(255),
 
                             Forms\Components\TextInput::make('mentor_title')

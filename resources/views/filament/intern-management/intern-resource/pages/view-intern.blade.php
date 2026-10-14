@@ -45,7 +45,7 @@
 
     // Project & Grade
     $projectDisplay = $record->team?->team_name ?: ($record->project_name ?: 'Project not assigned');
-    $mentorName = $record->team?->mentor_name ?: 'David Kim';
+    $mentorName = $record->team?->mentor_name ?: 'Mentor not assigned';
     $grade = $record->completionCertificate?->grade ?: ($record->completionLetter?->grade ?: ($record->grade ?: '—'));
 
     // Batch

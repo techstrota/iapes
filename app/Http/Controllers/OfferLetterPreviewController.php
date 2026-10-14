@@ -14,28 +14,37 @@ class OfferLetterPreviewController extends Controller
      */
     public function preview(Request $request)
     {
-        $template = $request->input('template', 'general');
+        $template = $request->input('template', 'single_page');
 
-        // Whitelist to prevent template injection
-        $allowedTemplates = ['3_month_offer_letter', '4_month_offer_letter', '6_month_offer_letter', 'one_month', 'general'];
-        if (!in_array($template, $allowedTemplates)) {
-            $template = 'general';
-        }
+        // Normalize legacy template keys if received
+        $templateMap = [
+            'one_month'            => 'single_page',
+            '3_month_offer_letter' => 'single_page',
+            'general'              => 'single_page',
+            '4_month_offer_letter' => 'multi_page',
+            '6_month_offer_letter' => 'multi_page',
+            'single_page'          => 'single_page',
+            'multi_page'           => 'multi_page',
+        ];
 
-        $name         = trim((string) $request->input('name', '')) ?: 'Candidate Name';
-        $college      = trim((string) $request->input('college', '')) ?: 'College / Institute Name';
-        $university   = trim((string) $request->input('university', '')) ?: $college;
-        $degree       = trim((string) $request->input('degree', '')) ?: 'B.Tech / B.C.A.';
-        $email        = trim((string) $request->input('email', '')) ?: 'candidate@example.com';
-        $phone        = trim((string) $request->input('phone', '')) ?: '+91 98765 43210';
-        $role         = trim((string) $request->input('internship_role', '')) ?: 'Web Developer';
-        $position     = trim((string) $request->input('internship_position', '')) ?: ($role . ' Intern');
-        $workingHours = trim((string) $request->input('working_hours', '')) ?: '11:00 AM to 4:00 PM, Monday to Saturday';
-        $joiningDate  = $request->input('joining_date') ?: now()->addDays(7)->toDateString();
-        $completionDate = $request->input('completion_date') ?: now()->addMonths(4)->toDateString();
-        $issueDate    = $request->input('offer_issue_date') ?: now()->toDateString();
-        $description  = $request->input('description', '');
-        if (empty(trim(strip_tags($description))) && in_array($template, ['4_month_offer_letter', '6_month_offer_letter'])) {
+        $template = $templateMap[$template] ?? 'single_page';
+
+        $name           = trim((string) $request->input('name', '')) ?: 'Candidate Name';
+        $college        = trim((string) $request->input('college', '')) ?: 'College / Institute Name';
+        $university     = trim((string) $request->input('university', '')) ?: $college;
+        $degree         = trim((string) $request->input('degree', '')) ?: 'B.Tech / B.C.A.';
+        $email          = trim((string) $request->input('email', '')) ?: 'candidate@example.com';
+        $phone          = trim((string) $request->input('phone', '')) ?: '+91 98765 43210';
+        $role           = trim((string) $request->input('internship_role', '')) ?: 'Web Developer';
+        $position       = trim((string) $request->input('internship_position', '')) ?: ($role . ' Intern');
+        $workingHours   = trim((string) $request->input('working_hours', '')) ?: '11:00 AM to 4:00 PM, Monday to Saturday';
+        $joiningDate    = $request->input('joining_date') ?: now()->addDays(7)->toDateString();
+        $duration       = trim((string) $request->input('duration', '')) ?: '3 months';
+        $completionDate = $request->input('completion_date') ?: OfferLetter::calculateCompletionDate($joiningDate, $duration) ?: now()->addMonths(3)->toDateString();
+        $issueDate      = $request->input('offer_issue_date') ?: now()->toDateString();
+        $description    = $request->input('description', '');
+
+        if ($template === 'multi_page' && empty(trim(strip_tags($description)))) {
             $description = OfferLetter::defaultDescription($joiningDate, $completionDate, $workingHours);
         }
 
@@ -65,6 +74,7 @@ class OfferLetterPreviewController extends Controller
             'working_hours'       => $workingHours,
             'joining_date'        => $joiningDate,
             'completion_date'     => $completionDate,
+            'duration'            => $duration,
             'offer_issue_date'    => $issueDate,
             'description'         => $description,
             'offer_letter_code'   => 'OFFER/' . now()->year . '/PREVIEW',

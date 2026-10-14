@@ -26,22 +26,44 @@ class EditOfferLetter extends EditRecord
     }
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // The Select field expects an array for 'multiple()'. 
-        // We wrap the single ID into an array so it shows up in the dropdown.
-        $data['applications'] = [$data['application_id']];
+        $record = $this->record;
+        $app = $record?->application;
+
+        $data['applications'] = !empty($data['application_id']) ? [(int) $data['application_id']] : [];
+        $data['template'] = !empty($data['template']) ? $data['template'] : 'single_page';
+        $data['duration'] = !empty($data['duration']) ? $data['duration'] : '1 month';
+        $data['name'] = $data['name'] ?: ($app?->name ?? '');
+        $data['college'] = $data['college'] ?: ($app?->college ?? '');
+        $data['university'] = $data['university'] ?: ($data['college'] ?: ($app?->college ?? ''));
+        $data['degree'] = $data['degree'] ?: ($app?->degree ?? '');
+        $data['email'] = $data['email'] ?: ($app?->email ?? '');
+        $data['phone'] = $data['phone'] ?: ($app?->phone ?? '');
         $data['intern_name'] = $data['internship_position'] ?? '';
+
         if (empty($data['working_hours'])) {
             $data['working_hours'] = '11:00 AM to 4:00 PM, Monday to Saturday';
         }
+
         return $data;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Before saving the edit, take the first value from the array 
-        // and put it back into the single 'application_id' field.
-        if (!empty($data['applications'])) {
-            $data['application_id'] = $data['applications'][0];
+        if (!empty($data['applications']) && is_array($data['applications'])) {
+            $firstAppId = collect($data['applications'])->filter()->first();
+            $data['application_id'] = $firstAppId ?: ($this->record?->application_id);
+        }
+
+        if (empty($data['template'])) {
+            $data['template'] = 'single_page';
+        }
+
+        if (empty($data['duration'])) {
+            $data['duration'] = '1 month';
+        }
+
+        if ($data['template'] !== 'multi_page') {
+            $data['description'] = null;
         }
 
         return $data;

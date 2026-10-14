@@ -23,10 +23,21 @@
             overflow-y: auto;
         }
 
+        .ol-form-panel .fi-section-header {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .ol-form-panel .fi-section-header-Text,
+        .ol-form-panel .fi-section-header > div:first-child {
+            min-width: 200px;
+            flex: 1 1 auto;
+        }
+
         .ol-drag-divider {
             flex: 0 0 10px;
             cursor: col-resize;
-            background-color: rgba(156, 163, 175, 0.25);
+            background-color: rgba(59, 130, 246, 0.15);
             border-radius: 9999px;
             margin: 0 0.25rem;
             transition: background-color 0.2s, box-shadow 0.2s;
@@ -37,8 +48,8 @@
 
         .ol-drag-divider:hover,
         .ol-drag-divider.is-dragging {
-            background-color: #f97316;
-            box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+            background-color: #2563eb;
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
         }
 
         .ol-drag-divider::after {
@@ -47,7 +58,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #6b7280;
+            color: #60a5fa;
             font-size: 11px;
             letter-spacing: -2px;
             line-height: 1;
@@ -67,8 +78,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 0.65rem 1rem;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: #131b2e;
+            border: 1px solid #222a3d;
             border-top-left-radius: 0.75rem;
             border-top-right-radius: 0.75rem;
             gap: 0.5rem;
@@ -76,38 +87,38 @@
         }
 
         .dark .ol-preview-toolbar {
-            background: #1e293b;
-            border-color: #334155;
+            background: #131b2e;
+            border-color: #222a3d;
         }
 
         .ol-preview-title {
             font-size: 0.85rem;
             font-weight: 700;
-            color: #475569;
+            color: #ffffff;
             display: flex;
             align-items: center;
             gap: 0.4rem;
         }
 
         .dark .ol-preview-title {
-            color: #cbd5e1;
+            color: #ffffff;
         }
 
         .ol-template-chip {
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 700;
             padding: 0.2rem 0.65rem;
             border-radius: 9999px;
-            background: #e0f2fe;
-            color: #0369a1;
-            border: 1px solid #bae6fd;
+            background: #0c1c38;
+            color: #60a5fa;
+            border: 1px solid #1d4ed8;
             transition: all 0.2s;
         }
 
         .dark .ol-template-chip {
-            background: #0c4a6e;
-            color: #7dd3fc;
-            border-color: #0284c7;
+            background: #0c1c38;
+            color: #60a5fa;
+            border-color: #1d4ed8;
         }
 
         .ol-live-badge {
@@ -118,15 +129,16 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            padding: 0.15rem 0.5rem;
+            padding: 0.15rem 0.55rem;
             border-radius: 9999px;
-            background-color: #dcfce7;
-            color: #166534;
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
         }
 
         .dark .ol-live-badge {
-            background-color: #14532d;
-            color: #86efac;
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
         }
 
         .ol-live-dot {
@@ -150,15 +162,15 @@
             font-size: 0.8rem;
             font-weight: 600;
             color: #fff;
-            background-color: #f97316;
-            border: none;
+            background-color: #2563eb;
+            border: 1px solid #3b82f6;
             border-radius: 0.5rem;
             cursor: pointer;
             transition: background-color 0.15s, transform 0.1s;
         }
 
         .ol-refresh-btn:hover {
-            background-color: #ea580c;
+            background-color: #1d4ed8;
         }
 
         .ol-refresh-btn:active {
@@ -168,19 +180,19 @@
         .ol-iframe-box {
             flex: 1;
             min-height: 70vh;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #222a3d;
             border-top: none;
             border-bottom-left-radius: 0.75rem;
             border-bottom-right-radius: 0.75rem;
             overflow: hidden;
-            background: #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            background: #0b1326;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             position: relative;
         }
 
         .dark .ol-iframe-box {
-            border-color: #334155;
-            background: #0f172a;
+            border-color: #222a3d;
+            background: #0b1326;
         }
 
         .ol-preview-frame {
@@ -242,7 +254,7 @@
             type="button"
             id="ol-switch-form"
             onclick="switchMobileTab('form')"
-            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-orange-500 text-white shadow-sm"
+            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-sm"
         >
             📝 Form
         </button>
@@ -250,7 +262,7 @@
             type="button"
             id="ol-switch-preview"
             onclick="switchMobileTab('preview')"
-            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 text-gray-300"
         >
             📄 Live Preview
         </button>
@@ -452,13 +464,13 @@
         if (tab === 'form') {
             formPanel.classList.remove('ol-hide-mobile');
             previewPanel.classList.add('ol-hide-mobile');
-            btnForm.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-orange-500 text-white shadow-sm';
-            btnPreview.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
+            btnForm.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-sm';
+            btnPreview.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 text-gray-300';
         } else {
             formPanel.classList.add('ol-hide-mobile');
             previewPanel.classList.remove('ol-hide-mobile');
-            btnPreview.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-orange-500 text-white shadow-sm';
-            btnForm.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
+            btnPreview.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-sm';
+            btnForm.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 text-gray-300';
             triggerOfferPreviewRefresh(true);
         }
     }
@@ -500,6 +512,7 @@
     function getOfferFormData() {
         const fields = [
             'template',
+            'offer_letter_template_id',
             'name',
             'college',
             'university',
@@ -507,6 +520,7 @@
             'email',
             'phone',
             'joining_date',
+            'duration',
             'completion_date',
             'offer_issue_date',
             'internship_role',
@@ -545,7 +559,7 @@
         if (!frame) return;
 
         const data = getOfferFormData();
-        const template = data.template || 'general';
+        const template = data.template || 'single_page';
 
         // Check if data actually changed to avoid unnecessary re-renders
         const currentSignature = JSON.stringify(data);
@@ -555,15 +569,17 @@
         olLastRenderedSignature = currentSignature;
 
         const templateNames = {
-            '3_month_offer_letter': '3 Month',
-            '4_month_offer_letter': '4 Month',
-            '6_month_offer_letter': '6 Month',
-            'one_month': '1 Month',
-            'general': 'General'
+            'single_page': 'Single Page',
+            'multi_page': 'Multi Page',
+            '3_month_offer_letter': 'Single Page',
+            'one_month': 'Single Page',
+            'general': 'Single Page',
+            '4_month_offer_letter': 'Multi Page',
+            '6_month_offer_letter': 'Multi Page'
         };
 
         if (templateChip) {
-            templateChip.textContent = templateNames[template] || template;
+            templateChip.textContent = templateNames[template] || (template === 'multi_page' ? 'Multi Page' : 'Single Page');
         }
 
         // Abort previous in-flight request so only latest keystroke renders

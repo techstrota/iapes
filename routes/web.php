@@ -18,9 +18,12 @@ Route::get('/view-offer-pdf/{id}', function ($id) {
     // Find by ID - this is much more reliable
     $record = OfferLetter::findOrFail($id);
 
-    $template = $record->template ?? 'general';
+    $template = $record->template ?: 'single_page';
+    if (!view()->exists("offerletter.{$template}")) {
+        $template = in_array($template, ['4_month_offer_letter', '6_month_offer_letter', 'multi_page']) ? 'multi_page' : 'single_page';
+    }
 
-    $pdf = Pdf::loadView("offerletter.$template", [
+    $pdf = Pdf::loadView("offerletter.{$template}", [
         'offers' => collect([$record])
     ]);
 
