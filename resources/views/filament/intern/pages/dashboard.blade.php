@@ -97,13 +97,13 @@
                             My Profile
                         </a>
 
-                        <a href="{{ route('print-id-card', ['id' => $intern->id]) }}" target="_blank"
+                        <!-- <a href="{{ route('print-id-card', ['id' => $intern->id]) }}" target="_blank"
                            style="display: inline-flex; align-items: center; gap: 7px; background-color: #171f33; color: #dae2fd; padding: 9px 15px; border-radius: 10px; font-size: 12.5px; font-weight: 600; text-decoration: none; border: 1px solid #222a3d; transition: all 0.15s ease;">
                             <svg style="width: 16px; height: 16px; color: #fbbf24;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" />
                             </svg>
                             ID Card
-                        </a>
+                        </a> -->
                     </div>
                 </div>
             </div>

@@ -44,83 +44,7 @@
             </div>
 
             {{-- Controls & Date Picker --}}
-            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
-                {{-- Date Period Picker with Explicit Calendar Input --}}
-                <div style="display: inline-flex; align-items: center; background-color: #131b2e; border: 2px solid {{ $isToday ? '#1E40AF' : '#2563EB' }}; border-radius: 10px; padding: 4px 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); transition: all 0.2s ease;">
-                    <button
-                        type="button"
-                        wire:click="previousDay"
-                        title="Previous Day"
-                        style="width: 28px; height: 28px; border: none; background: #171f33; border-radius: 6px; color: #dae2fd; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.15s ease;">
-                        <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
-
-                    <div style="padding: 0 8px; display: flex; align-items: center; gap: 8px;">
-                        <svg style="width: 17px; height: 17px; color: #b8c4ff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        {{-- Interactive HTML5 Datepicker allowing immediate selection of any date --}}
-                        <input
-                            type="date"
-                            wire:model.live="selectedDate"
-                            title="Click to select any date"
-                            style="border: none; background: transparent; font-size: 13px; font-weight: 800; color: #dae2fd; cursor: pointer; outline: none; padding: 2px 4px; color-scheme: dark;"
-                        />
-                        <span style="background-color: #171f33; color: #b8c4ff; border: 1px solid #222a3d; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; white-space: nowrap;">
-                            {{ Carbon\Carbon::parse($selectedDate)->format('D, d M Y') }}
-                        </span>
-                        @if ($isToday)
-                            <span style="background-color: rgba(16, 185, 129, 0.15); color: #4edea3; border: 1px solid rgba(78, 222, 163, 0.3); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">TODAY</span>
-                        @endif
-                        @if (Carbon\Carbon::parse($selectedDate)->isSunday())
-                            <span style="background-color: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.05em;">WEEK-OFF</span>
-                        @endif
-                    </div>
-
-                    <button
-                        type="button"
-                        wire:click="nextDay"
-                        title="Next Day"
-                        style="width: 28px; height: 28px; border: none; background: #171f33; border-radius: 6px; color: #dae2fd; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.15s ease;">
-                        <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                </div>
-
-                @if (!$isToday)
-                    <button
-                        type="button"
-                        wire:click="setToday"
-                        style="padding: 7px 12px; font-size: 12px; font-weight: 700; background-color: #171f33; color: #b8c4ff; border: 1px solid #222a3d; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-                        Return to Today
-                    </button>
-                @endif
-
-                {{-- Primary "+ Mark Attendance" Button (Opens Modal with Present, Absent, WFH, Leave) --}}
-                <button
-                    type="button"
-                    wire:click="openMarkModal()"
-                    style="background-color: #1E40AF; color: #FFFFFF; font-weight: 700; font-size: 13px; border-radius: 10px; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(30,64,175,0.4);">
-                    <svg style="width: 17px; height: 17px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>Mark Attendance</span>
-                </button>
-
-                {{-- Export CSV --}}
-                <button
-                    type="button"
-                    wire:click="exportAttendance"
-                    style="background-color: #171f33; border: 1px solid #222a3d; color: #dae2fd; font-weight: 600; font-size: 13px; border-radius: 10px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-                    <svg style="width: 16px; height: 16px; color: #8e909f;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Export CSV
-                </button>
-            </div>
+            
         </div>
 
         {{-- 2. TOP ATTENDANCE OVERVIEW & VISUAL CHARTS (STITCH SCREEN c4b2048e058f492f82d5ff55a76b5762) --}}
@@ -308,6 +232,83 @@
         {{-- 3. 4-WAY SEGMENTED VIEW TABS & FILTER TOOLBELT (STITCH CORE REQUIREMENT) --}}
         <div style="background-color: #131b2e; border: 1px solid #222a3d; border-radius: 14px; padding: 12px 18px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
             <div class="tab-bar-wrap" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
+                {{-- Date Period Picker with Explicit Calendar Input --}}
+                <div style="display: inline-flex; align-items: center; background-color: #131b2e; border: 2px solid {{ $isToday ? '#1E40AF' : '#2563EB' }}; border-radius: 10px; padding: 4px 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); transition: all 0.2s ease;">
+                    <button
+                        type="button"
+                        wire:click="previousDay"
+                        title="Previous Day"
+                        style="width: 28px; height: 28px; border: none; background: #171f33; border-radius: 6px; color: #dae2fd; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.15s ease;">
+                        <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+
+                    <div style="padding: 0 8px; display: flex; align-items: center; gap: 8px;">
+                        <svg style="width: 17px; height: 17px; color: #b8c4ff;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {{-- Interactive HTML5 Datepicker allowing immediate selection of any date --}}
+                        <input
+                            type="date"
+                            wire:model.live="selectedDate"
+                            title="Click to select any date"
+                            style="border: none; background: transparent; font-size: 13px; font-weight: 800; color: #dae2fd; cursor: pointer; outline: none; padding: 2px 4px; color-scheme: dark;"
+                        />
+                        <span style="background-color: #171f33; color: #b8c4ff; border: 1px solid #222a3d; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; white-space: nowrap;">
+                            {{ Carbon\Carbon::parse($selectedDate)->format('D, d M Y') }}
+                        </span>
+                        @if ($isToday)
+                            <span style="background-color: rgba(16, 185, 129, 0.15); color: #4edea3; border: 1px solid rgba(78, 222, 163, 0.3); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">TODAY</span>
+                        @endif
+                        @if (Carbon\Carbon::parse($selectedDate)->isSunday())
+                            <span style="background-color: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.05em;">WEEK-OFF</span>
+                        @endif
+                    </div>
+
+                    <button
+                        type="button"
+                        wire:click="nextDay"
+                        title="Next Day"
+                        style="width: 28px; height: 28px; border: none; background: #171f33; border-radius: 6px; color: #dae2fd; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.15s ease;">
+                        <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+
+                @if (!$isToday)
+                    <button
+                        type="button"
+                        wire:click="setToday"
+                        style="padding: 7px 12px; font-size: 12px; font-weight: 700; background-color: #171f33; color: #b8c4ff; border: 1px solid #222a3d; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+                        Return to Today
+                    </button>
+                @endif
+
+                {{-- Primary "+ Mark Attendance" Button (Opens Modal with Present, Absent, WFH, Leave) --}}
+                <button
+                    type="button"
+                    wire:click="openMarkModal()"
+                    style="background-color: #1E40AF; color: #FFFFFF; font-weight: 700; font-size: 13px; border-radius: 10px; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(30,64,175,0.4);">
+                    <svg style="width: 17px; height: 17px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Mark Attendance</span>
+                </button>
+
+                {{-- Export CSV --}}
+                <button
+                    type="button"
+                    wire:click="exportAttendance"
+                    style="background-color: #171f33; border: 1px solid #222a3d; color: #dae2fd; font-weight: 600; font-size: 13px; border-radius: 10px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <svg style="width: 16px; height: 16px; color: #8e909f;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export CSV
+                </button>
+            </div>
                 {{-- 4 Segmented Tab Buttons --}}
                 <div style="background-color: #0b1326; border: 1px solid #222a3d; border-radius: 10px; padding: 4px; display: inline-flex; align-items: center; gap: 4px;">
                     {{-- Tab 1: Muster Roll --}}

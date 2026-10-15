@@ -24,16 +24,24 @@ class CertificateController extends Controller
         $interns = $this->resolveInterns($id);
         $offers  = $interns->map(fn($i) => $i->offerletter)->filter();
 
-        $logoBase64 = 'data:image/png;base64,' . base64_encode(
-            file_get_contents(public_path('images/TsLogo.png'))
-        );
+        $logoPath = public_path('images/TsLogo.png');
+        $logoBase64 = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : asset('images/TsLogo.png');
 
-        $qrCodes = $offers->mapWithKeys(function ($offer) {
-            $token = str_replace('/', '-', $offer->intern->intern_code);
-            $url   = route('certificate.verify', ['token' => $token]);
-            $svg   = app(Generator::class)->size(150)->format('svg')->generate($url);
-            return [$offer->id => $svg];
-        });
+        $qrCodes = [];
+        foreach ($interns as $intern) {
+            $token = $intern->cert_token
+                ?: ($intern->completionCertificate?->cert_token
+                ?: ($intern->cert_ref_id ?: str_replace(['/', '\\'], '-', $intern->intern_code ?: 'INT-' . $intern->id)));
+            $url = route('certificate.verify', ['token' => $token]);
+            $svg = app(Generator::class)->size(150)->format('svg')->generate($url);
+            $qrCodes[$intern->id] = $svg;
+
+            if ($intern->offerletter) {
+                $qrCodes[$intern->offerletter->id] = $svg;
+            }
+        }
 
         return [$interns, $offers, $logoBase64, $qrCodes];
     }
@@ -44,14 +52,13 @@ class CertificateController extends Controller
 
     private function resolveInterns(string $id): \Illuminate\Support\Collection
     {
-        $query = Intern::with(['offerletter.intern']); // ← eager load the chain
+        $query = Intern::with(['offerletter.intern', 'completionCertificate', 'application', 'team']);
 
         if ($id === 'all') {
             return $query->get();
         }
 
         return $query->where('id', $id)->get();
-
     }
 
     // --- COMPLETION LETTER METHODS ---
@@ -105,16 +112,24 @@ class CertificateController extends Controller
 
     // --- CERTIFICATE METHODS ---
 
-    public function viewCertificate(Request $request, string $id)
+    public function viewCertificate(Request $request, string $id, bool $displayOnly = false)
     {
         [$interns, $offers, $logoBase64, $qrCodes] = $this->prepareViewData($id);
 
+        $viewName = view()->exists('certificate.intern-completion-certificate')
+            ? 'certificate.intern-completion-certificate'
+            : 'certificate.certificate';
+
+        $isDisplayOnly = $displayOnly || $request->boolean('display_only');
+
         return response(
-            View::make('certificate.certificate', [
-                'offers'   => $offers,
-                'isPdf'    => false,
-                'logo'     => $logoBase64,
-                'qrCodes'  => $qrCodes,
+            View::make($viewName, [
+                'interns'     => $interns,
+                'offers'      => $offers,
+                'isPdf'       => false,
+                'logo'        => $logoBase64,
+                'qrCodes'     => $qrCodes,
+                'displayOnly' => $isDisplayOnly,
             ])->render(),
             200,
             ['Content-Type' => 'text/html; charset=UTF-8']
@@ -126,10 +141,15 @@ class CertificateController extends Controller
         [$interns, $offers, $logoBase64, $qrCodes] = $this->prepareViewData($id);
 
         $filename = $interns->count() === 1
-            ? 'certificate_' . str_replace(['/', '\\'], '-', $interns->first()->intern_code) . '.pdf'
+            ? 'certificate_' . str_replace(['/', '\\'], '-', $interns->first()->intern_code ?: 'INT-' . $interns->first()->id) . '.pdf'
             : 'certificates_bulk.pdf';
 
-        $html = View::make('certificate.certificate', [
+        $viewName = view()->exists('certificate.intern-completion-certificate')
+            ? 'certificate.intern-completion-certificate'
+            : 'certificate.certificate';
+
+        $html = View::make($viewName, [
+            'interns' => $interns,
             'offers'  => $offers,
             'isPdf'   => true,
             'logo'    => $logoBase64,
@@ -141,6 +161,7 @@ class CertificateController extends Controller
             ->landscape()
             ->showBackground()
             ->margins(0, 0, 0, 0)
+            ->hideBrowserHeaderAndFooter()
             ->pdf();
 
         return response($pdf)
@@ -151,7 +172,7 @@ class CertificateController extends Controller
     /**
      * Configures a robust Browsershot instance supporting Windows & Linux environments.
      */
-    protected function getBrowsershot(string $html): Browsershot
+    public static function configureBrowsershot(string $html): Browsershot
     {
         $browsershot = Browsershot::html($html);
 
@@ -184,8 +205,15 @@ class CertificateController extends Controller
         }
 
         return $browsershot
+            ->hideBrowserHeaderAndFooter()
+            ->margins(0, 0, 0, 0)
             ->noSandbox()
-            ->timeout(120);
+            ->timeout(180);
+    }
+
+    protected function getBrowsershot(string $html): Browsershot
+    {
+        return self::configureBrowsershot($html);
     }
 
     public function verifyQR($token = null)
@@ -194,39 +222,54 @@ class CertificateController extends Controller
             abort(404, 'Invalid verification link.');
         }
 
-        // 1. Try to find in CompletionCertificate model (by cert_token or cert_ref_id)
-        $compCert = \App\Models\InternManagement\CompletionCertificate::where('cert_token', $token)
-            ->orWhere('cert_ref_id', $token)
+        $candidates = array_unique(array_filter([
+            $token,
+            str_replace('-', '/', $token),
+            str_replace('/', '-', $token),
+            str_replace('CERT-', '', $token),
+            str_replace('CERT-', '', str_replace('-', '/', $token)),
+            'CERT-' . str_replace('CERT-', '', $token),
+            'CERT-' . str_replace('CERT-', '', str_replace('/', '-', $token)),
+        ]));
+
+        // 1. Try to find in CompletionCertificate model
+        $compCert = \App\Models\InternManagement\CompletionCertificate::whereIn('cert_token', $candidates)
+            ->orWhereIn('cert_ref_id', $candidates)
+            ->orWhereIn('intern_code', $candidates)
             ->first();
 
         if ($compCert) {
-            return $this->downloadCertificate(request(), (string) $compCert->intern_id);
+            // Display only - no automatic download
+            return $this->viewCertificate(request(), (string) $compCert->intern_id, true);
         }
 
-        // 2. Try to find the token in the Intern model
-        $intern = \App\Models\InternManagement\Intern::where('cert_token', $token)
-            ->orWhere('cert_ref_id', $token)
+        // 2. Try to find in Intern model
+        $intern = \App\Models\InternManagement\Intern::whereIn('cert_token', $candidates)
+            ->orWhereIn('cert_ref_id', $candidates)
+            ->orWhereIn('intern_code', $candidates)
             ->first();
 
         if ($intern) {
-            // If found in Interns, use your existing certificate download logic
-            return $this->downloadCertificate(request(), (string) $intern->id);
+            // Display only - no automatic download
+            return $this->viewCertificate(request(), (string) $intern->id, true);
         }
 
-        // 2. Fallback: Try to find the token in the ManualCertificate model
-        $manualCert = \App\Models\InternManagement\ManualCertificate::where('cert_token', $token)->first();
+        // 3. Fallback: Try to find the token in the ManualCertificate model
+        $manualCert = \App\Models\InternManagement\ManualCertificate::whereIn('cert_token', $candidates)
+            ->orWhereIn('certificate_number', $candidates)
+            ->first();
 
         if ($manualCert) {
-            // If found in ManualCertificates, use the Manual Resource logic
-            return ManualCertificateResource::downloadSinglePdf($manualCert, false);
+            // Display manual certificate inline (isStream = true)
+            return ManualCertificateResource::downloadSinglePdf($manualCert, true);
         }
 
-        // 3. Fallback: Try to find the token in the EventRegistration model
-        $eventReg = \App\Models\EventRegistration::where('certificate_number', $token)->first();
+        // 4. Fallback: Try to find the token in the EventRegistration model
+        $eventReg = \App\Models\EventRegistration::whereIn('certificate_number', $candidates)->first();
 
         if ($eventReg) {
-            // If found in EventRegistration, download the event certificate
-            return \App\Filament\Resources\EventManagement\EventRegistrationResource::downloadSinglePdf($eventReg);
+            // Display event certificate inline
+            return \App\Filament\Resources\EventManagement\EventRegistrationResource::downloadSinglePdf($eventReg, true);
         }
 
         abort(404, 'Certificate not found.');

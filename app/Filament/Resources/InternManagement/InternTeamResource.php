@@ -41,16 +41,10 @@ class InternTeamResource extends Resource
                                 ->maxLength(255)
                                 ->columnSpan(2),
 
-                            Forms\Components\Select::make('track')
+                            Forms\Components\TextInput::make('track')
                                 ->label('Domain Track')
-                                ->options([
-                                    'Full Stack' => 'Full Stack',
-                                    'Engineering' => 'Engineering',
-                                    'Product & Design' => 'Product & Design',
-                                    'AI Research' => 'AI Research',
-                                    'Cloud & DevOps' => 'Cloud & DevOps',
-                                ])
-                                ->default('Full Stack')
+                                ->placeholder('e.g. Full Stack, Engineering, Product & Design')
+                                ->default('Web Development')
                                 ->required(),
                         ]),
 

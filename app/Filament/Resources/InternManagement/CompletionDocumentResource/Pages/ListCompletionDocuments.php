@@ -26,6 +26,9 @@ class ListCompletionDocuments extends Page
     public ?int $selectedBatchId = null;
     public int $perPage = 12;
 
+    // Bulk Selection State
+    public array $selectedInternIds = [];
+
     // Certificate Modal State
     public bool $showCertModal = false;
     public ?int $certModalInternId = null;
@@ -59,6 +62,189 @@ class ListCompletionDocuments extends Page
     public function updatedPerPage(): void
     {
         $this->resetPage();
+    }
+
+    public function toggleSelectAll(): void
+    {
+        $currentPageIds = $this->getInternsQuery()->paginate($this->perPage)->pluck('id')->map(fn($id) => (int)$id)->toArray();
+        $selectedCount = count(array_intersect($this->selectedInternIds, $currentPageIds));
+
+        if ($selectedCount === count($currentPageIds)) {
+            // Deselect visible
+            $this->selectedInternIds = array_values(array_diff($this->selectedInternIds, $currentPageIds));
+        } else {
+            // Select visible
+            $this->selectedInternIds = array_values(array_unique(array_merge($this->selectedInternIds, $currentPageIds)));
+        }
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedInternIds = [];
+    }
+
+    public function bulkPrintCertificates(string $format = 'combined')
+    {
+        if (empty($this->selectedInternIds)) {
+            Notification::make()->title('No interns selected')->warning()->send();
+            return null;
+        }
+
+        $interns = Intern::with(['completionCertificate', 'offerletter', 'team', 'application'])
+            ->whereIn('id', $this->selectedInternIds)
+            ->get();
+
+        if ($interns->isEmpty()) {
+            Notification::make()->title('No valid interns found')->warning()->send();
+            return null;
+        }
+
+        $logoPath = public_path('images/TsLogo.png');
+        $logoBase64 = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : asset('images/TsLogo.png');
+
+        if ($format === 'combined') {
+            $qrCodes = [];
+            foreach ($interns as $i) {
+                $token = $i->cert_token
+                    ?: ($i->completionCertificate?->cert_token
+                    ?: ($i->cert_ref_id ?: str_replace(['/', '\\'], '-', $i->intern_code ?: 'INT-' . $i->id)));
+                $url = route('certificate.verify', ['token' => $token]);
+                $qrCodes[$i->id] = app(\SimpleSoftwareIO\QrCode\Generator::class)->size(150)->format('svg')->generate($url);
+            }
+
+            $html = \Illuminate\Support\Facades\View::make('certificate.intern-completion-certificate', [
+                'interns'     => $interns,
+                'isPdf'       => true,
+                'logo'        => $logoBase64,
+                'qrCodes'     => $qrCodes,
+                'displayOnly' => false,
+            ])->render();
+
+            $pdf = \App\Http\Controllers\InternManagement\CertificateController::configureBrowsershot($html)
+                ->format('A4')
+                ->landscape()
+                ->showBackground()
+                ->margins(0, 0, 0, 0)
+                ->hideBrowserHeaderAndFooter()
+                ->pdf();
+
+            return response()->streamDownload(
+                fn () => print($pdf),
+                'certificates_combined_' . now()->format('Ymd_His') . '.pdf'
+            );
+        } else {
+            // Separate PDFs packaged in a ZIP
+            $zipFileName = 'certificates_separate_' . now()->format('Ymd_His') . '.zip';
+            $zipPath = storage_path('app/' . $zipFileName);
+            $zip = new \ZipArchive();
+
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE)) {
+                foreach ($interns as $i) {
+                    $token = $i->cert_token
+                        ?: ($i->completionCertificate?->cert_token
+                        ?: ($i->cert_ref_id ?: str_replace(['/', '\\'], '-', $i->intern_code ?: 'INT-' . $i->id)));
+                    $url = route('certificate.verify', ['token' => $token]);
+                    $svg = app(\SimpleSoftwareIO\QrCode\Generator::class)->size(150)->format('svg')->generate($url);
+
+                    $html = \Illuminate\Support\Facades\View::make('certificate.intern-completion-certificate', [
+                        'interns'     => collect([$i]),
+                        'isPdf'       => true,
+                        'logo'        => $logoBase64,
+                        'qrCodes'     => [$i->id => $svg],
+                        'displayOnly' => false,
+                    ])->render();
+
+                    $pdf = \App\Http\Controllers\InternManagement\CertificateController::configureBrowsershot($html)
+                        ->format('A4')
+                        ->landscape()
+                        ->showBackground()
+                        ->margins(0, 0, 0, 0)
+                        ->hideBrowserHeaderAndFooter()
+                        ->pdf();
+
+                    $safeCode = str_replace(['/', '\\'], '-', $i->intern_code ?: 'INT-' . $i->id);
+                    $zip->addFromString("certificate_{$safeCode}.pdf", $pdf);
+                }
+                $zip->close();
+            }
+
+            return response()->download($zipPath)->deleteFileAfterSend(true);
+        }
+    }
+
+    public function bulkPrintLetters(string $format = 'combined')
+    {
+        if (empty($this->selectedInternIds)) {
+            Notification::make()->title('No interns selected')->warning()->send();
+            return null;
+        }
+
+        $interns = Intern::with(['completionLetter', 'offerletter', 'team', 'application'])
+            ->whereIn('id', $this->selectedInternIds)
+            ->get();
+
+        if ($interns->isEmpty()) {
+            Notification::make()->title('No valid interns found')->warning()->send();
+            return null;
+        }
+
+        $logoPath = public_path('images/TsLogo.png');
+        $logoBase64 = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : asset('images/TsLogo.png');
+
+        if ($format === 'combined') {
+            $html = \Illuminate\Support\Facades\View::make('completionletter.bulk', [
+                'interns' => $interns,
+                'isPdf'   => true,
+                'logo'    => $logoBase64,
+            ])->render();
+
+            $pdf = \App\Http\Controllers\InternManagement\CertificateController::configureBrowsershot($html)
+                ->format('A4')
+                ->showBackground()
+                ->margins(0, 0, 0, 0)
+                ->hideBrowserHeaderAndFooter()
+                ->pdf();
+
+            return response()->streamDownload(
+                fn () => print($pdf),
+                'completion_letters_combined_' . now()->format('Ymd_His') . '.pdf'
+            );
+        } else {
+            // Separate PDFs in a ZIP
+            $zipFileName = 'completion_letters_separate_' . now()->format('Ymd_His') . '.zip';
+            $zipPath = storage_path('app/' . $zipFileName);
+            $zip = new \ZipArchive();
+
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE)) {
+                foreach ($interns as $i) {
+                    $template = $i->completion_letter_template ?: 'bachelors';
+                    $viewName = view()->exists("completionletter.{$template}") ? "completionletter.{$template}" : 'completionletter.bachelors';
+
+                    $html = \Illuminate\Support\Facades\View::make($viewName, [
+                        'intern' => $i,
+                        'isPdf'  => true,
+                        'logo'   => $logoBase64,
+                    ])->render();
+
+                    $pdf = \App\Http\Controllers\InternManagement\CertificateController::configureBrowsershot($html)
+                        ->format('A4')
+                        ->showBackground()
+                        ->margins(0, 0, 0, 0)
+                        ->hideBrowserHeaderAndFooter()
+                        ->pdf();
+
+                    $safeCode = str_replace(['/', '\\'], '-', $i->intern_code ?: 'INT-' . $i->id);
+                    $zip->addFromString("completion_letter_{$safeCode}.pdf", $pdf);
+                }
+                $zip->close();
+            }
+
+            return response()->download($zipPath)->deleteFileAfterSend(true);
+        }
     }
 
     public function openCertModal(int $internId): void

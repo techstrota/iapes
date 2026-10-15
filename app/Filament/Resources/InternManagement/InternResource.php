@@ -568,81 +568,66 @@ class InternResource extends Resource
                             return response()->download($zipPath)->deleteFileAfterSend(true);
                         }),
 
+                    // --- LETTERS ---
                     BulkAction::make('bulk_print_completion_letters')
-                        ->label('Bulk Print Letters')
+                        ->label('Bulk Print Letters (Single PDF)')
                         ->icon('heroicon-o-printer')
                         ->color('success')
                         ->action(function ($records) {
-                            // Filter records logic
-                            $validRecords = $records->filter(fn ($intern) => 
-                                filled($intern->completion_letter_template) && filled($intern->project_name)
-                            );
-
-                            if ($validRecords->isEmpty()) {
-                                Notification::make()
-                                    ->title('No valid templates selected')
-                                    ->warning()
-                                    ->send();
-                                return;
-                            }
-
                             $logoPath = public_path('images/TsLogo.png');
-                            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+                            $logoBase64 = file_exists($logoPath)
+                                ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+                                : asset('images/TsLogo.png');
 
                             $html = View::make('completionletter.bulk', [
-                                'interns' => $validRecords, // Use filtered records
+                                'interns' => $records,
                                 'isPdf'   => true,
                                 'logo'    => $logoBase64,
                             ])->render();
 
-                            $pdf = Browsershot::html($html)
-                                ->setNodeBinary(env('NODE_PATH', '/usr/bin/node'))
-                                ->setChromePath(env('CHROME_PATH'))
+                            $pdf = \App\Http\Controllers\InternManagement\CertificateController::configureBrowsershot($html)
                                 ->format('A4')
                                 ->showBackground()
-                                ->noSandbox()
+                                ->margins(0, 0, 0, 0)
+                                ->hideBrowserHeaderAndFooter()
                                 ->pdf();
 
-                            return response()->streamDownload(fn () => print($pdf), 'completion_letters_bulk.pdf');
+                            return response()->streamDownload(fn () => print($pdf), 'completion_letters_combined.pdf');
                         }),
 
-                    // --- CERTIFICATES ---
-                    BulkAction::make('bulk_download_certificates')
-                        ->label('Bulk Download Certs (ZIP)')
-                        ->icon('heroicon-o-academic-cap')
-                        ->color('info')
+                    BulkAction::make('bulk_download_letters_zip')
+                        ->label('Bulk Download Letters (Separate PDFs - ZIP)')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('success')
                         ->action(function ($records) {
-                            $zipFileName = 'certificates_' . now()->timestamp . '.zip';
-                            $zipPath = storage_path($zipFileName);
+                            $zipFileName = 'completion_letters_' . now()->timestamp . '.zip';
+                            $zipPath = storage_path('app/' . $zipFileName);
                             $zip = new ZipArchive;
 
                             if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE)) {
                                 $logoPath = public_path('images/TsLogo.png');
-                                $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+                                $logoBase64 = file_exists($logoPath)
+                                    ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+                                    : asset('images/TsLogo.png');
 
                                 foreach ($records as $intern) {
-                                    $offer = $intern->offerletter;
-                                    if (!$offer) continue;
+                                    $template = $intern->completion_letter_template ?: 'bachelors';
+                                    $viewName = view()->exists("completionletter.{$template}") ? "completionletter.{$template}" : 'completionletter.bachelors';
 
-                                    $html = View::make('certificate.certificate', [
-                                        'offers' => collect([$offer]),
+                                    $html = View::make($viewName, [
+                                        'intern' => $intern,
                                         'isPdf'  => true,
                                         'logo'   => $logoBase64,
-                                        // If your view requires QR codes, you must generate them here or update the view 
-                                        // to handle logic as seen in CertificateController@prepareViewData
                                     ])->render();
 
-                                    $pdfContent = Browsershot::html($html)
-                                        ->setNodeBinary(env('NODE_PATH', '/usr/bin/node'))
-                                        ->setNpmBinary(env('NPM_PATH', '/usr/bin/npm'))
-                                        ->setChromePath(env('CHROME_PATH')) 
+                                    $pdfContent = \App\Http\Controllers\InternManagement\CertificateController::configureBrowsershot($html)
                                         ->format('A4')
-                                        ->landscape() // Certificates are usually landscape
                                         ->showBackground()
-                                        ->noSandbox()
+                                        ->margins(0, 0, 0, 0)
+                                        ->hideBrowserHeaderAndFooter()
                                         ->pdf();
 
-                                    $fileName = 'certificate_' . str_replace(['/', '\\'], '-', $intern->intern_code) . '.pdf';
+                                    $fileName = 'completion_letter_' . str_replace(['/', '\\'], '-', $intern->intern_code ?: 'INT-' . $intern->id) . '.pdf';
                                     $zip->addFromString($fileName, $pdfContent);
                                 }
                                 $zip->close();
@@ -650,32 +635,89 @@ class InternResource extends Resource
                             return response()->download($zipPath)->deleteFileAfterSend(true);
                         }),
 
+                    // --- CERTIFICATES ---
                     BulkAction::make('bulk_print_certificates')
-                        ->label('Bulk Print Certs')
+                        ->label('Bulk Print Certs (Single PDF)')
                         ->icon('heroicon-o-printer')
                         ->color('info')
                         ->action(function ($records) {
-                            $offers = $records->map(fn($i) => $i->offerletter)->filter();
                             $logoPath = public_path('images/TsLogo.png');
-                            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+                            $logoBase64 = file_exists($logoPath)
+                                ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+                                : asset('images/TsLogo.png');
 
-                            $html = View::make('certificate.certificate', [
-                                'offers' => $offers,
-                                'isPdf'  => true,
-                                'logo'   => $logoBase64,
+                            $qrCodes = [];
+                            foreach ($records as $intern) {
+                                $token = $intern->cert_token
+                                    ?: ($intern->completionCertificate?->cert_token
+                                    ?: ($intern->cert_ref_id ?: str_replace(['/', '\\'], '-', $intern->intern_code ?: 'INT-' . $intern->id)));
+                                $url = route('certificate.verify', ['token' => $token]);
+                                $qrCodes[$intern->id] = app(\SimpleSoftwareIO\QrCode\Generator::class)->size(150)->format('svg')->generate($url);
+                            }
+
+                            $html = View::make('certificate.intern-completion-certificate', [
+                                'interns'     => $records,
+                                'isPdf'       => true,
+                                'logo'        => $logoBase64,
+                                'qrCodes'     => $qrCodes,
+                                'displayOnly' => false,
                             ])->render();
 
-                            $pdf = Browsershot::html($html)
-                                ->setNodeBinary(env('NODE_PATH', '/usr/bin/node'))
-                                ->setChromePath(env('CHROME_PATH'))
-                                // ->setNpmBinary(env('NPM_PATH', 'C:\Program Files\nodejs\npm.cmd'))
+                            $pdf = \App\Http\Controllers\InternManagement\CertificateController::configureBrowsershot($html)
                                 ->format('A4')
                                 ->landscape()
                                 ->showBackground()
-                                ->noSandbox()
+                                ->margins(0, 0, 0, 0)
+                                ->hideBrowserHeaderAndFooter()
                                 ->pdf();
 
-                            return response()->streamDownload(fn () => print($pdf), 'certificates_bulk.pdf');
+                            return response()->streamDownload(fn () => print($pdf), 'certificates_combined.pdf');
+                        }),
+
+                    BulkAction::make('bulk_download_certificates')
+                        ->label('Bulk Download Certs (Separate PDFs - ZIP)')
+                        ->icon('heroicon-o-academic-cap')
+                        ->color('info')
+                        ->action(function ($records) {
+                            $zipFileName = 'certificates_' . now()->timestamp . '.zip';
+                            $zipPath = storage_path('app/' . $zipFileName);
+                            $zip = new ZipArchive;
+
+                            if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE)) {
+                                $logoPath = public_path('images/TsLogo.png');
+                                $logoBase64 = file_exists($logoPath)
+                                    ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+                                    : asset('images/TsLogo.png');
+
+                                foreach ($records as $intern) {
+                                    $token = $intern->cert_token
+                                        ?: ($intern->completionCertificate?->cert_token
+                                        ?: ($intern->cert_ref_id ?: str_replace(['/', '\\'], '-', $intern->intern_code ?: 'INT-' . $intern->id)));
+                                    $url = route('certificate.verify', ['token' => $token]);
+                                    $svg = app(\SimpleSoftwareIO\QrCode\Generator::class)->size(150)->format('svg')->generate($url);
+
+                                    $html = View::make('certificate.intern-completion-certificate', [
+                                        'interns'     => collect([$intern]),
+                                        'isPdf'       => true,
+                                        'logo'        => $logoBase64,
+                                        'qrCodes'     => [$intern->id => $svg],
+                                        'displayOnly' => false,
+                                    ])->render();
+
+                                    $pdfContent = \App\Http\Controllers\InternManagement\CertificateController::configureBrowsershot($html)
+                                        ->format('A4')
+                                        ->landscape()
+                                        ->showBackground()
+                                        ->margins(0, 0, 0, 0)
+                                        ->hideBrowserHeaderAndFooter()
+                                        ->pdf();
+
+                                    $fileName = 'certificate_' . str_replace(['/', '\\'], '-', $intern->intern_code ?: 'INT-' . $intern->id) . '.pdf';
+                                    $zip->addFromString($fileName, $pdfContent);
+                                }
+                                $zip->close();
+                            }
+                            return response()->download($zipPath)->deleteFileAfterSend(true);
                         }),
                     Tables\Actions\DeleteBulkAction::make(),
                 ])

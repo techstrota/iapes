@@ -233,8 +233,68 @@
                     <option value="24">24 / page</option>
                     <option value="48">48 / page</option>
                 </select>
+
+                <button type="button" wire:click="toggleSelectAll" class="stitch-select"
+                    style="font-weight: 700; color: #dae2fd; cursor: pointer; white-space: nowrap; padding: 7px 12px; background-color: #171f33;">
+                    {{ count($selectedInternIds) > 0 && count($selectedInternIds) >= $interns->count() ? 'Deselect All' : 'Select All' }}
+                </button>
             </div>
         </div>
+
+        {{-- Bulk Operations Banner --}}
+        @if(count($selectedInternIds) > 0)
+            <div style="background: linear-gradient(135deg, #131b2e 0%, #171f33 100%); border: 1.5px solid #2563eb; border-radius: 12px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.25);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="background-color: #2563eb; color: #ffffff; font-weight: 800; font-size: 13px; padding: 4px 11px; border-radius: 8px;">
+                        {{ count($selectedInternIds) }} Selected
+                    </div>
+                    <div style="font-size: 13px; font-weight: 700; color: #dae2fd;">
+                        Bulk Actions:
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    {{-- Bulk Certificates Group --}}
+                    <div style="display: inline-flex; align-items: center; background-color: #0d1527; border: 1px solid #222a3d; border-radius: 8px; padding: 3px; gap: 4px;">
+                        <span style="font-size: 11px; font-weight: 800; color: #f59e0b; padding: 0 6px; text-transform: uppercase; letter-spacing: 0.5px;">Certs:</span>
+                        <button type="button" wire:click="bulkPrintCertificates('combined')" 
+                            style="display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff; padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 700; border: none; cursor: pointer;"
+                            title="Merge all selected certificates into a single multi-page PDF">
+                            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                            Single PDF
+                        </button>
+                        <button type="button" wire:click="bulkPrintCertificates('zip')" 
+                            style="display: inline-flex; align-items: center; gap: 5px; background-color: #1e293b; color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); padding: 5px 11px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;"
+                            title="Download separate individual certificate PDFs in a ZIP archive">
+                            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Separate PDFs (ZIP)
+                        </button>
+                    </div>
+
+                    {{-- Bulk Letters Group --}}
+                    <div style="display: inline-flex; align-items: center; background-color: #0d1527; border: 1px solid #222a3d; border-radius: 8px; padding: 3px; gap: 4px;">
+                        <span style="font-size: 11px; font-weight: 800; color: #4edea3; padding: 0 6px; text-transform: uppercase; letter-spacing: 0.5px;">Letters:</span>
+                        <button type="button" wire:click="bulkPrintLetters('combined')" 
+                            style="display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #059669, #047857); color: #ffffff; padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 700; border: none; cursor: pointer;"
+                            title="Merge all selected completion letters into a single multi-page PDF">
+                            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Single PDF
+                        </button>
+                        <button type="button" wire:click="bulkPrintLetters('zip')" 
+                            style="display: inline-flex; align-items: center; gap: 5px; background-color: #1e293b; color: #4edea3; border: 1px solid rgba(78, 222, 163, 0.4); padding: 5px 11px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;"
+                            title="Download separate individual completion letter PDFs in a ZIP archive">
+                            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Separate PDFs (ZIP)
+                        </button>
+                    </div>
+
+                    <button type="button" wire:click="clearSelection" 
+                        style="color: #8e909f; background: none; border: 1px solid #222a3d; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                        Deselect
+                    </button>
+                </div>
+            </div>
+        @endif
 
         {{-- 3. Intern Cards Grid --}}
         @if($interns->isEmpty())
@@ -258,6 +318,7 @@
                         $hasLetter = filled($intern->letter_ref_id) || $intern->completionLetter()->exists();
                         $certRef = $intern->cert_ref_id ?: $intern->completionCertificate?->cert_ref_id;
                         $letterRef = $intern->letter_ref_id ?: $intern->completionLetter?->letter_ref_id;
+                        $isSelected = in_array($intern->id, $selectedInternIds);
 
                         // Initials for avatar
                         $words = explode(' ', trim($name));
@@ -266,13 +327,17 @@
                             : strtoupper(substr($name, 0, 2));
                     @endphp
 
-                    <div class="stitch-card">
+                    <div class="stitch-card" style="{{ $isSelected ? 'border-color: #3b82f6; box-shadow: 0 0 0 1.5px #3b82f6;' : '' }}">
                         <div>
-                            {{-- Top Row: Code & Status --}}
+                            {{-- Top Row: Checkbox, Code & Status --}}
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px;">
-                                <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; font-weight: 700; color: #b8c4ff; background-color: #171f33; border: 1px solid #222a3d; padding: 3px 8px; border-radius: 6px;">
-                                    {{ $internCode }}
-                                </span>
+                                <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                                    <input type="checkbox" wire:model.live="selectedInternIds" value="{{ $intern->id }}"
+                                        style="width: 17px; height: 17px; border-radius: 4px; border: 1.5px solid #3b82f6; background-color: #171f33; cursor: pointer; accent-color: #2563eb;">
+                                    <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; font-weight: 700; color: #b8c4ff; background-color: #171f33; border: 1px solid #222a3d; padding: 3px 8px; border-radius: 6px;">
+                                        {{ $internCode }}
+                                    </span>
+                                </label>
                                 @if($intern->is_active)
                                     <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #4edea3; background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(78, 222, 163, 0.3); padding: 2px 8px; border-radius: 9999px;">
                                         <span style="width: 6px; height: 6px; border-radius: 9999px; background-color: #4edea3;"></span>

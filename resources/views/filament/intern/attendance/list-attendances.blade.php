@@ -226,84 +226,7 @@
         $cal = $this->getCalendarData();
     @endphp
 
-    {{-- 2. Calendar View vs Table View Toolbar --}}
-    <div style="background-color: #131b2e; border: 1.5px solid #222a3d; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
-        {{-- Left: View Mode Switcher --}}
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <button
-                type="button"
-                wire:click="setViewMode('calendar')"
-                style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: {{ $viewMode === 'calendar' ? '1px solid #3b82f6' : '1px solid #222a3d' }}; background-color: {{ $viewMode === 'calendar' ? '#1e40af' : '#090e1c' }}; color: {{ $viewMode === 'calendar' ? '#ffffff' : '#dae2fd' }}; box-shadow: {{ $viewMode === 'calendar' ? '0 2px 10px rgba(30, 64, 175, 0.45)' : 'none' }};">
-                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>Monthly Timesheet Calendar</span>
-            </button>
-            <button
-                type="button"
-                wire:click="setViewMode('list')"
-                style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: {{ $viewMode === 'list' ? '1px solid #3b82f6' : '1px solid #222a3d' }}; background-color: {{ $viewMode === 'list' ? '#1e40af' : '#090e1c' }}; color: {{ $viewMode === 'list' ? '#ffffff' : '#dae2fd' }}; box-shadow: {{ $viewMode === 'list' ? '0 2px 10px rgba(30, 64, 175, 0.45)' : 'none' }};">
-                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                <span>Attendance Log List</span>
-            </button>
-        </div>
-
-        {{-- Right: Month Navigator & Direct Month Picker --}}
-        @if ($viewMode === 'calendar')
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                {{-- Quick Previous Month Button --}}
-                <button
-                    type="button"
-                    wire:click="previousMonth"
-                    title="Previous Month"
-                    style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #222a3d; background-color: #090e1c; color: #dae2fd; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;"
-                    onmouseover="this.style.borderColor='#3b82f6'; this.style.color='#ffffff';"
-                    onmouseout="this.style.borderColor='#222a3d'; this.style.color='#dae2fd';">
-                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-
-                {{-- Direct Month Picker Input --}}
-                <div style="display: flex; align-items: center; gap: 8px; background-color: #090e1c; border: 1px solid #222a3d; border-radius: 8px; padding: 4px 10px;">
-                    <span style="font-size: 13px; font-weight: 800; color: #dae2fd; min-width: 120px; text-align: center;">
-                        {{ $cal['monthTitle'] }}
-                    </span>
-                    <input
-                        type="month"
-                        wire:model.live="calendarMonth"
-                        style="background: transparent; border: none; color: #8e909f; font-size: 12px; cursor: pointer; outline: none; padding: 2px;"
-                        title="Change Month and Year"
-                    />
-                </div>
-
-                {{-- Quick Next Month Button --}}
-                <button
-                    type="button"
-                    wire:click="nextMonth"
-                    title="Next Month"
-                    style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #222a3d; background-color: #090e1c; color: #dae2fd; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;"
-                    onmouseover="this.style.borderColor='#3b82f6'; this.style.color='#ffffff';"
-                    onmouseout="this.style.borderColor='#222a3d'; this.style.color='#dae2fd';">
-                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
-
-                {{-- Current Month / Today Button --}}
-                <button
-                    type="button"
-                    wire:click="goToCurrentMonth"
-                    style="padding: 7px 14px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.4); background-color: rgba(30, 64, 175, 0.2); color: #b8c4ff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s ease;"
-                    onmouseover="this.style.backgroundColor='#1e40af'; this.style.color='#ffffff';"
-                    onmouseout="this.style.backgroundColor='rgba(30, 64, 175, 0.2)'; this.style.color='#b8c4ff';">
-                    Current Month
-                </button>
-            </div>
-        @endif
-    </div>
+   
 
     {{-- 3. Single 4-Card KPI Strip (No Repetition, No Late Mark) --}}
     @php
@@ -391,6 +314,85 @@
                 <span>No Record</span>
             </div>
         </div>
+    </div>
+
+     {{-- 2. Calendar View vs Table View Toolbar --}}
+    <div style="background-color: #131b2e; border: 1.5px solid #222a3d; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+        {{-- Left: View Mode Switcher --}}
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button
+                type="button"
+                wire:click="setViewMode('calendar')"
+                style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: {{ $viewMode === 'calendar' ? '1px solid #3b82f6' : '1px solid #222a3d' }}; background-color: {{ $viewMode === 'calendar' ? '#1e40af' : '#090e1c' }}; color: {{ $viewMode === 'calendar' ? '#ffffff' : '#dae2fd' }}; box-shadow: {{ $viewMode === 'calendar' ? '0 2px 10px rgba(30, 64, 175, 0.45)' : 'none' }};">
+                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>Monthly Timesheet Calendar</span>
+            </button>
+            <button
+                type="button"
+                wire:click="setViewMode('list')"
+                style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: {{ $viewMode === 'list' ? '1px solid #3b82f6' : '1px solid #222a3d' }}; background-color: {{ $viewMode === 'list' ? '#1e40af' : '#090e1c' }}; color: {{ $viewMode === 'list' ? '#ffffff' : '#dae2fd' }}; box-shadow: {{ $viewMode === 'list' ? '0 2px 10px rgba(30, 64, 175, 0.45)' : 'none' }};">
+                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                <span>Attendance Log List</span>
+            </button>
+        </div>
+
+        {{-- Right: Month Navigator & Direct Month Picker --}}
+        @if ($viewMode === 'calendar')
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                {{-- Quick Previous Month Button --}}
+                <button
+                    type="button"
+                    wire:click="previousMonth"
+                    title="Previous Month"
+                    style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #222a3d; background-color: #090e1c; color: #dae2fd; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;"
+                    onmouseover="this.style.borderColor='#3b82f6'; this.style.color='#ffffff';"
+                    onmouseout="this.style.borderColor='#222a3d'; this.style.color='#dae2fd';">
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+
+                {{-- Direct Month Picker Input --}}
+                <div style="display: flex; align-items: center; gap: 8px; background-color: #090e1c; border: 1px solid #222a3d; border-radius: 8px; padding: 4px 10px;">
+                    <span style="font-size: 13px; font-weight: 800; color: #dae2fd; min-width: 120px; text-align: center;">
+                        {{ $cal['monthTitle'] }}
+                    </span>
+                    <input
+                        type="month"
+                        wire:model.live="calendarMonth"
+                        style="background: transparent; border: none; color: #8e909f; font-size: 12px; cursor: pointer; outline: none; padding: 2px;"
+                        title="Change Month and Year"
+                    />
+                </div>
+
+                {{-- Quick Next Month Button --}}
+                <button
+                    type="button"
+                    wire:click="nextMonth"
+                    title="Next Month"
+                    style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #222a3d; background-color: #090e1c; color: #dae2fd; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;"
+                    onmouseover="this.style.borderColor='#3b82f6'; this.style.color='#ffffff';"
+                    onmouseout="this.style.borderColor='#222a3d'; this.style.color='#dae2fd';">
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+
+                {{-- Current Month / Today Button --}}
+                <button
+                    type="button"
+                    wire:click="goToCurrentMonth"
+                    style="padding: 7px 14px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.4); background-color: rgba(30, 64, 175, 0.2); color: #b8c4ff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s ease;"
+                    onmouseover="this.style.backgroundColor='#1e40af'; this.style.color='#ffffff';"
+                    onmouseout="this.style.backgroundColor='rgba(30, 64, 175, 0.2)'; this.style.color='#b8c4ff';">
+                    Current Month
+                </button>
+            </div>
+        @endif
     </div>
 
     @if ($viewMode === 'calendar')

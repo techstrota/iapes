@@ -167,6 +167,41 @@
     .intern-tab-item.is-active svg {
         color: #ffffff !important;
     }
+    .project-description-content {
+        color: #cbd5e1;
+        font-size: 13.5px;
+        line-height: 1.65;
+    }
+    .project-description-content p {
+        margin-bottom: 0.75rem;
+    }
+    .project-description-content p:last-child {
+        margin-bottom: 0;
+    }
+    .project-description-content ul, .project-description-content ol {
+        margin-left: 1.4rem;
+        margin-bottom: 0.75rem;
+    }
+    .project-description-content li {
+        margin-bottom: 0.25rem;
+    }
+    .project-description-content strong {
+        color: #ffffff;
+        font-weight: 700;
+    }
+    .project-description-content a {
+        color: #60a5fa;
+        text-decoration: underline;
+    }
+    .project-description-content h1, 
+    .project-description-content h2, 
+    .project-description-content h3,
+    .project-description-content h4 {
+        color: #ffffff;
+        font-weight: 700;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
 </style>
 
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #dae2fd; display: flex; flex-direction: column; gap: 22px;"
@@ -277,28 +312,7 @@
                                 </button>
                             </div>
 
-                            @if ($appCode)
-                                <div style="display: inline-flex; align-items: center; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 3px 8px; gap: 6px;">
-                                    <span style="font-family: ui-monospace, monospace; font-size: 11.5px; font-weight: 600; color: #8e909f;">
-                                        App: {{ $appCode }}
-                                    </span>
-                                    <button type="button"
-                                            @click="copyText('{{ $appCode }}', 'app')"
-                                            style="background: transparent; border: none; padding: 0; color: #8e909f; cursor: pointer; display: flex; align-items: center;"
-                                            title="Copy Application ID">
-                                        <template x-if="!copiedApp">
-                                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                            </svg>
-                                        </template>
-                                        <template x-if="copiedApp">
-                                            <svg style="width: 12px; height: 12px; color: #4edea3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </template>
-                                    </button>
-                                </div>
-                            @endif
+                           
                         </div>
 
                         {{-- Role Line --}}
@@ -385,31 +399,7 @@
                     </button>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    {{-- I-Card Link --}}
-                    <a href="{{ route('print-id-card', ['id' => $record->id]) }}" target="_blank"
-                       style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px; font-size: 13px; font-weight: 600; background-color: #171f33; color: #dae2fd; border: 1px solid #222a3d; text-decoration: none; transition: all 0.15s ease;"
-                       onmouseover="this.style.backgroundColor='#1e293b'; this.style.borderColor='#3b82f6';"
-                       onmouseout="this.style.backgroundColor='#171f33'; this.style.borderColor='#222a3d';">
-                        <svg style="width: 15px; height: 15px; color: #a78bfa;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                        </svg>
-                        Print ID Card ↗
-                    </a>
-
-                    {{-- View Offer Letter if exists --}}
-                    @if (filled($record->offer_letter_id))
-                        <a href="{{ route('view-offer-pdf', ['id' => $record->offer_letter_id]) }}" target="_blank"
-                           style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px; font-size: 13px; font-weight: 600; background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35); text-decoration: none; transition: all 0.15s ease;"
-                           onmouseover="this.style.backgroundColor='rgba(59, 130, 246, 0.25)';"
-                           onmouseout="this.style.backgroundColor='rgba(59, 130, 246, 0.15)';">
-                            <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Offer Letter PDF ↗
-                        </a>
-                    @endif
-                </div>
+                
             </div>
         </div>
     </div>
@@ -536,7 +526,7 @@
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span>Squad & Teammates</span>
+                <span>Project Details</span>
                 @if ($teammates->count() > 0)
                     <span style="font-size: 10px; font-weight: 700; color: #b8c4ff; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.35); padding: 1px 6px; border-radius: 9999px;">
                         {{ $teammates->count() }}
@@ -560,12 +550,7 @@
         </div>
 
         {{-- Right Side Context Label --}}
-        <div style="display: flex; align-items: center; gap: 8px; padding-right: 10px; font-size: 12px; color: #8e909f;">
-            <span style="font-weight: 500;">Active Section:</span>
-            <span style="font-weight: 700; color: #60a5fa;"
-                  x-text="activeTab === 'overview' ? 'Login Credentials & Profile' : (activeTab === 'academic' ? 'Education & Academic Details' : (activeTab === 'offer' ? 'Internship Agreement' : (activeTab === 'squad' ? 'Squad Placement' : 'Official Certificates & Letters')))">
-            </span>
-        </div>
+        
     </div>
 
     {{-- ── 5. TAB PANELS ── --}}
@@ -882,16 +867,11 @@
                     </div>
                     <div>
                         <span style="font-size: 16px; font-weight: 700; color: #ffffff;">Internship & Offer Letter Agreement</span>
-                        <div style="font-size: 12px; color: #8e909f; margin-top: 2px;">Official engagement terms, role definition, and tenure commitments</div>
+                        <div style="font-size: 12px; color: #8e909f; margin-top: 2px;">Official engagement terms, role definition, and duration commitments</div>
                     </div>
                 </div>
 
-                @if (filled($record->offer_letter_id))
-                    <a href="{{ route('view-offer-pdf', ['id' => $record->offer_letter_id]) }}" target="_blank"
-                       style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35); text-decoration: none;">
-                        📄 View Signed Offer Letter PDF ↗
-                    </a>
-                @endif
+                
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
@@ -949,42 +929,240 @@
         </div>
     </div>
 
-    {{-- ─── TAB 4: SQUAD & TEAMMATES ─── --}}
+    {{-- ─── TAB 4: SQUAD & PROJECT DETAILS ─── --}}
     <div x-show="activeTab === 'squad'" style="display: flex; flex-direction: column; gap: 20px;">
+        @php
+            $team = $record->team;
+            $projectTitle = $team?->team_name ?: ($record->project_name ?: 'Project Not Assigned');
+            $projectTrack = $team?->track ?: ($record->domain ?: 'General');
+            $projectDesc = $team?->project_description ?: ($record->project_description ?: null);
+            $rawStatus = strtolower($team?->status ?? 'on_track');
+            
+            $statusConfigs = [
+                'on_track'  => ['label' => 'On Track', 'bg' => 'rgba(16, 185, 129, 0.15)', 'text' => '#4edea3', 'border' => 'rgba(16, 185, 129, 0.35)', 'dot' => '#34d399'],
+                'attention' => ['label' => 'Attention Needed', 'bg' => 'rgba(245, 158, 11, 0.15)', 'text' => '#fbbf24', 'border' => 'rgba(245, 158, 11, 0.35)', 'dot' => '#fbbf24'],
+                'completed' => ['label' => 'Completed', 'bg' => 'rgba(59, 130, 246, 0.15)', 'text' => '#60a5fa', 'border' => 'rgba(59, 130, 246, 0.35)', 'dot' => '#60a5fa'],
+            ];
+            $projectStatusInfo = $statusConfigs[$rawStatus] ?? [
+                'label' => ucfirst(str_replace('_', ' ', $rawStatus)),
+                'bg' => 'rgba(99, 102, 241, 0.15)',
+                'text' => '#a5b4fc',
+                'border' => 'rgba(99, 102, 241, 0.35)',
+                'dot' => '#818cf8',
+            ];
+
+            $leadMentorName = $team?->mentor_name ?: ($mentorName !== 'Mentor not assigned' ? $mentorName : 'Lead Mentor Not Assigned');
+            $leadMentorTitle = $team?->mentor_title ?: 'Internship Technical Supervisor';
+            $squadBadge = $team?->squad_badge ?: ($teammates->count() > 0 ? 'Squad (' . ($teammates->count() + 1) . ' Interns)' : 'Solo Contributor');
+            $cohortCycle = $team?->cohort_archive_name ?: ($batchDisplay !== 'Not Assigned' ? $batchDisplay : 'General');
+            $totalSquadCount = $teammates->count() + 1;
+        @endphp
+
+        {{-- ── 1. PROJECT OVERVIEW & HEALTH BANNER ── --}}
         <div style="background-color: #131b2e; border: 1.5px solid #222a3d; border-radius: 16px; padding: 22px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; gap: 20px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222a3d; padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 32px; height: 32px; border-radius: 8px; background-color: rgba(147, 51, 234, 0.15); color: #d8b4fe; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(147, 51, 234, 0.3);">
-                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222a3d; padding-bottom: 16px; flex-wrap: wrap; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(59, 130, 246, 0.2)); color: #c084fc; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(147, 51, 234, 0.4); flex-shrink: 0; box-shadow: 0 4px 12px rgba(147, 51, 234, 0.15);">
+                        <svg style="width: 22px; height: 22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
                     </div>
                     <div>
-                        <span style="font-size: 16px; font-weight: 700; color: #ffffff;">Squad: {{ $projectDisplay }}</span>
-                        <div style="font-size: 12px; color: #8e909f; margin-top: 2px;">
-                            Track: {{ $record->team?->track ?: 'General' }} • Mentor: {{ $mentorName }}
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span style="font-size: 18px; font-weight: 700; color: #ffffff;">{{ $projectTitle }}</span>
+                            <span style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #a5b4fc; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 8px; border-radius: 6px;">
+                                {{ $squadBadge }}
+                            </span>
                         </div>
+                        <div style="font-size: 12.5px; color: #8e909f; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span>Domain: <strong style="color: #60a5fa;">{{ $projectTrack }}</strong></span>
+                            <span>•</span>
+                            <span>Batch: <strong style="color: #cbd5e1;">{{ $cohortCycle }}</strong></span>
+                            <span>•</span>
+                            <span>Mentor: <strong style="color: #d8b4fe;">{{ $leadMentorName }}</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Status & Health Badges --}}
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <div style="display: inline-flex; align-items: center; gap: 7px; background-color: {{ $projectStatusInfo['bg'] }}; color: {{ $projectStatusInfo['text'] }}; border: 1px solid {{ $projectStatusInfo['border'] }}; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 9999px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: {{ $projectStatusInfo['dot'] }}; box-shadow: 0 0 8px {{ $projectStatusInfo['dot'] }};"></span>
+                        <span>{{ $projectStatusInfo['label'] }}</span>
+                    </div>
+
+                    <div style="font-size: 11.5px; font-weight: 700; color: #94a3b8; background: #090e1c; border: 1px solid #222a3d; padding: 5px 12px; border-radius: 9999px;">
+                        {{ $totalSquadCount }} {{ \Illuminate\Support\Str::plural('Member', $totalSquadCount) }}
                     </div>
                 </div>
             </div>
 
-            @if ($teammates->count() > 0)
-                <div style="font-size: 12px; font-weight: 700; color: #b8c4ff; text-transform: uppercase; letter-spacing: 0.05em;">
-                    Squad Members ({{ $teammates->count() }} Co-Interns)
+            {{-- 4 Metric Attribute Cards --}}
+            <!-- <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+                {{-- Attribute 1: Domain Track --}}
+                <div style="background-color: #090e1c; border: 1px solid #222a3d; border-radius: 12px; padding: 14px 16px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <svg style="width: 14px; height: 14px; color: #60a5fa;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Domain Track
+                    </div>
+                    <div style="font-size: 14px; font-weight: 700; color: #60a5fa; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ $projectTrack }}
+                    </div>
+                    <div style="font-size: 11px; color: #8e909f; margin-top: 2px;">
+                        Specialized Project Path
+                    </div>
+                </div>
+
+                {{-- Attribute 2: Batch / Cohort --}}
+                <div style="background-color: #090e1c; border: 1px solid #222a3d; border-radius: 12px; padding: 14px 16px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <svg style="width: 14px; height: 14px; color: #fbbf24;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        Batch
+                    </div>
+                    <div style="font-size: 14px; font-weight: 700; color: #ffffff; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ $cohortCycle }}
+                    </div>
+                    <div style="font-size: 11px; color: #8e909f; margin-top: 2px;">
+                        {{ $record->batch?->batch_timing ?: 'Scheduled Shift' }}
+                    </div>
+                </div>
+
+                {{-- Attribute 3: Lead Mentor --}}
+                <div style="background-color: #090e1c; border: 1px solid #222a3d; border-radius: 12px; padding: 14px 16px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <svg style="width: 14px; height: 14px; color: #d8b4fe;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Lead Mentor
+                    </div>
+                    <div style="font-size: 14px; font-weight: 700; color: #d8b4fe; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ $leadMentorName }}
+                    </div>
+                    <div style="font-size: 11px; color: #8e909f; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ $leadMentorTitle }}
+                    </div>
+                </div>
+
+                {{-- Attribute 4: Duration / Timeline --}}
+                <div style="background-color: #090e1c; border: 1px solid #222a3d; border-radius: 12px; padding: 14px 16px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <svg style="width: 14px; height: 14px; color: #4edea3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Project Duration
+                    </div>
+                    <div style="font-size: 14px; font-weight: 700; color: #4edea3; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ $startDate ? \Carbon\Carbon::parse($startDate)->format('d M') : 'TBD' }} — {{ $endDate ? \Carbon\Carbon::parse($endDate)->format('d M Y') : 'Ongoing' }}
+                    </div>
+                    <div style="font-size: 11px; color: #8e909f; margin-top: 2px;">
+                        {{ $tenureMonths ? $tenureMonths . ' Months Active Duration' : 'Program Milestone' }}
+                    </div>
+                </div>
+            </div> -->
+
+            {{-- ── 2. PROJECT SCOPE & DELIVERABLES ── --}}
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="font-size: 12px; font-weight: 700; color: #b8c4ff; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+                        <svg style="width: 15px; height: 15px; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Project Scope & Deliverables
+                    </div>
+                    @if(filled($projectDesc))
+                        <span style="font-size: 11px; color: #8e909f; font-weight: 600;">Documented Specifications</span>
+                    @endif
+                </div>
+
+                @if(filled($projectDesc))
+                    <div style="background-color: #090e1c; border: 1.5px solid #222a3d; border-radius: 12px; padding: 18px 22px;">
+                        <div class="project-description-content">
+                            {!! $projectDesc !!}
+                        </div>
+                    </div>
+                @else
+                    <div style="background-color: #090e1c; border: 1px dashed #222a3d; border-radius: 12px; padding: 22px; display: flex; align-items: flex-start; gap: 14px;">
+                        <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #60a5fa; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(59, 130, 246, 0.25);">
+                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-size: 13.5px; font-weight: 700; color: #dae2fd;">Project Scope in Formulation</div>
+                            <div style="font-size: 12px; color: #8e909f; margin-top: 3px; line-height: 1.5;">
+                                Detailed architectural objectives and sprint deliverables will be outlined by your Lead Mentor (<strong style="color: #ffffff;">{{ $leadMentorName }}</strong>). Interns are expected to check their <a href="{{ route('filament.intern.resources.task-management.assigned-tasks.index') }}" style="color: #60a5fa; text-decoration: underline;">Assigned Tasks Board</a> for active weekly deliverables.
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            {{-- ── 3. SQUAD MEMBERS & COLLABORATORS ── --}}
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 6px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <div style="font-size: 12px; font-weight: 700; color: #b8c4ff; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+                        <svg style="width: 15px; height: 15px; color: #c084fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Squad Roster ({{ $totalSquadCount }} Intern{{ $totalSquadCount > 1 ? 's' : '' }})
+                    </div>
+                    <div style="font-size: 12px; color: #8e909f;">
+                        Assigned to Squad: <strong style="color: #ffffff;">{{ $projectTitle }}</strong>
+                    </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+                    {{-- ── Card: Current Intern (You) ── --}}
+                    <div style="background-color: #0c162c; border: 1.5px solid #3b82f6; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; position: relative; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.12);">
+                        <div style="width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background-color: #1e3a8a; color: #93c5fd; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; border: 2px solid #3b82f6; flex-shrink: 0;">
+                            @if ($record->intern_image)
+                                <img src="{{ asset('storage/' . $record->intern_image) }}" alt="{{ $name }}" style="width: 100%; height: 100%; object-fit: cover;" />
+                            @else
+                                {{ $initials }}
+                            @endif
+                        </div>
+
+                        <div style="min-width: 0; flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="font-size: 14px; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    {{ $name }}
+                                </div>
+                                <span style="font-size: 10px; font-weight: 800; background: #2563eb; color: #ffffff; padding: 1px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;">
+                                    YOU
+                                </span>
+                            </div>
+                            <div style="font-size: 12px; color: #60a5fa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
+                                {{ $role }}
+                            </div>
+                            @if($institution && $institution !== 'Institution Not Recorded')
+                                <div style="font-size: 11px; color: #8e909f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
+                                    {{ $institution }}
+                                </div>
+                            @endif
+                        </div>
+
+                        <span style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #93c5fd; background: #172554; padding: 3px 8px; border-radius: 6px; border: 1px solid #1e40af; flex-shrink: 0;">
+                            {{ $internCode }}
+                        </span>
+                    </div>
+
+                    {{-- ── Cards: Co-Interns (Teammates) ── --}}
                     @foreach ($teammates as $teammate)
                         @php
                             $tmName = $teammate->name ?: ($teammate->offerletter?->name ?? $teammate->application?->name ?? 'Teammate');
-                            $tmRole = $teammate->internship_role ?: ($teammate->offerletter?->internship_role ?? 'Intern');
+                            $tmRole = $teammate->internship_role ?: ($teammate->offerletter?->internship_role ?? $teammate->domain ?? 'Intern');
                             $tmCode = $teammate->intern_code ?: ('INT-' . str_pad($teammate->id, 3, '0', STR_PAD_LEFT));
+                            $tmInst = $teammate->university ?: ($teammate->college ?: ($teammate->offerletter?->university ?? $teammate->offerletter?->college ?? ''));
                             $tmWords = explode(' ', trim($tmName));
                             $tmInitials = strtoupper(substr($tmWords[0] ?? 'T', 0, 1) . substr($tmWords[1] ?? '', 0, 1));
                         @endphp
 
-                        <div style="background-color: #090e1c; border: 1.5px solid #222a3d; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 14px;">
-                            <div style="width: 42px; height: 42px; border-radius: 50%; overflow: hidden; background-color: #17223b; color: #60a5fa; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; border: 1px solid #1d4ed8; flex-shrink: 0;">
+                        <div style="background-color: #090e1c; border: 1.5px solid #222a3d; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; transition: border-color 0.15s ease;">
+                            <div style="width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background-color: #17223b; color: #60a5fa; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; border: 1px solid #1d4ed8; flex-shrink: 0;">
                                 @if ($teammate->intern_image)
                                     <img src="{{ asset('storage/' . $teammate->intern_image) }}" alt="{{ $tmName }}" style="width: 100%; height: 100%; object-fit: cover;" />
                                 @else
@@ -999,21 +1177,32 @@
                                 <div style="font-size: 12px; color: #60a5fa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
                                     {{ $tmRole }}
                                 </div>
+                                @if(filled($tmInst))
+                                    <div style="font-size: 11px; color: #8e909f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
+                                        {{ $tmInst }}
+                                    </div>
+                                @endif
                             </div>
 
-                            <span style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #8e909f; background: #171f33; padding: 2px 6px; border-radius: 4px; border: 1px solid #222a3d;">
+                            <span style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #8e909f; background: #171f33; padding: 3px 8px; border-radius: 6px; border: 1px solid #222a3d; flex-shrink: 0;">
                                 {{ $tmCode }}
                             </span>
                         </div>
                     @endforeach
                 </div>
-            @else
-                <div style="background-color: #090e1c; border: 1px dashed #222a3d; border-radius: 12px; padding: 28px; text-align: center; color: #8e909f;">
-                    <div style="font-size: 24px; margin-bottom: 8px;">👥</div>
-                    <div style="font-size: 14px; font-weight: 600; color: #dae2fd;">No other teammates currently in this squad</div>
-                    <div style="font-size: 12px; margin-top: 4px;">Fellow interns assigned to Squad "{{ $projectDisplay }}" will appear here.</div>
-                </div>
-            @endif
+
+                @if ($teammates->isEmpty())
+                    <div style="background-color: #090e1c; border: 1px dashed #222a3d; border-radius: 12px; padding: 20px 24px; display: flex; align-items: center; gap: 14px; color: #8e909f; margin-top: 4px;">
+                        <div style="font-size: 26px; flex-shrink: 0;">👤</div>
+                        <div>
+                            <div style="font-size: 13.5px; font-weight: 700; color: #dae2fd;">Solo Contributor Squad</div>
+                            <div style="font-size: 12px; margin-top: 2px; color: #8e909f;">
+                                You are currently assigned as the sole intern working on "{{ $projectTitle }}". Additional co-interns assigned by administration will automatically be reflected here.
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -1045,7 +1234,7 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px;">
             
             {{-- Document 1: Official ID Card --}}
-            <div style="background-color: #131b2e; border: 1.5px solid #222a3d; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
+            <!-- <div style="background-color: #131b2e; border: 1.5px solid #222a3d; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 20px;">🪪</span>
@@ -1081,7 +1270,7 @@
                         <span>Print / View ID Card ↗</span>
                     </a>
                 </div>
-            </div>
+            </div> -->
 
             {{-- Document 2: Signed Offer Letter --}}
             <div style="background-color: #131b2e; border: 1.5px solid #222a3d; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
@@ -1117,19 +1306,7 @@
                     </div>
                 </div>
 
-                <div style="margin-top: auto;">
-                    @if (filled($record->offer_letter_id))
-                        <a href="{{ route('view-offer-pdf', ['id' => $record->offer_letter_id]) }}" target="_blank"
-                           style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; text-align: center; font-size: 12.5px; font-weight: 700; color: #93c5fd; background-color: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); padding: 9px 12px; border-radius: 8px; text-decoration: none; transition: all 0.15s ease;">
-                            <span>👁️</span>
-                            <span>View Offer Letter PDF ↗</span>
-                        </a>
-                    @else
-                        <div style="text-align: center; color: #8e909f; font-size: 12px; padding: 8px;">
-                            Offer letter file pending generation
-                        </div>
-                    @endif
-                </div>
+               
             </div>
 
             {{-- Document 3: Completion Certificate --}}
@@ -1167,7 +1344,7 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 8px; margin-top: auto;">
+                    <!-- <div style="display: flex; gap: 8px; margin-top: auto;">
                         <a href="{{ route('intern.certificate.view', ['id' => $record->id]) }}" target="_blank"
                            style="flex: 1; text-align: center; font-size: 12px; font-weight: 700; color: #dae2fd; background-color: #171f33; border: 1px solid #222a3d; padding: 8px 10px; border-radius: 8px; text-decoration: none; transition: all 0.15s ease;">
                             👁️ View ↗
@@ -1176,10 +1353,10 @@
                            style="flex: 1; text-align: center; font-size: 12px; font-weight: 700; color: #fbbf24; background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); padding: 8px 10px; border-radius: 8px; text-decoration: none; transition: all 0.15s ease;">
                             ⬇ Download
                         </a>
-                    </div>
+                    </div> -->
                 @else
                     <div style="background-color: #090e1c; border: 1px dashed #222a3d; border-radius: 12px; padding: 20px; text-align: center; color: #8e909f; font-size: 12.5px; margin-top: auto;">
-                        Certificate will be awarded and accessible here upon completion of your internship tenure and reviews.
+                        Certificate will be awarded and accessible here upon completion of your internship duration and reviews.
                     </div>
                 @endif
             </div>
@@ -1219,7 +1396,7 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 8px; margin-top: auto;">
+                    <!-- <div style="display: flex; gap: 8px; margin-top: auto;">
                         <a href="{{ route('intern.completion_letter.view', ['id' => $record->id]) }}" target="_blank"
                            style="flex: 1; text-align: center; font-size: 12px; font-weight: 700; color: #dae2fd; background-color: #171f33; border: 1px solid #222a3d; padding: 8px 10px; border-radius: 8px; text-decoration: none; transition: all 0.15s ease;">
                             👁️ View ↗
@@ -1228,7 +1405,7 @@
                            style="flex: 1; text-align: center; font-size: 12px; font-weight: 700; color: #4edea3; background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); padding: 8px 10px; border-radius: 8px; text-decoration: none; transition: all 0.15s ease;">
                             ⬇ Download
                         </a>
-                    </div>
+                    </div> -->
                 @else
                     <div style="background-color: #090e1c; border: 1px dashed #222a3d; border-radius: 12px; padding: 20px; text-align: center; color: #8e909f; font-size: 12.5px; margin-top: auto;">
                         Experience / Completion letter will be made available here upon formal completion of the internship.
