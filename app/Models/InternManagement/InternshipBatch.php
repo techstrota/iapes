@@ -13,6 +13,7 @@ class InternshipBatch extends Model
         'batch_name',
         'batch_timing',
         'no_of_interns',
+        'capacity',
         'team_id',
         'cohort_archive_name',
         'status',
@@ -21,7 +22,26 @@ class InternshipBatch extends Model
 
     protected $casts = [
         'is_archived' => 'boolean',
+        'capacity' => 'integer',
     ];
+
+    public function getEnrolledCountAttribute(): int
+    {
+        return $this->interns()->where('is_active', true)->count();
+    }
+
+    public function getAvailableSeatsAttribute(): int
+    {
+        $cap = $this->capacity ?? 50;
+        return max(0, $cap - $this->enrolled_count);
+    }
+
+    public function getOccupancyPercentageAttribute(): int
+    {
+        $cap = $this->capacity ?? 50;
+        if ($cap <= 0) return 0;
+        return (int) round(($this->enrolled_count / $cap) * 100);
+    }
 
     public function scopeActive($query)
     {

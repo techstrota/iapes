@@ -210,9 +210,14 @@
 
                 {{-- Interns Count and Active / Archived Label (No truncation) --}}
                 <div style="display: flex; flex-direction: column; flex-shrink: 0;">
-                    <span style="font-size: 14px; font-weight: 800; color: #ffffff; line-height: 1.2; white-space: nowrap;">
-                        {{ $internCount }} Interns
-                    </span>
+                    <div style="display: flex; align-items: baseline; gap: 6px;">
+                        <span style="font-size: 14px; font-weight: 800; color: #ffffff; line-height: 1.2; white-space: nowrap;">
+                            {{ $internCount }} Interns
+                        </span>
+                        <span style="font-size: 11px; font-weight: 600; color: #94a3b8;">
+                            / {{ $record->capacity ?? 50 }} seats
+                        </span>
+                    </div>
                     @if ($isArchived)
                         <span style="font-size: 11.5px; font-weight: 600; color: #fbbf24; line-height: 1.2; margin-top: 2px; white-space: nowrap;">
                             ✓ Completed & Archived

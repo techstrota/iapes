@@ -185,19 +185,19 @@
                 <div>
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <h1 style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 0; line-height: 1.2;">
-                            My Attendance & Roll-Call Tracker
+                            My Attendance & Work Logbook
                         </h1>
                         <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background-color: rgba(16, 185, 129, 0.15); color: #4edea3; padding: 3px 9px; border-radius: 9999px; border: 1px solid rgba(78, 222, 163, 0.3);">
                             {{ $stats['total_days'] }} Total Logged Days
                         </span>
                     </div>
                     <p style="font-size: 12.5px; color: #8e909f; margin: 4px 0 0 0;">
-                        Monitor your daily check-in roll-call records, shift compliance, and approved absence history.
+                        Monitor your roll-call attendance status and write or manage your daily work accomplishments.
                     </p>
                 </div>
             </div>
 
-            {{-- Right: Today's Roll-Call Status Badge --}}
+            {{-- Right: Today's Roll-Call Status Badge & Quick Add Log Action --}}
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 @if ($stats['today_status'] === 'present')
                     <div style="display: inline-flex; align-items: center; gap: 7px; background-color: rgba(16, 185, 129, 0.15); color: #4edea3; border: 1px solid rgba(78, 222, 163, 0.35); padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 700;">
@@ -218,6 +218,14 @@
                         <span>⏳ Today's Roll-Call Pending</span>
                     </div>
                 @endif
+
+                <button
+                    type="button"
+                    wire:click="openCreateLogModal"
+                    style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: linear-gradient(135deg, #1E40AF 0%, #2563eb 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.35); transition: all 0.15s ease;">
+                    <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+                    <span>+ Add Work Log</span>
+                </button>
             </div>
         </div>
     </div>
@@ -413,7 +421,9 @@
                     <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 50%; background-color: #10b981;"></span> Present</span>
                     <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 50%; background-color: #6366f1;"></span> Leave</span>
                     <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 50%; background-color: #ef4444;"></span> Absent</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 50%; background-color: #8b5cf6;"></span> Holiday</span>
                     <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 50%; background-color: #64748b;"></span> Sun (Off)</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; padding-left: 8px; border-left: 1px solid #222a3d; color: #93c5fd;"><span style="color: #60a5fa;">📝</span> Work Log</span>
                 </div>
             </div>
 
@@ -436,19 +446,25 @@
                         $isCur = $cDay['isCurrentMonth'];
                         $isDaySelected = $cDay['isSelected'] ?? false;
                         $isSunOff = $cDay['isWeekend'];
+                        $hasLog = $cDay['hasLogbook'] ?? false;
                     @endphp
                     <div
                         wire:click="selectDay('{{ $cDay['date'] }}')"
-                        style="min-height: 78px; border-radius: 10px; cursor: pointer; transition: all 0.15s ease; border: {{ $isDaySelected ? '2px solid #3b82f6' : ($cDay['isToday'] ? '1.5px solid #1E40AF' : '1px solid #222a3d') }}; background-color: {{ $isDaySelected ? 'rgba(30, 64, 175, 0.28)' : ($isSunOff ? '#0b1326' : '#171f33') }}; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; {{ $isDaySelected ? 'box-shadow: 0 0 14px rgba(59,130,246,0.35);' : '' }} {{ !$isCur ? 'opacity: 0.32;' : '' }}"
+                        style="min-height: 82px; border-radius: 10px; cursor: pointer; transition: all 0.15s ease; border: {{ $isDaySelected ? '2px solid #3b82f6' : ($cDay['isToday'] ? '1.5px solid #1E40AF' : '1px solid #222a3d') }}; background-color: {{ $isDaySelected ? 'rgba(30, 64, 175, 0.28)' : ($isSunOff ? '#0b1326' : '#171f33') }}; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; {{ $isDaySelected ? 'box-shadow: 0 0 14px rgba(59,130,246,0.35);' : '' }} {{ !$isCur ? 'opacity: 0.32;' : '' }}"
                     >
-                        {{-- Top: Day Number and Selected/Today Tags --}}
+                        {{-- Top: Day Number and Selected/Today/Log Tags --}}
                         <div style="display: flex; align-items: center; justify-content: space-between;">
                             <span style="font-size: 12px; font-weight: {{ $isDaySelected || $cDay['isToday'] ? '800' : '600' }}; color: {{ $isDaySelected ? '#ffffff' : ($cDay['isToday'] ? '#b8c4ff' : ($isSunOff ? '#a5b4fc' : '#dae2fd')) }};">
                                 {{ $cDay['day'] }}
                             </span>
                             <div style="display: flex; align-items: center; gap: 3px;">
+                                @if ($hasLog)
+                                    <span style="font-size: 8px; font-weight: 800; background-color: rgba(59, 130, 246, 0.2); color: #93c5fd; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.35);" title="Daily Log: {{ \Illuminate\Support\Str::limit($cDay['logbook']['tasks_completed'] ?? 'Logged', 50) }}">
+                                        📝 LOG
+                                    </span>
+                                @endif
                                 @if ($isDaySelected)
-                                    <span style="font-size: 8px; font-weight: 800; background-color: #1E40AF; color: #FFFFFF; padding: 1px 4px; border-radius: 4px; letter-spacing: 0.05em;">SELECTED</span>
+                                    <span style="font-size: 8px; font-weight: 800; background-color: #1E40AF; color: #FFFFFF; padding: 1px 4px; border-radius: 4px; letter-spacing: 0.05em;">SEL</span>
                                 @elseif ($cDay['isToday'])
                                     <span style="font-size: 8px; font-weight: 800; background-color: rgba(30, 64, 175, 0.35); color: #b8c4ff; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.3);">TODAY</span>
                                 @endif
@@ -471,6 +487,10 @@
                                 @elseif ($cStatus === 'leave')
                                     <span style="font-size: 9.5px; font-weight: 700; color: #c7d2fe; background-color: rgba(99, 102, 241, 0.18); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.35); display: inline-flex; align-items: center; gap: 3px;">
                                         <span>🏖</span> Leave
+                                    </span>
+                                @elseif ($cStatus === 'holiday')
+                                    <span style="font-size: 9.5px; font-weight: 700; color: #d8b4fe; background-color: rgba(147, 51, 234, 0.18); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(147, 51, 234, 0.35); display: inline-flex; align-items: center; gap: 3px;">
+                                        <span>🎉</span> Holiday
                                     </span>
                                 @elseif ($cStatus === 'absent')
                                     <span style="font-size: 9.5px; font-weight: 700; color: #f87171; background-color: rgba(239, 68, 68, 0.18); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.35); display: inline-flex; align-items: center; gap: 3px;">
@@ -541,6 +561,10 @@
                             <div style="display: inline-flex; align-items: center; gap: 6px; background-color: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 700;">
                                 <span>✕ Unexcused Absence</span>
                             </div>
+                        @elseif ($selDay['status'] === 'holiday')
+                            <div style="display: inline-flex; align-items: center; gap: 6px; background-color: rgba(147, 51, 234, 0.15); color: #d8b4fe; border: 1px solid rgba(147, 51, 234, 0.35); padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 700;">
+                                <span>🎉 Public / Official Holiday</span>
+                            </div>
                         @elseif ($selDay['isWeekend'])
                             <div style="display: inline-flex; align-items: center; gap: 6px; background-color: rgba(99, 102, 241, 0.12); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.25); padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600;">
                                 <span>☕ Scheduled Sunday Week-Off</span>
@@ -558,6 +582,69 @@
                         <span style="color: #8e909f; font-weight: 600;">Supervisor / Roll-Call Note: </span> {{ $selDay['note'] }}
                     </div>
                 @endif
+
+                {{-- Work Logbook for Selected Day --}}
+                @if (!empty($selDay['logbook']))
+                    @php $log = $selDay['logbook']; @endphp
+                    <div style="margin-top: 16px; background-color: #090e1c; border: 1px solid #222a3d; border-radius: 12px; padding: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid #1c2638; padding-bottom: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 15px;">📝</span>
+                                <span style="font-size: 13px; font-weight: 800; color: #ffffff;">Today's Work Note</span>
+                                <span style="font-size: 10px; font-weight: 700; color: #4edea3; background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(78, 222, 163, 0.3); padding: 2px 7px; border-radius: 9999px;">Logged</span>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button
+                                    type="button"
+                                    wire:click="openEditLogModal({{ $log['id'] }})"
+                                    style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #93c5fd; padding: 5px 10px; border-radius: 6px; background-color: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); cursor: pointer;">
+                                    <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                    Edit Note
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="deleteLog({{ $log['id'] }})"
+                                    wire:confirm="Are you sure you want to delete this work note? This action cannot be undone."
+                                    style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #ffb4ab; padding: 5px 10px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer;">
+                                    <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="font-size: 13px; color: #dae2fd; white-space: pre-line; line-height: 1.6; background-color: #131b2e; padding: 12px 14px; border-radius: 8px; border: 1px solid #1c2638;">
+                            {{ $log['tasks_completed'] }}
+                        </div>
+
+                        @if (!empty($log['supervisor_remarks']))
+                            <div style="margin-top: 10px; padding: 10px 14px; background: rgba(147, 51, 234, 0.1); border: 1px solid rgba(147, 51, 234, 0.25); border-radius: 8px; font-size: 12px; color: #d8b4fe;">
+                                <strong style="color: #c084fc;">Mentor Feedback:</strong> {{ $log['supervisor_remarks'] }}
+                            </div>
+                        @endif
+                    </div>
+                @elseif (!empty($selDay['isWeekend']) || !empty($selDay['isHoliday']) || $selDay['status'] === 'holiday')
+                    <div style="margin-top: 14px; padding: 12px 16px; background-color: #090e1c; border: 1px dashed rgba(99, 102, 241, 0.35); border-radius: 10px; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 15px;">☕</span>
+                        <span style="font-size: 12px; color: #a5b4fc;">
+                            <strong>Scheduled Rest Day / Holiday:</strong> Daily work log note is not required on Sundays or official holidays.
+                        </span>
+                    </div>
+                @else
+                    <div style="margin-top: 14px; padding: 14px 16px; background-color: #090e1c; border: 1px dashed #222a3d; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; color: #8e909f; font-size: 12px;">
+                            <span>📝</span>
+                            <span>No daily work note recorded for this date yet.</span>
+                        </div>
+                        <button
+                            type="button"
+                            wire:click="openCreateLogModal('{{ $selDay['date'] }}')"
+                            style="font-size: 12px; font-weight: 700; color: #ffffff; padding: 7px 14px; background: linear-gradient(135deg, #1E40AF 0%, #2563eb 100%); border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(30,64,175,0.4); display: inline-flex; align-items: center; gap: 5px;">
+                            <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+                            + Add Work Note for this Day
+                        </button>
+                    </div>
+                @endif
             </div>
         @endif
     @else
@@ -570,6 +657,92 @@
             {{ $this->table }}
 
             {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER, scopes: $this->getRenderHookScopes()) }}
+        </div>
+    @endif
+
+    {{-- Pop-Up Modal Form for Creating and Editing Work Log --}}
+    @if ($showLogModal)
+        <div style="position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px;">
+            <div style="background-color: #131b2e; border: 1px solid #222a3d; border-radius: 16px; width: 100%; max-width: 540px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden;">
+                
+                {{-- Modal Header --}}
+                <div style="padding: 16px 20px; background-color: #171f33; border-bottom: 1px solid #222a3d; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">📝</span>
+                        <h3 style="font-size: 15px; font-weight: 800; color: #ffffff; margin: 0;">
+                            {{ $editingLogId ? 'Edit Daily Work Note' : 'Add Daily Work Note' }}
+                        </h3>
+                    </div>
+                    <button
+                        type="button"
+                        wire:click="closeLogModal"
+                        style="width: 30px; height: 30px; border-radius: 8px; border: 1px solid #222a3d; background-color: #0c1222; color: #8e909f; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+
+                {{-- Modal Form --}}
+                <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                    {{-- Date --}}
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 6px;">
+                            Log Date <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input
+                            type="date"
+                            wire:model="modalDate"
+                            max="{{ now()->toDateString() }}"
+                            style="width: 100%; background-color: #0c1222; border: 1px solid #222a3d; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #dae2fd; outline: none;"
+                        />
+                        @error('modalDate')
+                            <span style="font-size: 11px; color: #ffb4ab; margin-top: 4px; display: block;">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    {{-- Tasks Completed --}}
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 6px;">
+                            What have you done today? <span style="color: #ef4444;">*</span>
+                        </label>
+                        <textarea
+                            wire:model="modalTasks"
+                            rows="5"
+                            placeholder="Describe the tasks, features, research, or bug fixes you worked on today..."
+                            style="width: 100%; background-color: #0c1222; border: 1px solid #222a3d; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #dae2fd; outline: none; line-height: 1.5; resize: vertical;"></textarea>
+                        @error('modalTasks')
+                            <span style="font-size: 11px; color: #ffb4ab; margin-top: 4px; display: block;">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    {{-- Supervisor Feedback Display (if editing) --}}
+                    @if (filled($modalSupervisorFeedback))
+                        <div style="background-color: rgba(147, 51, 234, 0.1); border-left: 3px solid #9333ea; border-radius: 0 8px 8px 0; padding: 10px 12px;">
+                            <div style="font-size: 11px; font-weight: 800; color: #c084fc; text-transform: uppercase; margin-bottom: 3px;">Mentor Feedback</div>
+                            <div style="font-size: 12px; color: #e9d5ff; line-height: 1.4;">{{ $modalSupervisorFeedback }}</div>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Modal Footer --}}
+                <div style="padding: 14px 20px; background-color: #171f33; border-top: 1px solid #222a3d; display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
+                    <button
+                        type="button"
+                        wire:click="closeLogModal"
+                        style="padding: 8px 16px; font-size: 12px; font-weight: 600; color: #c4c5d5; background: transparent; border: 1px solid #222a3d; border-radius: 8px; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="saveLogModal"
+                        wire:loading.attr="disabled"
+                        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; font-size: 12px; font-weight: 700; color: #ffffff; background: linear-gradient(135deg, #1E40AF 0%, #2563eb 100%); border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(30,64,175,0.4);">
+                        <span wire:loading.remove wire:target="saveLogModal">
+                            {{ $editingLogId ? 'Update Work Note' : 'Submit Work Note' }}
+                        </span>
+                        <span wire:loading wire:target="saveLogModal">Saving...</span>
+                    </button>
+                </div>
+            </div>
         </div>
     @endif
 

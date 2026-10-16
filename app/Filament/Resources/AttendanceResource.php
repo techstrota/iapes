@@ -41,6 +41,7 @@ class AttendanceResource extends Resource
                         'absent' => 'Absent',
                         'late' => 'Late',
                         'leave' => 'Leave',
+                        'holiday' => 'Holiday',
                     ])
                     ->required(),
                 Forms\Components\TextInput::make('note'),
@@ -71,6 +72,7 @@ class AttendanceResource extends Resource
                         'absent' => 'Absent',
                         'late' => 'Late',
                         'leave' => 'Leave',
+                        'holiday' => 'Holiday',
                     ])
                     ->selectablePlaceholder(false)
                     ->afterStateUpdated(fn ($record, $state) => 

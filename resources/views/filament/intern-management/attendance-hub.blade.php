@@ -265,6 +265,9 @@
                         @if (Carbon\Carbon::parse($selectedDate)->isSunday())
                             <span style="background-color: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.05em;">WEEK-OFF</span>
                         @endif
+                        @if ($stats['isHoliday'] ?? false)
+                            <span style="background-color: rgba(147, 51, 234, 0.2); color: #d8b4fe; border: 1px solid rgba(147, 51, 234, 0.4); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.05em;">🎉 HOLIDAY</span>
+                        @endif
                     </div>
 
                     <button
@@ -394,7 +397,7 @@
                 {{-- Status Pills Row & Roll-Call All in Muster Tab --}}
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid #222a3d; padding-top: 8px;">
                     <div style="display: flex; align-items: center; gap: 4px; overflow-x: auto;">
-                        @foreach (['all' => 'All Interns', 'present' => 'Present', 'wfh' => 'WFH', 'absent' => 'Absent', 'leave' => 'Leave', 'unmarked' => 'Unmarked'] as $val => $label)
+                        @foreach (['all' => 'All Interns', 'present' => 'Present', 'wfh' => 'WFH', 'absent' => 'Absent', 'leave' => 'Leave', 'holiday' => 'Holiday', 'unmarked' => 'Unmarked'] as $val => $label)
                             <button
                                 type="button"
                                 wire:click="$set('statusFilter', '{{ $val }}')"
@@ -432,6 +435,12 @@
                             style="padding: 4px 8px; font-size: 11px; font-weight: 700; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); color: #ffb4ab; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer;">
                             All Absent
                         </button>
+                        <button
+                            type="button"
+                            wire:click="markAllHoliday"
+                            style="padding: 4px 8px; font-size: 11px; font-weight: 700; border-radius: 6px; background-color: rgba(147, 51, 234, 0.15); color: #d8b4fe; border: 1px solid rgba(147, 51, 234, 0.3); cursor: pointer;">
+                            🎉 Mark Holiday
+                        </button>
                     </div>
                 </div>
             @endif
@@ -460,6 +469,9 @@
                         </span>
                         <span style="display: inline-flex; align-items: center; gap: 4px;">
                             <span style="width: 18px; height: 18px; border-radius: 4px; background-color: #9333EA; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 10px;">L</span> Leave
+                        </span>
+                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                            <span style="width: 18px; height: 18px; border-radius: 4px; background-color: #8b5cf6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 10px;">H</span> Holiday
                         </span>
                     </div>
                 </div>
@@ -601,6 +613,14 @@
                                                     style="width: 26px; height: 26px; border-radius: 6px; background-color: #9333EA; color: #FFFFFF; font-weight: 800; font-size: 11px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
                                                     L
                                                 </button>
+                                            @elseif ($st === 'holiday')
+                                                <button
+                                                    type="button"
+                                                    wire:click="openMarkModal({{ $intern->id }})"
+                                                    title="Holiday (Click to edit log)"
+                                                    style="width: 26px; height: 26px; border-radius: 6px; background-color: #8b5cf6; color: #FFFFFF; font-weight: 800; font-size: 11px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+                                                    H
+                                                </button>
                                             @else
                                                 <button
                                                     type="button"
@@ -673,6 +693,15 @@
                                                 title="Mark Leave"
                                                 style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'leave' ? 'background-color: #9333EA; color: #FFF;' : 'background-color: #171f33; color: #d8b4fe;' }}">
                                                 L
+                                            </button>
+
+                                            {{-- Holiday Button --}}
+                                            <button
+                                                type="button"
+                                                wire:click="setAttendanceStatus({{ $intern->id }}, 'holiday')"
+                                                title="Mark Holiday"
+                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'holiday' ? 'background-color: #8b5cf6; color: #FFF;' : 'background-color: #171f33; color: #c084fc;' }}">
+                                                H
                                             </button>
 
                                             {{-- Mark Modal Trigger --}}
@@ -1635,6 +1664,22 @@
                                         </span>
                                     </div>
                                     <p style="font-size: 11px; color: #d8b4fe; margin: 4px 0 0;">Approved Vacation / Sick</p>
+                                </div>
+
+                                {{-- Holiday --}}
+                                <div
+                                    wire:click="setMarkStatus('holiday')"
+                                    class="status-radio-card"
+                                    style="border-radius: 10px; padding: 12px; border: 2px solid {{ $markStatus === 'holiday' ? '#8b5cf6' : '#222a3d' }}; background-color: {{ $markStatus === 'holiday' ? 'rgba(139, 92, 246, 0.15)' : '#171f33' }};">
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <span style="font-weight: 800; font-size: 13px; color: #c084fc;">Holiday</span>
+                                        <span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{ $markStatus === 'holiday' ? '#8b5cf6' : '#2d3449' }}; display: flex; align-items: center; justify-content: center;">
+                                            @if ($markStatus === 'holiday')
+                                                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #8b5cf6;"></span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                    <p style="font-size: 11px; color: #c084fc; margin: 4px 0 0;">Public / Company Holiday</p>
                                 </div>
                             </div>
                         </div>

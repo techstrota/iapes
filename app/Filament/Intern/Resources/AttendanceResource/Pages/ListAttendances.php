@@ -4,10 +4,14 @@ namespace App\Filament\Intern\Resources\AttendanceResource\Pages;
 
 use App\Filament\Intern\Resources\AttendanceResource;
 use App\Models\Attendance;
+use App\Models\InternManagement\DailyLogbook;
 use Carbon\Carbon;
+use Filament\Notifications\Notification;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 
 class ListAttendances extends ListRecords
@@ -15,10 +19,18 @@ class ListAttendances extends ListRecords
     protected static string $resource = AttendanceResource::class;
 
     protected static string $view = 'filament.intern.attendance.list-attendances';
+    protected static ?string $title = 'Attendance & Work Logbook';
 
     public string $calendarMonth = '';
     public ?string $selectedDate = null;
     public string $viewMode = 'calendar';
+
+    // Pop-up Modal State for Daily Logbook CRUD
+    public bool $showLogModal = false;
+    public ?int $editingLogId = null;
+    public string $modalDate = '';
+    public string $modalTasks = '';
+    public string $modalSupervisorFeedback = '';
 
     public function mount(): void
     {
@@ -56,6 +68,132 @@ class ListAttendances extends ListRecords
     public function setViewMode(string $mode): void
     {
         $this->viewMode = $mode;
+    }
+
+    public function openCreateLogModal(?string $date = null): void
+    {
+        $this->editingLogId = null;
+        $this->modalDate = $date ?: ($this->selectedDate ?: now()->toDateString());
+        $this->modalTasks = '';
+        $this->modalSupervisorFeedback = '';
+        $this->showLogModal = true;
+    }
+
+    public function openEditLogModal(int $logId): void
+    {
+        $log = DailyLogbook::where('intern_id', Auth::id())->find($logId);
+        if (!$log) {
+            Notification::make()->title('Log entry not found')->danger()->send();
+            return;
+        }
+
+        $this->editingLogId = $log->id;
+        $this->modalDate = $log->date instanceof \DateTimeInterface ? $log->date->format('Y-m-d') : (string)$log->date;
+        $this->modalTasks = $log->tasks_completed;
+        $this->modalSupervisorFeedback = $log->supervisor_remarks ?? '';
+        $this->showLogModal = true;
+    }
+
+    public function closeLogModal(): void
+    {
+        $this->showLogModal = false;
+        $this->editingLogId = null;
+        $this->modalTasks = '';
+        $this->modalSupervisorFeedback = '';
+    }
+
+    public function saveLogModal(): void
+    {
+        $this->validate([
+            'modalDate' => 'required|date',
+            'modalTasks' => 'required|string|min:3',
+        ], [
+            'modalDate.required' => 'Please select a date for the work note.',
+            'modalTasks.required' => "Please write what you have accomplished today.",
+            'modalTasks.min' => "Your work note must be at least 3 characters.",
+        ]);
+
+        $internId = Auth::id();
+        $targetDate = Carbon::parse($this->modalDate)->format('Y-m-d');
+
+        // Check if date is eligible (not Sunday or Holiday)
+        $eligibility = DailyLogbook::isDateEligibleForLog($targetDate, $internId);
+        if (!($eligibility['allowed'] ?? $eligibility['eligible'] ?? true)) {
+            Notification::make()
+                ->title('Date Not Eligible')
+                ->body($eligibility['reason'])
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Prevent duplicate entries for the same intern and date
+        $dupQuery = DailyLogbook::where('intern_id', $internId)
+            ->whereDate('date', $targetDate);
+
+        if ($this->editingLogId) {
+            $dupQuery->where('id', '!=', $this->editingLogId);
+        }
+
+        if ($dupQuery->exists()) {
+            Notification::make()
+                ->title('Logbook Entry Already Exists')
+                ->body('A logbook entry for ' . Carbon::parse($targetDate)->format('d M Y') . ' already exists. Please update that entry instead.')
+                ->danger()
+                ->persistent()
+                ->send();
+            return;
+        }
+
+        try {
+            if ($this->editingLogId) {
+                $log = DailyLogbook::where('intern_id', $internId)->findOrFail($this->editingLogId);
+                $log->update([
+                    'date' => $targetDate,
+                    'tasks_completed' => trim($this->modalTasks),
+                ]);
+
+                Notification::make()
+                    ->title('Work log updated successfully')
+                    ->success()
+                    ->send();
+            } else {
+                DailyLogbook::create([
+                    'intern_id' => $internId,
+                    'date' => $targetDate,
+                    'tasks_completed' => trim($this->modalTasks),
+                    'status' => 'submitted',
+                ]);
+
+                Notification::make()
+                    ->title('Daily work note submitted successfully')
+                    ->success()
+                    ->send();
+            }
+
+            $this->selectedDate = $targetDate;
+            $this->showLogModal = false;
+            $this->editingLogId = null;
+        } catch (UniqueConstraintViolationException | QueryException $e) {
+            Notification::make()
+                ->title('Duplicate Entry Detected')
+                ->body('A log entry for this date already exists. Please update the existing entry.')
+                ->danger()
+                ->persistent()
+                ->send();
+        }
+    }
+
+    public function deleteLog(int $logId): void
+    {
+        $log = DailyLogbook::where('intern_id', Auth::id())->find($logId);
+        if ($log) {
+            $log->delete();
+            Notification::make()
+                ->title('Daily work log deleted successfully')
+                ->success()
+                ->send();
+        }
     }
 
     protected function getHeaderActions(): array
@@ -123,12 +261,28 @@ class ListAttendances extends ListRecords
             ];
         }
 
+        $logbooks = \App\Models\InternManagement\DailyLogbook::where('intern_id', $internId)
+            ->whereBetween('date', [$startOfGrid->toDateString(), $endOfGrid->toDateString()])
+            ->get();
+
+        $logbookMap = [];
+        foreach ($logbooks as $log) {
+            $rawDate = $log->date;
+            $dateKey = $rawDate instanceof \DateTimeInterface ? $rawDate->format('Y-m-d') : (string)$rawDate;
+            $logbookMap[$dateKey] = [
+                'id' => $log->id,
+                'tasks_completed' => $log->tasks_completed,
+                'supervisor_remarks' => $log->supervisor_remarks,
+            ];
+        }
+
         $calendarDays = [];
         $cursor = $startOfGrid->copy();
         while ($cursor->lte($endOfGrid)) {
             $dateStr = $cursor->toDateString();
             $isSunday = $cursor->isSunday();
             $attRecord = $attendanceMap[$dateStr] ?? null;
+            $logRecord = $logbookMap[$dateStr] ?? null;
 
             if ($attRecord) {
                 $status = $attRecord['status'];
@@ -150,6 +304,8 @@ class ListAttendances extends ListRecords
                 'status'         => $status,
                 'note'           => $attRecord['note'] ?? null,
                 'rawRecord'      => $attRecord,
+                'logbook'        => $logRecord,
+                'hasLogbook'     => !empty($logRecord),
             ];
 
             $cursor->addDay();
@@ -162,6 +318,7 @@ class ListAttendances extends ListRecords
         $monthPresent = (clone $monthQuery)->where('status', 'present')->count();
         $monthLeave   = (clone $monthQuery)->where('status', 'leave')->count();
         $monthAbsent  = (clone $monthQuery)->where('status', 'absent')->count();
+        $monthHoliday = (clone $monthQuery)->where('status', 'holiday')->count();
 
         $monthAttended = $monthPresent;
         $monthTotalMarked = $monthAttended + $monthLeave + $monthAbsent;
@@ -171,14 +328,18 @@ class ListAttendances extends ListRecords
         $selectedDayInfo = null;
         if ($this->selectedDate) {
             $selCarbon = Carbon::parse($this->selectedDate);
-            $selAtt = $attendanceMap[$this->selectedDate] ?? null;
+            $selDateStr = $selCarbon->format('Y-m-d');
+            $selAtt = $attendanceMap[$selDateStr] ?? null;
+            $isSelHoliday = ($selAtt['status'] ?? null) === 'holiday' || Attendance::whereDate('date', $selDateStr)->where('status', 'holiday')->exists();
             $selectedDayInfo = [
-                'date'      => $this->selectedDate,
+                'date'      => $selDateStr,
                 'formatted' => $selCarbon->format('l, d F Y'),
                 'isToday'   => $selCarbon->isToday(),
                 'isWeekend' => $selCarbon->isSunday(),
-                'status'    => $selAtt['status'] ?? ($selCarbon->isSunday() ? 'weekend' : ($selCarbon->isPast() && !$selCarbon->isToday() ? 'unmarked' : 'future')),
+                'isHoliday' => $isSelHoliday,
+                'status'    => $selAtt['status'] ?? ($isSelHoliday ? 'holiday' : ($selCarbon->isSunday() ? 'weekend' : ($selCarbon->isPast() && !$selCarbon->isToday() ? 'unmarked' : 'future'))),
                 'note'      => $selAtt['note'] ?? null,
+                'logbook'   => $logbookMap[$selDateStr] ?? null,
             ];
         }
 

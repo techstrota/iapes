@@ -19,6 +19,8 @@ use App\Models\TaskManagement\Task;
 use App\Models\TaskManagement\TaskAssignment;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\InternManagement\DailyLogbook;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Carbon\Carbon;
@@ -61,6 +63,7 @@ class Intern extends Authenticatable implements FilamentUser
         'project_description',
         'issuing_date',
         'is_active',
+        'is_login_enabled',
         'intern_image',
         'cert_token',
         'cert_ref_id',
@@ -74,6 +77,7 @@ class Intern extends Authenticatable implements FilamentUser
         'issuing_date' => 'date',
         'archived_at' => 'datetime',
         'is_active' => 'boolean',
+        'is_login_enabled' => 'boolean',
         'cgpa' => 'decimal:2',
     ];
 
@@ -177,7 +181,21 @@ class Intern extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $panel->getId() === 'intern';
+        return $panel->getId() === 'intern'
+            && (bool) $this->is_active
+            && (bool) $this->is_login_enabled;
+    }
+
+    public function scopeLoginEnabled($query)
+    {
+        return $query->where('is_login_enabled', true);
+    }
+
+    public function scopeLoginDisabled($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('is_login_enabled', false)->orWhereNull('is_login_enabled');
+        });
     }
 
     public function application()
@@ -239,6 +257,17 @@ class Intern extends Authenticatable implements FilamentUser
     public function completionLetter(): HasOne
     {
         return $this->hasOne(CompletionLetter::class, 'intern_id');
+    }
+
+    public function logbooks(): HasMany
+    {
+        return $this->hasMany(DailyLogbook::class, 'intern_id');
+    }
+
+    public function todayLogbook(): HasOne
+    {
+        return $this->hasOne(DailyLogbook::class, 'intern_id')
+            ->whereDate('date', now()->toDateString());
     }
 
     /**

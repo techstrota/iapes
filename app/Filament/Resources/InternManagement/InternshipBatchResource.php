@@ -44,6 +44,14 @@ class InternshipBatchResource extends Resource
                 TextInput::make('batch_name')
                     ->required() // This ensures the user fills it out
                     ->maxLength(255),
+                TextInput::make('capacity')
+                    ->label('Batch Capacity (Seats)')
+                    ->numeric()
+                    ->default(50)
+                    ->minValue(1)
+                    ->required()
+                    ->helperText('Maximum number of intern seats allocated for this batch.')
+                    ->live(),
                 Select::make('interns')
                     ->label('Select Interns')
                     ->multiple()
@@ -70,19 +78,26 @@ class InternshipBatchResource extends Resource
                     ->rules([
                         static function (Forms\Get $get, $record): \Closure {
                             return function (string $attribute, $value, \Closure $fail) use ($get, $record) {
+                                $newCount = count($value);
+                                $batchCapacity = (int) ($get('capacity') ?: ($record?->capacity ?? 50));
+
+                                if ($newCount > $batchCapacity) {
+                                    $fail("Selected {$newCount} interns exceeds this batch's capacity limit of {$batchCapacity} seats.");
+                                    return;
+                                }
+
                                 $newStart = $get('start_time');
                                 $newEnd = $get('end_time');
-                                $newCount = count($value);
 
                                 if (!$newStart || !$newEnd) return;
 
-                                // 1. Fetch all batches to check for timing overlaps
+                                // Fetch all batches to check for timing overlaps
                                 $allBatches = \App\Models\InternManagement\InternshipBatch::query()
                                     ->when($record, fn($q) => $q->where('id', '!=', $record->id))
+                                    ->where('is_archived', false)
                                     ->get();
 
                                 $currentOccupancy = 0;
-                                $totalCapacity = 50; // Flexible batch capacity
                                 foreach ($allBatches as $batch) {
                                     if (!$batch->batch_timing) continue;
                                     
@@ -97,8 +112,8 @@ class InternshipBatchResource extends Resource
                                     }
                                 }
 
-                                if (($currentOccupancy + $newCount) > $totalCapacity) {
-                                    $fail("Capacity Exceeded! The overlapping batches already have {$currentOccupancy} interns. Maximum capacity is {$totalCapacity}.");
+                                if (($currentOccupancy + $newCount) > $batchCapacity) {
+                                    $fail("Capacity Exceeded! The overlapping batches already occupy {$currentOccupancy} seats. This batch capacity is {$batchCapacity}.");
                                 }
                             };
                         },
