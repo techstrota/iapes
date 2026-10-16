@@ -46,6 +46,27 @@ class ViewIntern extends ViewRecord
                 ->color('primary')
                 ->url(fn (Intern $record): string => InternResource::getUrl('edit', ['record' => $record])),
 
+            Actions\Action::make('toggle_login_access')
+                ->label(fn (Intern $record): string => $record->is_login_enabled ? 'Disable Login' : 'Enable Login')
+                ->icon(fn (Intern $record): string => $record->is_login_enabled ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
+                ->color(fn (Intern $record): string => $record->is_login_enabled ? 'danger' : 'success')
+                ->tooltip(fn (Intern $record): string => $record->is_login_enabled ? 'Revoke intern dashboard login access' : 'Authorize intern to log in to dashboard')
+                ->requiresConfirmation()
+                ->modalHeading(fn (Intern $record): string => $record->is_login_enabled ? 'Disable Dashboard Login?' : 'Enable Dashboard Login?')
+                ->modalDescription(fn (Intern $record): string => $record->is_login_enabled 
+                    ? "Are you sure you want to disable dashboard login for {$record->name} ({$record->intern_code})? They will no longer be able to log in to the intern portal."
+                    : "Authorize {$record->name} ({$record->intern_code}) to log in to the intern dashboard?")
+                ->action(function (Intern $record): void {
+                    $newStatus = ! (bool) $record->is_login_enabled;
+                    $record->update(['is_login_enabled' => $newStatus]);
+
+                    Notification::make()
+                        ->title($newStatus ? 'Login Access Enabled' : 'Login Access Disabled')
+                        ->body("Portal login has been " . ($newStatus ? 'enabled' : 'disabled') . " for {$record->name}.")
+                        ->color($newStatus ? 'success' : 'warning')
+                        ->send();
+                }),
+
             Actions\Action::make('completion_certificate')
                 ->label('Completion Certificate')
                 ->icon('heroicon-o-academic-cap')

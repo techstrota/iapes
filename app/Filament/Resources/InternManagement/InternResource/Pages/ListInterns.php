@@ -113,6 +113,53 @@ class ListInterns extends Page
             ->send();
     }
 
+    public function toggleLoginAccess(int $internId): void
+    {
+        $intern = Intern::find($internId);
+        if (!$intern) {
+            return;
+        }
+
+        $newStatus = ! (bool) $intern->is_login_enabled;
+        $intern->update(['is_login_enabled' => $newStatus]);
+
+        Notification::make()
+            ->title($newStatus ? 'Login Access Enabled' : 'Login Access Disabled')
+            ->body("Dashboard login has been " . ($newStatus ? 'enabled' : 'disabled') . " for {$intern->name} ({$intern->intern_code}).")
+            ->color($newStatus ? 'success' : 'warning')
+            ->send();
+    }
+
+    public function bulkEnableLogin(): void
+    {
+        if (empty($this->selectedInterns)) {
+            return;
+        }
+
+        $count = Intern::whereIn('id', $this->selectedInterns)->update(['is_login_enabled' => true]);
+
+        Notification::make()
+            ->title('Login Access Enabled')
+            ->body("Dashboard login access has been enabled for {$count} selected interns.")
+            ->success()
+            ->send();
+    }
+
+    public function bulkDisableLogin(): void
+    {
+        if (empty($this->selectedInterns)) {
+            return;
+        }
+
+        $count = Intern::whereIn('id', $this->selectedInterns)->update(['is_login_enabled' => false]);
+
+        Notification::make()
+            ->title('Login Access Disabled')
+            ->body("Dashboard login access has been disabled for {$count} selected interns.")
+            ->warning()
+            ->send();
+    }
+
     public function openArchiveModal(): void
     {
         if (empty($this->selectedInterns)) {

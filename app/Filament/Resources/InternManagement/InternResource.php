@@ -80,8 +80,13 @@ class InternResource extends Resource
 
                                         Forms\Components\Toggle::make('is_active')
                                             ->label('Account Active Status')
-                                            ->helperText('Active interns appear in active rosters and can authenticate to the portal.')
+                                            ->helperText('Active interns appear in active rosters.')
                                             ->default(true),
+
+                                        Forms\Components\Toggle::make('is_login_enabled')
+                                            ->label('Authorize Dashboard Login')
+                                            ->helperText('Turn ON to allow this intern to log in to the Intern Portal dashboard.')
+                                            ->default(false),
                                     ]),
                                 ]),
                             ]),
@@ -278,12 +283,40 @@ class InternResource extends Resource
                         0 => 'Inactive Interns',
                     ])
                     ->label('Account Status'),
+
+                SelectFilter::make('is_login_enabled')
+                    ->options([
+                        1 => 'Login Enabled',
+                        0 => 'Login Disabled',
+                    ])
+                    ->label('Dashboard Login'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->color('info'),
 
                 Tables\Actions\EditAction::make(),
+
+                Tables\Actions\Action::make('toggle_login_access')
+                    ->label(fn (Intern $record): string => $record->is_login_enabled ? 'Disable Login' : 'Enable Login')
+                    ->icon(fn (Intern $record): string => $record->is_login_enabled ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
+                    ->color(fn (Intern $record): string => $record->is_login_enabled ? 'danger' : 'success')
+                    ->tooltip(fn (Intern $record): string => $record->is_login_enabled ? 'Revoke intern dashboard login access' : 'Authorize intern to log in to dashboard')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Intern $record): string => $record->is_login_enabled ? 'Disable Dashboard Login?' : 'Enable Dashboard Login?')
+                    ->modalDescription(fn (Intern $record): string => $record->is_login_enabled 
+                        ? "Are you sure you want to disable dashboard login for {$record->name} ({$record->intern_code})? They will no longer be able to log in to the intern portal."
+                        : "Authorize {$record->name} ({$record->intern_code}) to log in to the intern dashboard?")
+                    ->action(function (Intern $record): void {
+                        $newStatus = ! (bool) $record->is_login_enabled;
+                        $record->update(['is_login_enabled' => $newStatus]);
+
+                        Notification::make()
+                            ->title($newStatus ? 'Login Access Enabled' : 'Login Access Disabled')
+                            ->body("Dashboard login has been " . ($newStatus ? 'enabled' : 'disabled') . " for {$record->name}.")
+                            ->color($newStatus ? 'success' : 'warning')
+                            ->send();
+                    }),
 
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('completion_certificate')
@@ -719,6 +752,39 @@ class InternResource extends Resource
                             }
                             return response()->download($zipPath)->deleteFileAfterSend(true);
                         }),
+
+                    BulkAction::make('bulk_enable_login')
+                        ->label('Enable Dashboard Login')
+                        ->icon('heroicon-o-lock-open')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Authorize Dashboard Login')
+                        ->modalDescription('Are you sure you want to enable portal login access for all selected interns?')
+                        ->action(function ($records): void {
+                            $records->each->update(['is_login_enabled' => true]);
+                            Notification::make()
+                                ->title('Login Access Enabled')
+                                ->body('Dashboard login access has been enabled for the selected interns.')
+                                ->success()
+                                ->send();
+                        }),
+
+                    BulkAction::make('bulk_disable_login')
+                        ->label('Disable Dashboard Login')
+                        ->icon('heroicon-o-lock-closed')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Disable Dashboard Login')
+                        ->modalDescription('Are you sure you want to disable portal login access for all selected interns?')
+                        ->action(function ($records): void {
+                            $records->each->update(['is_login_enabled' => false]);
+                            Notification::make()
+                                ->title('Login Access Disabled')
+                                ->body('Dashboard login access has been disabled for the selected interns.')
+                                ->warning()
+                                ->send();
+                        }),
+
                     Tables\Actions\DeleteBulkAction::make(),
                 ])
                 ->label('Bulk Operations')

@@ -675,6 +675,7 @@ class OfferLetterResource extends Resource
                                     'completion_letter_template' => null,
                                     'cert_token'                 => null,
                                     'is_active'                  => true,
+                                    'is_login_enabled'           => false,
                                 ]);
 
                                 // ✉️ Send User ID & Password email automatically

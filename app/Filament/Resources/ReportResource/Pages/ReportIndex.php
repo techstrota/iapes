@@ -555,8 +555,11 @@ class ReportIndex extends Page
                     'domain' => 'Target Domain',
                     'duration' => 'Duration (Months/Weeks)',
                 ],
-                'Recruitment Status' => [
+                'Recruitment & Archival Status' => [
                     'status' => 'Application Status',
+                    'is_archived' => 'Archive State (Active / Archived)',
+                    'cohort_archive_name' => 'Cohort Archive Cycle',
+                    'archive_note' => 'Archive Note / Reason',
                     'skills' => 'Skills',
                     'interview_attendance' => 'Interview Attendance',
                     'interview_score' => 'Interview Overall Score',
@@ -798,12 +801,19 @@ class ReportIndex extends Page
     {
         $query = Application::whereNotIn('status', ['pending', 'verified']);
 
+        if (! $this->candidateIncludeArchived) {
+            $query->where('is_archived', false);
+        } elseif ($this->candidateArchiveCohort) {
+            $query->where('cohort_archive_name', $this->candidateArchiveCohort);
+        }
+
         if ($this->candidateSearch) {
             $s = trim($this->candidateSearch);
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                   ->orWhere('application_code', 'like', "%{$s}%")
-                  ->orWhere('email', 'like', "%{$s}%");
+                  ->orWhere('email', 'like', "%{$s}%")
+                  ->orWhere('college', 'like', "%{$s}%");
             });
         }
         if ($this->candidateStatus !== 'all') $query->where('status', $this->candidateStatus);
@@ -832,6 +842,9 @@ class ReportIndex extends Page
                         'domain' => $cand->domain,
                         'duration' => $cand->duration . ' ' . $cand->duration_unit,
                         'status' => ucfirst(str_replace('_', ' ', $cand->status)),
+                        'is_archived' => $cand->is_archived ? 'Archived' : 'Active',
+                        'cohort_archive_name' => $cand->cohort_archive_name ?? 'N/A',
+                        'archive_note' => $cand->archive_note ?? '',
                         'skills' => $cand->skills,
                         'interview_attendance' => $interview?->attendance ?? 'N/A',
                         'interview_score' => $interview?->overall_score ?? 'N/A',

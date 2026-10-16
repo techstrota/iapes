@@ -57,15 +57,32 @@
 <div
     style="background-color: #0b1326; border-radius: 16px; border: 1.5px solid #1c2638; box-shadow: 0 4px 16px rgba(0,0,0,0.25); padding: 18px; display: flex; flex-direction: column; gap: 14px; transition: all 0.2s ease; width: 100%; box-sizing: border-box;">
 
-    {{-- Top Row: Code (Left) | Status Pill (Right) --}}
+    {{-- Top Row: Code (Left) | Status & Login Pills (Right) --}}
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
         <span style="font-size: 15px; font-weight: 800; color: #ffffff; letter-spacing: -0.01em;">
             {{ $internCode }}
         </span>
 
-        <div style="background-color: {{ $statusInfo['bg'] }}; color: {{ $statusInfo['text'] }}; border: 1px solid {{ $statusInfo['border'] }}; font-size: 13px; font-weight: 600; padding: 3px 12px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 6px;">
-            <span style="width: 7px; height: 7px; border-radius: 50%; background-color: {{ $statusInfo['dot'] }};"></span>
-            {{ $statusInfo['label'] }}
+        <div style="display: flex; align-items: center; gap: 8px;">
+            {{-- Interactive Dashboard Login Toggle Button --}}
+            <button
+                type="button"
+                wire:click.stop="toggleLoginAccess({{ $record->id }})"
+                title="{{ $record->is_login_enabled ? 'Click to Disable Dashboard Login' : 'Click to Enable Dashboard Login' }}"
+                style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; border-radius: 9999px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: 1px solid {{ $record->is_login_enabled ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)' }}; background-color: {{ $record->is_login_enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)' }}; color: {{ $record->is_login_enabled ? '#34d399' : '#f87171' }}; outline: none;"
+                onmouseover="this.style.transform='scale(1.05)';"
+                onmouseout="this.style.transform='scale(1)';"
+            >
+                <span style="position: relative; display: inline-block; width: 26px; height: 15px; background-color: {{ $record->is_login_enabled ? '#10b981' : '#334155' }}; border-radius: 9999px; transition: all 0.2s ease; flex-shrink: 0;">
+                    <span style="position: absolute; top: 1.5px; left: {{ $record->is_login_enabled ? '12.5px' : '1.5px' }}; width: 12px; height: 12px; background-color: #ffffff; border-radius: 50%; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.4);"></span>
+                </span>
+                <span>{{ $record->is_login_enabled ? 'Login ON' : 'Login OFF' }}</span>
+            </button>
+
+            <div style="background-color: {{ $statusInfo['bg'] }}; color: {{ $statusInfo['text'] }}; border: 1px solid {{ $statusInfo['border'] }}; font-size: 13px; font-weight: 600; padding: 3px 12px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 6px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background-color: {{ $statusInfo['dot'] }};"></span>
+                {{ $statusInfo['label'] }}
+            </div>
         </div>
     </div>
 

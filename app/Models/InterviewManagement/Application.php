@@ -164,7 +164,9 @@ class Application extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('is_archived', false);
+        return $query->where(function ($q) {
+            $q->where('is_archived', false)->orWhereNull('is_archived');
+        });
     }
 
     public function scopeArchived($query)

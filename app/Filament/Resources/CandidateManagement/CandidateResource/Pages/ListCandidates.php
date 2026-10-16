@@ -29,6 +29,7 @@ class ListCandidates extends ListRecords
                 ->color('warning')
                 ->modalHeading('Archive Current Recruitment Cycle')
                 ->modalDescription('Archive candidate applications for this hiring round. Archived applications are preserved and can be viewed or restored at any time by selecting the cycle filter.')
+                ->modalWidth('xl')
                 ->form([
                     \Filament\Forms\Components\TextInput::make('cohort_archive_name')
                         ->label('Recruitment Cycle Name')
@@ -42,9 +43,35 @@ class ListCandidates extends ListRecords
                             'all_active' => 'All Active Candidates (Regardless of stage)',
                             'completed' => 'Completed Candidates (Only Shortlisted & Rejected)',
                             'shortlisted' => 'Only Shortlisted Candidates',
+                            'selected' => 'Select Specific Application(s) (Single or Multiple)',
                         ])
                         ->default('all_active')
+                        ->live()
                         ->required(),
+
+                    \Filament\Forms\Components\Select::make('selected_applications')
+                        ->label('Select Candidate Applications')
+                        ->placeholder('Search and choose candidate application(s)...')
+                        ->helperText('Select one single application entry or multiple applications to archive into this cycle.')
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->visible(fn (\Filament\Forms\Get $get) => $get('target_status') === 'selected')
+                        ->required(fn (\Filament\Forms\Get $get) => $get('target_status') === 'selected')
+                        ->options(function () {
+                            return \App\Models\InterviewManagement\Application::active()
+                                ->whereNotIn('status', ['pending', 'verified'])
+                                ->orderBy('name')
+                                ->get()
+                                ->mapWithKeys(function ($app) {
+                                    $code = $app->application_code ? "[{$app->application_code}] " : '';
+                                    $stage = ucfirst(str_replace('_', ' ', $app->status ?? 'applied'));
+                                    $domain = $app->domain ? " • {$app->domain}" : '';
+                                    return [$app->id => "{$code}{$app->name} ({$stage}{$domain})"];
+                                })
+                                ->toArray();
+                        }),
 
                     \Filament\Forms\Components\Textarea::make('archive_note')
                         ->label('Archive Note (Optional)')
@@ -63,6 +90,16 @@ class ListCandidates extends ListRecords
                         $query->whereIn('status', ['shortlisted', 'rejected']);
                     } elseif ($target === 'shortlisted') {
                         $query->where('status', 'shortlisted');
+                    } elseif ($target === 'selected') {
+                        $selectedIds = (array) ($data['selected_applications'] ?? []);
+                        if (empty($selectedIds)) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Please select at least one candidate application to archive')
+                                ->warning()
+                                ->send();
+                            return;
+                        }
+                        $query->whereIn('id', $selectedIds);
                     }
 
                     $count = $query->count();

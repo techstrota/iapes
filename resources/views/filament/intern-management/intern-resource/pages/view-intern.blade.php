@@ -166,6 +166,12 @@
                 {{ $record->is_active ? 'Account Active' : 'Archived / Inactive' }}
             </span>
 
+            {{-- Login Authorization Status --}}
+            <span style="font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 6px; {{ $record->is_login_enabled ? 'background: rgba(16, 185, 129, 0.15); color: #4edea3; border: 1px solid rgba(16, 185, 129, 0.3);' : 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);' }}">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background-color: {{ $record->is_login_enabled ? '#4edea3' : '#f87171' }};"></span>
+                {{ $record->is_login_enabled ? 'Dashboard Login: Authorized' : 'Dashboard Login: Disabled' }}
+            </span>
+
             {{-- Tenure Pill --}}
             <span style="font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; {{ $isTenurePast ? 'background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3);' : 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' }}">
                 {{ $isTenurePast ? 'Tenure Completed' : 'On-going Tenure' }}

@@ -61,11 +61,16 @@ class Login extends BaseLogin
                 
             $isExpired = $completionDate && $completionDate->isPast();
             $isInactive = !$intern->is_active;
+            $isLoginDisabled = ! (bool) $intern->is_login_enabled;
 
-            if ($isExpired || $isInactive) {
-                $message = $isExpired 
-                    ? 'Your internship period has ended. Access is no longer permitted.' 
-                    : 'Your account is currently inactive. Please contact HR.';
+            if ($isExpired || $isInactive || $isLoginDisabled) {
+                if ($isExpired) {
+                    $message = 'Your internship period has ended. Access is no longer permitted.';
+                } elseif ($isInactive) {
+                    $message = 'Your account is currently inactive. Please contact Admin.';
+                } else {
+                    $message = 'Your portal login access is currently disabled by administration. Please contact Admin or your coordinator to activate your access.';
+                }
 
                 // LOGOUT
                 auth('intern')->logout();
