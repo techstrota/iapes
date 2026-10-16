@@ -19,10 +19,15 @@ use Carbon\Carbon;
 class AttendanceResource extends Resource
 {
     protected static ?string $model = Attendance::class;
-    protected static ?string $navigationIcon = 'heroicon-o-check-badge';
-    protected static ?string $navigationLabel = 'My Attendance';
+    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
+    protected static ?string $navigationLabel = 'Attendance & Work Logbook';
     protected static ?string $navigationGroup = 'Work & Tasks';
     protected static ?int $navigationSort = 2;
+
+    public static function getPluralLabel(): ?string
+    {
+        return 'Attendance & Work Logbook';
+    }
 
     public static function canCreate(): bool 
     {

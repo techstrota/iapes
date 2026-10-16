@@ -17,9 +17,10 @@ class InternshipBatchStatsOverview extends BaseWidget
 
         $enrolledInterns = Intern::whereNotNull('internship_batch_id')->where('is_active', true)->count();
 
-        $totalCapacity = $activeBatches * 50;
+        $totalCapacity = (int) InternshipBatch::where('is_archived', false)->sum('capacity');
         $availableSeats = max(0, $totalCapacity - $enrolledInterns);
-        $capacityDisplay = $totalCapacity > 0 ? "{$availableSeats} / {$totalCapacity}" : "300 seats";
+        $occupancyPct = $totalCapacity > 0 ? round(($enrolledInterns / $totalCapacity) * 100) : 0;
+        $capacityDisplay = "{$availableSeats} / {$totalCapacity}";
 
         return [
             Stat::make('TOTAL BATCHES', $totalBatches)
@@ -38,9 +39,9 @@ class InternshipBatchStatsOverview extends BaseWidget
                 ->color('info'),
 
             Stat::make('AVAILABLE CAPACITY', $capacityDisplay)
-                ->description('Available / total seats')
+                ->description("{$occupancyPct}% occupied • {$availableSeats} seats left")
                 ->descriptionIcon('heroicon-m-chart-pie')
-                ->color('warning'),
+                ->color($availableSeats > 0 ? 'success' : 'danger'),
         ];
     }
 }

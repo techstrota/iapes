@@ -312,6 +312,28 @@ class ListAttendances extends Page
             ->send();
     }
 
+    public function markAllHoliday(?string $holidayName = 'Public Holiday'): void
+    {
+        $interns = Intern::where('is_active', true)->get();
+        foreach ($interns as $intern) {
+            Attendance::updateOrCreate(
+                [
+                    'intern_id' => $intern->id,
+                    'date' => $this->selectedDate,
+                ],
+                [
+                    'status' => 'holiday',
+                    'note' => $holidayName,
+                ]
+            );
+        }
+
+        Notification::make()
+            ->title('Marked ' . Carbon::parse($this->selectedDate)->format('d M Y') . ' as Holiday for all active interns')
+            ->success()
+            ->send();
+    }
+
     public function markBatchPresent(int $batchId): void
     {
         $query = Intern::where('is_active', true);
@@ -406,11 +428,14 @@ class ListAttendances extends Page
         $wfh = Attendance::where('date', $date)->where('status', 'wfh')->count();
         $leave = Attendance::where('date', $date)->where('status', 'leave')->count();
         $absent = Attendance::where('date', $date)->where('status', 'absent')->count();
-        $unmarked = max(0, $total - ($present + $wfh + $leave + $absent));
+        $holiday = Attendance::where('date', $date)->where('status', 'holiday')->count();
+        $unmarked = max(0, $total - ($present + $wfh + $leave + $absent + $holiday));
 
-        $marked = $present + $wfh + $leave + $absent;
-        $rate = $marked > 0 ? round((($present + $wfh) / $marked) * 100, 1) : 0.0;
+        $marked = $present + $wfh + $leave + $absent + $holiday;
+        $workingMarked = $present + $wfh + $leave + $absent;
+        $rate = $workingMarked > 0 ? round((($present + $wfh) / $workingMarked) * 100, 1) : 0.0;
         $isSunday = Carbon::parse($date)->isSunday();
+        $isHoliday = $holiday > 0;
 
         return [
             'total' => $total,
@@ -418,10 +443,12 @@ class ListAttendances extends Page
             'wfh' => $wfh,
             'leave' => $leave,
             'absent' => $absent,
+            'holiday' => $holiday,
             'unmarked' => $unmarked,
             'rate' => $rate,
             'isAnyMarked' => $marked > 0,
             'isSunday' => $isSunday,
+            'isHoliday' => $isHoliday,
             'isWeekOff' => $isSunday,
         ];
     }
