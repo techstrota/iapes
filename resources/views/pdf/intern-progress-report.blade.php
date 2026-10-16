@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ $report->title }} - Weekly Progress Report</title>
+<style>
+    @page {
+        margin: 68px 12mm 18mm 12mm;
+    }
+
+    body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 8.5px;
+        line-height: 1.25;
+        color: #000;
+        margin: 0;
+        padding: 0;
+        position: relative;
+        background: transparent;
+    }
+
+    /* ── Horizontal Blurred Watermark ── */
+    .watermark {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.1;
+        z-index: -1000;
+        width: 100%;
+        text-align: center;
+    }
+
+    .watermark img {
+        width: 600px;
+        height: auto;
+    }
+
+    /* ── Header (Same to same Offer Letter) ── */
+    header {
+        position: fixed;
+        top: -45px;
+        left: 0;
+        right: 0;
+        border-bottom: 2px solid #f39200;
+        padding-bottom: 10px;
+    }
+
+    .header-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .header-logo {
+        height: 50px;
+        width: auto;
+    }
+
+    .header-contact {
+        font-size: 11px;
+        font-weight: bold;
+        color: #000;
+        vertical-align: bottom;
+    }
+
+    /* ── Footer ── */
+    footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        text-align: center;
+        border-top: 2px solid #f39200;
+        padding-top: 5px;
+        color: #000;
+        background: transparent;
+    }
+
+    .footer-brand {
+        font-size: 11px;
+        font-weight: 800;
+        color: #000;
+        letter-spacing: 0.3px;
+    }
+
+    .footer-tagline {
+        font-size: 11px;
+        font-weight: 700;
+        font-style: italic;
+        color: #f39200;
+        margin-top: 2px;
+        letter-spacing: 0.4px;
+    }
+
+    .footer-services {
+        font-size: 10px;
+        font-weight: 600;
+        color: #334155;
+        letter-spacing: 0.8px;
+        margin-top: 2px;
+        text-transform: uppercase;
+    }
+
+    .system-remark {
+        font-size: 9px;
+        color: maroon;
+        font-style: italic;
+        margin-top: 2px;
+        display: block;
+        text-align: right;
+    }
+
+    /* ── Main Content Container ── */
+    .main-content {
+        position: relative;
+    }
+
+    /* ── Report Title Banner ── */
+    .report-header-box {
+        text-align: center;
+        margin-top: 40px;
+        margin-bottom: 5px;
+    }
+
+    .report-main-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #000;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        text-decoration: underline;
+    }
+
+    .report-sub-title {
+        font-size: 10px;
+        font-weight: bold;
+        color: #333;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+
+    /* ── Internship Details Box (Single Part / 1 Column List, No Background Color) ── */
+    .details-container {
+        padding: 5px 10px;
+        margin-bottom: 20px;
+        background: transparent;
+    }
+
+    .details-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .details-table td {
+        padding: 1.2px 0;
+        vertical-align: top;
+        color: #000;
+    }
+
+    .label {
+        font-weight: bold;
+        color: #000;
+        width: 25%;
+    }
+
+    .val {
+        color: #000;
+        width: 75%;
+    }
+
+    /* ── Section Title ── */
+    .section-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #000;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-top: 20px;
+        margin-bottom: 5px;
+    }
+
+    /* ── Simple Logbook Table (Clean, No Colors, Empty Sign Column) ── */
+    .log-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        margin-bottom: 20px;
+        background: transparent;
+    }
+
+    .log-table th {
+        background: transparent;
+        color: #000;
+        font-size: 14px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        padding: 3px 3px;
+        border: 1px solid #000;
+        text-align: center;
+    }
+
+    .log-table td {
+        padding: 2.5px 3px;
+        border: 1px solid #000;
+        vertical-align: middle;
+        font-size: 14px;
+        line-height: 1.15;
+        color: #000;
+        background: transparent;
+    }
+
+    /* ── Summary & Remarks Evaluation Boxes (Simple, No Colored Background) ── */
+    .eval-box {
+        background: transparent;
+        padding: 4px 8px;
+        margin-bottom: 20px;
+    }
+
+    .eval-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #000;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        margin-bottom: 4px;
+    }
+
+    .eval-content {
+        font-size: 14px;
+        color: #000;
+        line-height: 1.25;
+        white-space: pre-line;
+    }
+
+    /* ── Signature Section (Left Side Only) ── */
+    .signature-container {
+        margin-top: 70px;
+        text-align: left;
+    }
+
+    .mentor-name-row {
+        font-size: 14px;
+        color: #000;
+        margin-bottom: 14px;
+    }
+
+    .sig-table {
+        border-collapse: collapse;
+        border: none;
+        margin: 0;
+    }
+
+    .sig-table td {
+        border: none !important;
+        padding: 0;
+        vertical-align: bottom;
+        background: transparent !important;
+    }
+
+    .sig-label {
+        font-size: 14px;
+        font-weight: bold;
+        color: #000;
+        padding-right: 8px !important;
+        white-space: nowrap;
+    }
+
+    .sig-line-beside {
+        border-bottom: 1px solid #000 !important;
+        width: 220px;
+        height: 14px;
+    }
+
+    .page-break {
+        page-break-after: always;
+    }
+</style>
+</head>
+<body>
+
+@php
+    $logoSrc = $logoBase64 ?: (file_exists(public_path('images/TsLogo.png')) ? public_path('images/TsLogo.png') : null);
+    $watermarkSrc = $watermarkBase64 ?? (file_exists(public_path('images/TsLogo_watermark_blurred.png')) ? public_path('images/TsLogo_watermark_blurred.png') : $logoSrc);
+@endphp
+
+{{-- ── Background Watermark of Techstrota Logo (Blurred & Soft Faint) ── --}}
+@if ($watermarkSrc)
+    <div class="watermark">
+        <img src="{{ $watermarkSrc }}" alt="Techstrota Watermark">
+    </div>
+@endif
+
+{{-- ── Header (Same to same Offer Letter) ── --}}
+<header>
+    <table class="header-table">
+        <tr>
+            <td class="header-contact" style="text-align: left; font-size: 11px; font-weight: bold; vertical-align: bottom;">Email: info@techstrota.com</td>
+            <td style="text-align: center;">
+                @if ($logoSrc)
+                    <img src="{{ $logoSrc }}" class="header-logo" alt="Techstrota Logo">
+                @else
+                    <strong style="font-size: 16px; color: #f39200;">TECHSTROTA</strong>
+                @endif
+            </td>
+            <td class="header-contact" style="text-align: right; font-size: 11px; font-weight: bold; vertical-align: bottom;">Tel: +91 81288 40055</td>
+        </tr>
+    </table>
+</header>
+
+{{-- ── Footer ── --}}
+<footer>
+    <div class="footer-brand">
+        <span style="color: #000;">Techstrota</span> 
+        <span style="color: #f39200; margin: 0 4px;">|</span> 
+        <span style="color: #1e40af;">www.techstrota.com</span>
+    </div>
+    <div class="footer-tagline">
+        &ldquo;You think, we Build.&rdquo;
+    </div>
+    <div class="footer-services">
+        Websites &bull; Mobile Apps &bull; Software &bull; Digital Marketing
+    </div>
+    <span class="system-remark">This is a system-generated document.</span>
+</footer>
+
+{{-- ── Main Content: One Page Per Intern ── --}}
+<main class="main-content">
+@foreach ($reportInterns as $index => $repIntern)
+    @php
+        $intern = $repIntern->intern;
+        $dailyLogs = $repIntern->daily_logbooks;
+
+        // Intern metadata
+        $internName = $intern?->name ?: ($intern?->offerletter?->name ?? 'Intern');
+        $internCode = $intern?->intern_code ?: ('INT-' . str_pad($intern?->id ?? 0, 3, '0', STR_PAD_LEFT));
+        $collegeName = $intern?->college ?: ($intern?->university ?: ($intern?->offerletter?->college ?? 'N/A'));
+        $internshipDuration = $intern?->offerletter?->duration_label ?? ($intern?->batch?->duration ?? '3 Months');
+        $internshipType = $intern?->offerletter?->internship_role ?? 'On-site';
+        $departmentCourse = $intern?->degree ?: ($intern?->internship_role ?: ($intern?->domain ?: 'Information Technology'));
+
+        // Internship Period
+        if ($intern?->joining_date && $intern?->completion_date) {
+            $internshipPeriod = \Carbon\Carbon::parse($intern->joining_date)->format('d/m/Y') . ' to ' . \Carbon\Carbon::parse($intern->completion_date)->format('d/m/Y');
+        } elseif ($intern?->offerletter?->joining_date && $intern?->offerletter?->completion_date) {
+            $internshipPeriod = \Carbon\Carbon::parse($intern->offerletter->joining_date)->format('d/m/Y') . ' to ' . \Carbon\Carbon::parse($intern->offerletter->completion_date)->format('d/m/Y');
+        } else {
+            $internshipPeriod = $report->formatted_date_range;
+        }
+
+        // Date iteration across report duration
+        $weekStart = \Carbon\Carbon::parse($report->week_start_date);
+        $weekEnd   = \Carbon\Carbon::parse($report->week_end_date);
+
+        $internAttendances = \App\Models\Attendance::where('intern_id', $intern?->id)
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->get()
+            ->keyBy(fn ($a) => \Carbon\Carbon::parse($a->date)->toDateString());
+
+        $globalHolidays = \App\Models\Attendance::whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->where('status', 'holiday')
+            ->where(function ($q) use ($intern) {
+                $q->where('intern_id', $intern?->id)
+                  ->orWhereNull('intern_id');
+            })
+            ->get()
+            ->keyBy(fn ($a) => \Carbon\Carbon::parse($a->date)->toDateString());
+
+        $curr = $weekStart->copy();
+        $dates = [];
+        while ($curr->lte($weekEnd)) {
+            $dates[] = $curr->copy();
+            $curr->addDay();
+        }
+
+        // Resolve Batch & Scheduled Start/End Timing
+        $batch = $intern?->batch ?? $report->batch;
+        $batchStartTime = '11:00 AM';
+        $batchEndTime   = '04:00 PM';
+
+        if ($batch && filled($batch->batch_timing)) {
+            $timingParts = preg_split('/\s+(?:to|-)\s+/i', trim($batch->batch_timing));
+            if (count($timingParts) >= 2) {
+                try {
+                    $batchStartTime = \Carbon\Carbon::parse(trim($timingParts[0]))->format('g:i A');
+                    $batchEndTime   = \Carbon\Carbon::parse(trim($timingParts[1]))->format('g:i A');
+                } catch (\Throwable $e) {
+                    $batchStartTime = trim($timingParts[0]);
+                    $batchEndTime   = trim($timingParts[1]);
+                }
+            }
+        }
+    @endphp
+
+    <div>
+        {{-- ── 1. Report Title Section ── --}}
+        <div class="report-header-box">
+            <div class="report-main-title">{{ strtoupper($report->title) }}</div>
+            <div class="report-sub-title">WEEKLY INTERNSHIP PROGRESS EVALUATION REPORT &bull; EVALUATION PERIOD: {{ $report->formatted_date_range }}</div>
+        </div>
+
+        {{-- ── 2. Internship Details Box (Single Part / 1 Column List, No Background Color) ── --}}
+        <div class="details-container">
+            <table class="details-table">
+                <tr>
+                    <td class="label">1) Company Name:</td>
+                    <td class="val">Techstrota</td>
+                </tr>
+                <tr>
+                    <td class="label">2) Internship Duration:</td>
+                    <td class="val">{{ $internshipDuration }} (Working Days)</td>
+                </tr>
+                <tr>
+                    <td class="label">3) Internship Type:</td>
+                    <td class="val">{{ $internshipType }}</td>
+                </tr>
+                <tr>
+                    <td class="label">4) Intern's Name:</td>
+                    <td class="val"><strong>{{ strtoupper($internName) }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label">5) College Name:</td>
+                    <td class="val">{{ $collegeName }}</td>
+                </tr>
+                <tr>
+                    <td class="label">6) Internship ID:</td>
+                    <td class="val" style="font-weight: bold;">{{ $internCode }}</td>
+                </tr>
+                <tr>
+                    <td class="label">7) Department/ Course:</td>
+                    <td class="val">{{ $departmentCourse }}</td>
+                </tr>
+                <tr>
+                    <td class="label">8) Internship Period:</td>
+                    <td class="val">{{ $internshipPeriod }}</td>
+                </tr>
+            </table>
+        </div>
+
+        {{-- ── 3. Daily Logbook Entries Section (Simple Table, No Heavy Colors, Empty Sign Column) ── --}}
+        <div class="section-title">
+            Daily Logbook Entries
+        </div>
+
+        <table class="log-table">
+            <thead>
+                <tr>
+                    <th style="width: 7%;">Day</th>
+                    <th style="width: 11%;">Date</th>
+                    <th style="width: 44%;">Module/Topic</th>
+                    <th style="width: 14%;">Nature of Work</th>
+                    <th style="width: 8%;">Entry time</th>
+                    <th style="width: 8%;">Exit time</th>
+                    <th style="width: 8%;">Supervisor's sign</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($dates as $dayIdx => $d)
+                    @php
+                        $dStr = $d->toDateString();
+                        $att = $internAttendances->get($dStr);
+                        $hol = $globalHolidays->get($dStr);
+                        $log = $dailyLogs->first(fn ($l) => \Carbon\Carbon::parse($l->date)->toDateString() === $dStr);
+
+                        $status = 'unmarked';
+                        $holidayNote = null;
+                        if ($att) {
+                            $status = strtolower($att->status);
+                            $holidayNote = $att->note;
+                        } elseif ($hol) {
+                            $status = 'holiday';
+                            $holidayNote = $hol->note;
+                        } elseif ($d->isSunday()) {
+                            $status = 'week_off';
+                        }
+
+                        // Module / Topic
+                        $moduleTopic = '';
+                        if ($log) {
+                            $moduleTopic = $log->title ?: 'Tasks & Development';
+                            if (filled($log->tasks_completed)) {
+                                $cleanTasks = trim(strip_tags((string) $log->tasks_completed));
+                                $moduleTopic .= ': ' . \Illuminate\Support\Str::limit($cleanTasks, 75);
+                            }
+                        } else {
+                            if ($status === 'holiday') {
+                                $moduleTopic = 'Official Holiday' . ($holidayNote ? " ({$holidayNote})" : '');
+                            } elseif ($status === 'week_off') {
+                                $moduleTopic = 'Scheduled Sunday Week-Off';
+                            } elseif ($status === 'leave') {
+                                $moduleTopic = 'Intern on Approved Leave';
+                            } elseif ($status === 'absent') {
+                                $moduleTopic = 'Marked Absent — No log submitted';
+                            } else {
+                                $moduleTopic = 'No log entry submitted';
+                            }
+                        }
+
+                        // Nature of Work (Good, average, etc.)
+                        $natureOfWork = 'Good';
+                        if ($log && filled($log->supervisor_remarks)) {
+                            $natureOfWork = $log->supervisor_remarks;
+                        } elseif ($log) {
+                            $natureOfWork = 'Good';
+                        } elseif ($status === 'holiday') {
+                            $natureOfWork = 'Holiday';
+                        } elseif ($status === 'week_off') {
+                            $natureOfWork = 'Week-Off';
+                        } elseif ($status === 'leave') {
+                            $natureOfWork = 'Leave';
+                        } elseif ($status === 'absent') {
+                            $natureOfWork = 'Absent';
+                        } else {
+                            $natureOfWork = 'Pending';
+                        }
+
+                        // Entry & Exit Time fetched from Batch Schedule
+                        $isExplicitNonWorking = in_array($status, ['holiday', 'week_off', 'leave', 'absent']) && !$log;
+                        $entryTime = $isExplicitNonWorking ? '—' : $batchStartTime;
+                        $exitTime  = $isExplicitNonWorking ? '—' : $batchEndTime;
+                    @endphp
+                    <tr>
+                        <td style="text-align: center; font-weight: bold;">
+                            Day {{ $dayIdx + 1 }}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ $d->format('d/m/Y') }}
+                        </td>
+                        <td>
+                            {{ $moduleTopic }}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ $natureOfWork }}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ $entryTime }}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ $exitTime }}
+                        </td>
+                        {{-- Supervisor's sign cell remains empty as requested --}}
+                        <td style="text-align: center;">
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        {{-- ── 4. Summary of Work Done Section ── --}}
+        <div class="eval-box">
+            <div class="eval-title">Summary of work done</div>
+            <div class="eval-content">{{ $repIntern->weekly_summary ?: 'Weekly summary not provided.' }}</div>
+        </div>
+
+        {{-- ── 5. Mentor's Remarks Section ── --}}
+        <div class="eval-box">
+            <div class="eval-title">Mentor's remarks</div>
+            <div class="eval-content">{{ $repIntern->supervisor_remarks ?: 'Mentor remarks not recorded.' }}</div>
+        </div>
+
+        {{-- ── 6. Mentor Name and Signature Section (Signature Line Beside Text) ── --}}
+        <div class="signature-container">
+            <div class="mentor-name-row">
+                <strong>Mentor Name:</strong> {{ $repIntern->evaluator?->name ?? ($report->creator?->name ?? 'Badal Jamod') }}
+            </div>
+            <table class="sig-table">
+                <tr>
+                    <td class="sig-label">Signature:</td>
+                    <td class="sig-line-beside">________________________</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    @if (! $loop->last && ! ($isSingle ?? false))
+        <div class="page-break"></div>
+    @endif
+@endforeach
+</main>
+
+</body>
+</html>

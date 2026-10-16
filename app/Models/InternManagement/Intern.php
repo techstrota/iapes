@@ -379,4 +379,16 @@ class Intern extends Authenticatable implements FilamentUser
 
         return 'unmarked';
     }
+
+    public function progressReportInterns()
+    {
+        return $this->hasMany(\App\Models\ReportManagement\ProgressReportIntern::class, 'intern_id');
+    }
+
+    public function progressReports()
+    {
+        return $this->belongsToMany(\App\Models\ReportManagement\ProgressReport::class, 'progress_report_interns')
+            ->withPivot(['weekly_summary', 'supervisor_remarks', 'is_evaluated', 'evaluated_at', 'evaluated_by'])
+            ->withTimestamps();
+    }
 }
