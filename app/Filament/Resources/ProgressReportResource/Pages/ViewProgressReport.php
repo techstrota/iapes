@@ -27,9 +27,27 @@ class ViewProgressReport extends ViewRecord
     public string $statusFilter = 'all'; // 'all', 'evaluated', 'pending'
     public ?string $lastSavedAt = null;
 
+    // Dropdown / Collapsible Daily Tasks & Attendance Log Section
+    public bool $showDailyTasksSection = false; // By default displayed OFF
+
     // PDF Export Modal State
     public bool $showPdfModal = false;
     public string $pdfExportMode = 'single_pdf';
+
+    // Daily Timing, Task & Attendance Quick-Edit Modal State
+    public bool $showTimingModal = false;
+    public ?string $timingDate = null;
+    public ?string $timingDateFormatted = null;
+    public ?string $timingStatus = 'present';
+    public ?string $timingStartTime = null;
+    public ?string $timingEndTime = null;
+    public ?string $timingNote = null;
+    public ?int $timingLateMinutes = null;
+    public ?string $timingScheduledStart = null;
+    public ?string $timingScheduledEnd = null;
+    public ?string $timingTasksCompleted = null;
+    public ?string $timingSupervisorRemarks = null;
+    public ?float $timingHoursWorked = 8.0;
 
     public function mount(int | string $record): void
     {
@@ -43,15 +61,19 @@ class ViewProgressReport extends ViewRecord
 
     public function selectIntern(int $internId): void
     {
-        $this->selectedInternId = $internId;
-
         $repIntern = ProgressReportIntern::where('progress_report_id', $this->record->id)
             ->where('intern_id', $internId)
+            ->whereHas('intern', function ($q) {
+                $q->where('is_active', true)->whereNull('cohort_archive_name');
+            })
             ->first();
 
-        $this->weeklySummary = $repIntern?->weekly_summary ?? '';
-        $this->supervisorRemarks = $repIntern?->supervisor_remarks ?? '';
-        $this->lastSavedAt = $repIntern?->evaluated_at ? $repIntern->evaluated_at->format('d M Y, h:i A') : null;
+        if ($repIntern) {
+            $this->selectedInternId = $internId;
+            $this->weeklySummary = $repIntern->weekly_summary ?? '';
+            $this->supervisorRemarks = $repIntern->supervisor_remarks ?? '';
+            $this->lastSavedAt = $repIntern->evaluated_at ? $repIntern->evaluated_at->format('d M Y, h:i A') : null;
+        }
     }
 
     public function saveRemarks(): void
@@ -62,6 +84,9 @@ class ViewProgressReport extends ViewRecord
 
         $repIntern = ProgressReportIntern::where('progress_report_id', $this->record->id)
             ->where('intern_id', $this->selectedInternId)
+            ->whereHas('intern', function ($q) {
+                $q->where('is_active', true)->whereNull('cohort_archive_name');
+            })
             ->first();
 
         if ($repIntern) {
@@ -77,7 +102,7 @@ class ViewProgressReport extends ViewRecord
 
             $this->lastSavedAt = now()->format('d M Y, h:i A');
 
-            // Check if all interns are evaluated to update overall report status
+            // Check if all active interns are evaluated to update overall report status
             $pendingCount = $this->record->reportInterns()->where('is_evaluated', false)->count();
             if ($pendingCount === 0) {
                 $this->record->update(['status' => 'completed']);
@@ -140,8 +165,23 @@ class ViewProgressReport extends ViewRecord
             ->pluck('total', 'status')
             ->toArray();
 
+        $lateTotalMinutes = (int) Attendance::where('intern_id', $this->selectedInternId)
+            ->whereBetween('date', [
+                $this->record->week_start_date->toDateString(),
+                $this->record->week_end_date->toDateString()
+            ])
+            ->where('status', 'late')
+            ->sum('late_minutes');
+
         foreach ($attCounts as $st => $cnt) {
-            $attSummaryParts[] = ucfirst($st) . ": {$cnt}";
+            if ($st === 'late' && $lateTotalMinutes > 0) {
+                $hours = floor($lateTotalMinutes / 60);
+                $mins = $lateTotalMinutes % 60;
+                $durStr = ($hours > 0 ? "{$hours}h " : "") . "{$mins}m";
+                $attSummaryParts[] = "Late: {$cnt} ({$durStr} total delay)";
+            } else {
+                $attSummaryParts[] = ucfirst($st) . ": {$cnt}";
+            }
         }
 
         $attText = !empty($attSummaryParts) ? " | Attendance: " . implode(', ', $attSummaryParts) : "";
@@ -173,6 +213,186 @@ class ViewProgressReport extends ViewRecord
         $this->showPdfModal = false;
 
         return ProgressReportResource::processPdfDownload($this->record, $mode, $this->selectedInternId);
+    }
+
+    public function updatedShowDailyTasksSection($val): void
+    {
+        $this->showDailyTasksSection = filter_var($val, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function toggleDailyTasksSection(): void
+    {
+        $this->showDailyTasksSection = !$this->showDailyTasksSection;
+    }
+
+    public function openTimingModal(string $date): void
+    {
+        if (!$this->selectedInternId) {
+            return;
+        }
+
+        $this->timingDate = $date;
+        $this->timingDateFormatted = Carbon::parse($date)->format('D, d M Y');
+
+        $intern = Intern::with('batch')->find($this->selectedInternId);
+        $batch = $intern?->batch ?? $this->record->batch;
+        $schedStart = '11:00 AM';
+        $schedEnd = '04:00 PM';
+
+        if ($batch && filled($batch->batch_timing)) {
+            $parts = preg_split('/\s+(?:to|-)\s+/i', trim($batch->batch_timing));
+            if (count($parts) >= 2) {
+                try {
+                    $schedStart = Carbon::parse(trim($parts[0]))->format('g:i A');
+                    $schedEnd = Carbon::parse(trim($parts[1]))->format('g:i A');
+                } catch (\Throwable $e) {
+                    $schedStart = trim($parts[0]);
+                    $schedEnd = trim($parts[1]);
+                }
+            }
+        }
+
+        $this->timingScheduledStart = $schedStart;
+        $this->timingScheduledEnd = $schedEnd;
+
+        // 1. Load Attendance Record
+        $att = Attendance::where('intern_id', $this->selectedInternId)
+            ->whereDate('date', $date)
+            ->first();
+
+        if ($att) {
+            $this->timingStatus = $att->status ?: 'present';
+            $this->timingStartTime = $att->start_time ?: $schedStart;
+            $this->timingEndTime = $att->end_time ?: $schedEnd;
+            $this->timingNote = $att->note;
+            $this->timingLateMinutes = $att->late_minutes;
+        } else {
+            $this->timingStatus = 'present';
+            $this->timingStartTime = $schedStart;
+            $this->timingEndTime = $schedEnd;
+            $this->timingNote = null;
+            $this->timingLateMinutes = null;
+        }
+
+        // 2. Load DailyLogbook Record (Tasks, Deliverables & Supervisor Remarks)
+        $log = DailyLogbook::where('intern_id', $this->selectedInternId)
+            ->whereDate('date', $date)
+            ->first();
+
+        if ($log) {
+            $this->timingTasksCompleted = $log->tasks_completed;
+            $this->timingSupervisorRemarks = $log->supervisor_remarks;
+            $this->timingHoursWorked = (float) ($log->hours_worked ?? 8.0);
+        } else {
+            $this->timingTasksCompleted = '';
+            $this->timingSupervisorRemarks = '';
+            $this->timingHoursWorked = 8.0;
+        }
+
+        $this->calculateTimingDelay();
+        $this->showTimingModal = true;
+    }
+
+    public function updatedTimingStartTime(): void
+    {
+        $this->calculateTimingDelay();
+    }
+
+    public function setTimingStatus(string $status): void
+    {
+        $this->timingStatus = $status;
+        $this->calculateTimingDelay();
+    }
+
+    protected function calculateTimingDelay(): void
+    {
+        if ($this->timingStatus !== 'late') {
+            $this->timingLateMinutes = null;
+            return;
+        }
+
+        if (filled($this->timingStartTime) && filled($this->timingScheduledStart)) {
+            try {
+                $sched = Carbon::parse($this->timingScheduledStart);
+                $actual = Carbon::parse($this->timingStartTime);
+                $diff = $sched->diffInMinutes($actual, false);
+                $this->timingLateMinutes = $diff > 0 ? (int) $diff : 0;
+            } catch (\Throwable $e) {
+                $this->timingLateMinutes = null;
+            }
+        } else {
+            $this->timingLateMinutes = null;
+        }
+    }
+
+    public function closeTimingModal(): void
+    {
+        $this->showTimingModal = false;
+        $this->timingDate = null;
+        $this->timingTasksCompleted = null;
+        $this->timingSupervisorRemarks = null;
+        $this->timingHoursWorked = 8.0;
+    }
+
+    public function saveTiming(): void
+    {
+        if (!$this->selectedInternId || !$this->timingDate) {
+            return;
+        }
+
+        // 1. Save or Update Attendance Record (Directly reflected in Attendance Module)
+        $att = Attendance::firstOrNew([
+            'intern_id' => $this->selectedInternId,
+            'date'      => $this->timingDate,
+        ]);
+
+        $status = $this->timingStatus ?: 'present';
+        $att->status = $status;
+        $att->start_time = filled($this->timingStartTime) ? trim($this->timingStartTime) : null;
+        $att->end_time = filled($this->timingEndTime) ? trim($this->timingEndTime) : null;
+        $att->note = filled($this->timingNote) ? trim($this->timingNote) : null;
+
+        if ($status === 'late') {
+            $this->calculateTimingDelay();
+            $att->late_minutes = $this->timingLateMinutes ?? 0;
+        } else {
+            $att->late_minutes = null;
+        }
+
+        $att->save();
+
+        // 2. Save or Update DailyLogbook Record (Directly reflected in Intern Logbook Module)
+        $log = DailyLogbook::firstOrNew([
+            'intern_id' => $this->selectedInternId,
+            'date'      => $this->timingDate,
+        ]);
+
+        $hasTasks = filled(trim($this->timingTasksCompleted ?? ''));
+        $hasRemarks = filled(trim($this->timingSupervisorRemarks ?? ''));
+
+        if ($hasTasks || $hasRemarks) {
+            $log->tasks_completed = trim($this->timingTasksCompleted ?? '');
+            $log->supervisor_remarks = $hasRemarks ? trim($this->timingSupervisorRemarks) : null;
+            $log->hours_worked = filled($this->timingHoursWorked) ? (float) $this->timingHoursWorked : ($log->hours_worked ?? 8.0);
+
+            if (!$log->exists) {
+                $log->title = 'Daily Work Note';
+                $log->status = 'approved';
+            }
+            $log->save();
+        } elseif ($log->exists) {
+            $log->tasks_completed = '';
+            $log->supervisor_remarks = null;
+            $log->save();
+        }
+
+        $this->showTimingModal = false;
+
+        Notification::make()
+            ->title('Daily Record Synchronized')
+            ->body('Attendance, timings, tasks & deliverables, and supervisor remarks updated across Attendance & Daily Logbook modules for ' . Carbon::parse($this->timingDate)->format('d M Y') . '.')
+            ->success()
+            ->send();
     }
 
     protected function getHeaderActions(): array

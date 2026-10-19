@@ -250,22 +250,35 @@
         </div>
     </div>
 
-    {{-- Card Footer Actions: Edit Button & View Interns Button --}}
-    <div style="margin-top: 20px; display: flex; align-items: center; gap: 10px;">
+    {{-- Card Footer Actions: Edit Button, Email Button & View Interns Button --}}
+    <div style="margin-top: 20px; display: flex; align-items: center; gap: 8px;">
         <a
             href="{{ $editUrl }}"
-            style="display: inline-flex; align-items: center; gap: 7px; padding: 8px 15px; border-radius: 10px; font-size: 13px; font-weight: 600; background-color: #111a2c; color: #dae2fd; border: 1.5px solid #1f2c42; text-decoration: none; transition: all 0.15s ease; flex-shrink: 0;"
+            style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 10px; font-size: 12.5px; font-weight: 600; background-color: #111a2c; color: #dae2fd; border: 1.5px solid #1f2c42; text-decoration: none; transition: all 0.15s ease; flex-shrink: 0;"
             onmouseover="this.style.borderColor='#3b82f6'; this.style.color='#ffffff'; this.style.backgroundColor='#162238';"
             onmouseout="this.style.borderColor='#1f2c42'; this.style.color='#dae2fd'; this.style.backgroundColor='#111a2c';">
-            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
             <span>Edit</span>
         </a>
 
+        <button
+            type="button"
+            wire:click="openEmailModal({{ $record->id }})"
+            style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 700; background-color: rgba(30, 64, 175, 0.2); color: #93c5fd; border: 1.5px solid #2563eb; cursor: pointer; transition: all 0.15s ease; flex-shrink: 0;"
+            onmouseover="this.style.backgroundColor='#2563eb'; this.style.color='#ffffff'; this.style.borderColor='#3b82f6';"
+            onmouseout="this.style.backgroundColor='rgba(30, 64, 175, 0.2)'; this.style.color='#93c5fd'; this.style.borderColor='#2563eb';"
+            title="Send batch schedule & allocation email to interns">
+            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span>Email</span>
+        </button>
+
         <a
             href="{{ $internsFilterUrl }}"
-            style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; background-color: #152442; color: #93c5fd; border: 1.5px solid #204582; text-decoration: none; transition: all 0.15s ease;"
+            style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 700; background-color: #152442; color: #93c5fd; border: 1.5px solid #204582; text-decoration: none; transition: all 0.15s ease;"
             onmouseover="this.style.backgroundColor='#1d4ed8'; this.style.color='#ffffff'; this.style.borderColor='#3b82f6';"
             onmouseout="this.style.backgroundColor='#152442'; this.style.color='#93c5fd'; this.style.borderColor='#204582';">
             <span>View Interns</span>

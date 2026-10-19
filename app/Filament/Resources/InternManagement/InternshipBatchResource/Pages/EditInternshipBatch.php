@@ -20,7 +20,11 @@ class EditInternshipBatch extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->before(function (\App\Models\InternManagement\InternshipBatch $record) {
+                    $record->interns()->update(['internship_batch_id' => null]);
+                    $record->teams()->update(['internship_batch_id' => null]);
+                }),
         ];
     }
     protected function mutateFormDataBeforeSave(array $data): array
@@ -30,8 +34,21 @@ class EditInternshipBatch extends EditRecord
 
     protected function formatBatchTiming(array $data): array
     {
-        if (!empty($data['start_time']) && !empty($data['end_time'])) {
-            // Parse the times and format as 12-hour with AM/PM
+        if (!empty($data['start_hour']) && !empty($data['end_hour'])) {
+            $sH = $data['start_hour'];
+            $sM = $data['start_minute'] ?? '00';
+            $sA = $data['start_meridiem'] ?? 'AM';
+
+            $eH = $data['end_hour'];
+            $eM = $data['end_minute'] ?? '00';
+            $eA = $data['end_meridiem'] ?? 'PM';
+
+            $start = Carbon::parse("{$sH}:{$sM} {$sA}")->format('g:i A');
+            $end = Carbon::parse("{$eH}:{$eM} {$eA}")->format('g:i A');
+
+            $data['batch_timing'] = "{$start} To {$end}";
+        } elseif (!empty($data['start_time']) && !empty($data['end_time'])) {
+            // Fallback: Parse the times and format as 12-hour with AM/PM
             $start = Carbon::parse($data['start_time'])->format('g:i A');
             $end = Carbon::parse($data['end_time'])->format('g:i A');
 
@@ -53,18 +70,28 @@ class EditInternshipBatch extends EditRecord
         }
     }
 
-    // For Displaying batch timing when editing Intenship Batch
+    // For Displaying batch timing when editing Internship Batch
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Check if batch_timing exists and split it back into start and end times
+        // Check if batch_timing exists and split it back into split 12-hour components
         if (!empty($data['batch_timing'])) {
-            // Split the string using the same separator you use to save it
-            $times = explode(' To ', $data['batch_timing']);
+            $times = preg_split('/(\s+to\s+|\s*-\s*)/i', trim($data['batch_timing']));
             
             if (count($times) === 2) {
-                // Parse them back to a format the TimePicker understands (H:i)
-                $data['start_time'] = Carbon::parse($times[0])->format('H:i');
-                $data['end_time']   = Carbon::parse($times[1])->format('H:i');
+                try {
+                    $startCarbon = Carbon::parse($times[0]);
+                    $endCarbon   = Carbon::parse($times[1]);
+
+                    $data['start_hour']     = $startCarbon->format('h');
+                    $data['start_minute']   = $startCarbon->format('i');
+                    $data['start_meridiem'] = $startCarbon->format('A');
+
+                    $data['end_hour']       = $endCarbon->format('h');
+                    $data['end_minute']     = $endCarbon->format('i');
+                    $data['end_meridiem']   = $endCarbon->format('A');
+                } catch (\Exception $e) {
+                    // Fallback
+                }
             }
         }
 

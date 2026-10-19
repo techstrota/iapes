@@ -38,7 +38,12 @@ class ListAttendances extends Page
     public bool $showMarkModal = false;
     public ?int $markInternId = null; // null = roll-call all active interns, or specific intern id
     public string $markDate = '';
-    public string $markStatus = 'present'; // 'present', 'absent', 'wfh', 'leave'
+    public string $markStatus = 'present'; // 'present', 'absent', 'late', 'wfh', 'leave', 'holiday'
+    public ?string $markStartTime = null;
+    public ?string $markEndTime = null;
+    public ?int $markLateMinutes = null;
+    public ?string $scheduledStartTime = null;
+    public ?string $scheduledEndTime = null;
     public string $markNote = '';
 
     public function mount(): void
@@ -138,13 +143,109 @@ class ListAttendances extends Page
     }
 
     // Modal Control Methods
-    public function openMarkModal(?int $internId = null): void
+    public function openMarkModal(?int $internId = null, ?string $presetStatus = null, ?string $presetDate = null): void
     {
         $this->markInternId = $internId;
-        $this->markDate = $this->selectedDate;
-        $this->markStatus = 'present';
+        $this->markDate = $presetDate ?: $this->selectedDate;
         $this->markNote = '';
+        $this->markStartTime = null;
+        $this->markEndTime = null;
+        $this->markLateMinutes = null;
+
+        $this->resolveScheduledTimes($internId);
+
+        if ($internId) {
+            $existing = Attendance::where('intern_id', $internId)
+                ->where('date', $this->markDate)
+                ->first();
+
+            if ($existing) {
+                $this->markStatus = $presetStatus ?: $existing->status;
+                $this->markNote = $existing->note ?? '';
+                $this->markStartTime = $existing->start_time;
+                $this->markEndTime = $existing->end_time;
+                $this->markLateMinutes = $existing->late_minutes;
+            } else {
+                $this->markStatus = $presetStatus ?: 'present';
+            }
+        } else {
+            $this->markStatus = $presetStatus ?: 'present';
+        }
+
+        if ($this->markStatus === 'late') {
+            if (empty($this->markStartTime) && filled($this->scheduledStartTime)) {
+                $this->markStartTime = $this->scheduledStartTime;
+            }
+            if (empty($this->markEndTime) && filled($this->scheduledEndTime)) {
+                $this->markEndTime = $this->scheduledEndTime;
+            }
+            $this->calculateLateMinutes();
+        }
+
         $this->showMarkModal = true;
+    }
+
+    public function resolveScheduledTimes(?int $internId): void
+    {
+        $this->scheduledStartTime = null;
+        $this->scheduledEndTime = null;
+
+        if (!$internId) return;
+
+        $intern = Intern::with('batch')->find($internId);
+        $timing = $intern?->batch?->batch_timing;
+
+        if ($timing) {
+            $times = preg_split('/(\s+to\s+|\s*-\s*)/i', trim($timing));
+            if (count($times) === 2) {
+                try {
+                    $this->scheduledStartTime = Carbon::parse($times[0])->format('g:i A');
+                    $this->scheduledEndTime   = Carbon::parse($times[1])->format('g:i A');
+                } catch (\Throwable $e) {}
+            }
+        }
+    }
+
+    public function calculateLateMinutes(): void
+    {
+        if (empty($this->markStartTime)) {
+            $this->markLateMinutes = null;
+            return;
+        }
+
+        $baseScheduled = $this->scheduledStartTime ?: '9:00 AM';
+
+        try {
+            $scheduled = Carbon::parse($baseScheduled);
+            $actual = Carbon::parse($this->markStartTime);
+
+            if ($actual->gt($scheduled)) {
+                $this->markLateMinutes = (int) $scheduled->diffInMinutes($actual);
+            } else {
+                $this->markLateMinutes = 0;
+            }
+        } catch (\Throwable $e) {
+            $this->markLateMinutes = null;
+        }
+    }
+
+    public function updatedMarkStartTime(): void
+    {
+        $this->calculateLateMinutes();
+    }
+
+    public function updatedMarkInternId(): void
+    {
+        $this->resolveScheduledTimes($this->markInternId);
+        if ($this->markStatus === 'late') {
+            if (empty($this->markStartTime)) {
+                $this->markStartTime = $this->scheduledStartTime;
+            }
+            if (empty($this->markEndTime)) {
+                $this->markEndTime = $this->scheduledEndTime;
+            }
+            $this->calculateLateMinutes();
+        }
     }
 
     public function closeMarkModal(): void
@@ -155,6 +256,15 @@ class ListAttendances extends Page
     public function setMarkStatus(string $status): void
     {
         $this->markStatus = $status;
+        if ($status === 'late') {
+            if (empty($this->markStartTime) && filled($this->scheduledStartTime)) {
+                $this->markStartTime = $this->scheduledStartTime;
+            }
+            if (empty($this->markEndTime) && filled($this->scheduledEndTime)) {
+                $this->markEndTime = $this->scheduledEndTime;
+            }
+            $this->calculateLateMinutes();
+        }
     }
 
     public function submitMarkModal(): void
@@ -162,6 +272,10 @@ class ListAttendances extends Page
         $date = $this->markDate ?: $this->selectedDate;
         $status = $this->markStatus;
         $note = filled($this->markNote) ? trim($this->markNote) : null;
+
+        $startTime = ($status === 'late') ? $this->markStartTime : null;
+        $endTime = ($status === 'late') ? $this->markEndTime : null;
+        $lateMinutes = ($status === 'late') ? $this->markLateMinutes : null;
 
         if ($this->markInternId) {
             Attendance::updateOrCreate(
@@ -171,15 +285,21 @@ class ListAttendances extends Page
                 ],
                 [
                     'status' => $status,
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'late_minutes' => $lateMinutes,
                     'note' => $note,
                 ]
             );
 
             $intern = Intern::find($this->markInternId);
             $name = $intern?->name ?: ($intern?->intern_code ?? 'Intern');
+            $durText = ($status === 'late' && $lateMinutes > 0)
+                ? " (Late by " . floor($lateMinutes / 60) . "h " . ($lateMinutes % 60) . "m)"
+                : "";
 
             Notification::make()
-                ->title("Attendance marked as " . ucfirst($status) . " for {$name}")
+                ->title("Attendance marked as " . ucfirst($status) . " for {$name}{$durText}")
                 ->success()
                 ->send();
         } else {
@@ -193,6 +313,9 @@ class ListAttendances extends Page
                     ],
                     [
                         'status' => $status,
+                        'start_time' => $startTime,
+                        'end_time' => $endTime,
+                        'late_minutes' => $lateMinutes,
                         'note' => $note,
                     ]
                 );
@@ -210,6 +333,11 @@ class ListAttendances extends Page
     public function setAttendanceStatus(int $internId, string $status, ?string $date = null): void
     {
         $targetDate = $date ?: $this->selectedDate;
+
+        if ($status === 'late') {
+            $this->openMarkModal($internId, 'late', $targetDate);
+            return;
+        }
 
         Attendance::updateOrCreate(
             [
@@ -425,21 +553,23 @@ class ListAttendances extends Page
         $date = $this->selectedDate;
 
         $present = Attendance::where('date', $date)->where('status', 'present')->count();
+        $late = Attendance::where('date', $date)->where('status', 'late')->count();
         $wfh = Attendance::where('date', $date)->where('status', 'wfh')->count();
         $leave = Attendance::where('date', $date)->where('status', 'leave')->count();
         $absent = Attendance::where('date', $date)->where('status', 'absent')->count();
         $holiday = Attendance::where('date', $date)->where('status', 'holiday')->count();
-        $unmarked = max(0, $total - ($present + $wfh + $leave + $absent + $holiday));
+        $unmarked = max(0, $total - ($present + $late + $wfh + $leave + $absent + $holiday));
 
-        $marked = $present + $wfh + $leave + $absent + $holiday;
-        $workingMarked = $present + $wfh + $leave + $absent;
-        $rate = $workingMarked > 0 ? round((($present + $wfh) / $workingMarked) * 100, 1) : 0.0;
+        $marked = $present + $late + $wfh + $leave + $absent + $holiday;
+        $workingMarked = $present + $late + $wfh + $leave + $absent;
+        $rate = $workingMarked > 0 ? round((($present + $late + $wfh) / $workingMarked) * 100, 1) : 0.0;
         $isSunday = Carbon::parse($date)->isSunday();
         $isHoliday = $holiday > 0;
 
         return [
             'total' => $total,
             'present' => $present,
+            'late' => $late,
             'wfh' => $wfh,
             'leave' => $leave,
             'absent' => $absent,
@@ -487,11 +617,13 @@ class ListAttendances extends Page
             $d = $day['date'];
             $isSunday = $day['isSunday'] ?? false;
             $p = Attendance::where('date', $d)->where('status', 'present')->count();
+            $l_late = Attendance::where('date', $d)->where('status', 'late')->count();
             $w = Attendance::where('date', $d)->where('status', 'wfh')->count();
             $l = Attendance::where('date', $d)->where('status', 'leave')->count();
             $a = Attendance::where('date', $d)->where('status', 'absent')->count();
 
             $pPct = round(($p / $total) * 100);
+            $latePct = round(($l_late / $total) * 100);
             $wPct = round(($w / $total) * 100);
             $lPct = round(($l / $total) * 100);
             $aPct = round(($a / $total) * 100);
@@ -504,14 +636,16 @@ class ListAttendances extends Page
                 'isSunday' => $isSunday,
                 'isWeekOff' => $isSunday,
                 'present' => $p,
+                'late' => $l_late,
                 'wfh' => $w,
                 'leave' => $l,
                 'absent' => $a,
                 'pPct' => $pPct,
+                'latePct' => $latePct,
                 'wPct' => $wPct,
                 'lPct' => $lPct,
                 'aPct' => $aPct,
-                'totalPct' => min(100, $pPct + $wPct + $lPct + $aPct),
+                'totalPct' => min(100, $pPct + $latePct + $wPct + $lPct + $aPct),
             ];
         }
 
@@ -577,6 +711,7 @@ class ListAttendances extends Page
 
             $total = $interns->count();
             $presentToday = 0;
+            $lateToday = 0;
             $wfhToday = 0;
             $leaveToday = 0;
             $absentToday = 0;
@@ -588,6 +723,7 @@ class ListAttendances extends Page
                 $status = $attToday?->status ?? 'unmarked';
 
                 if ($status === 'present') $presentToday++;
+                elseif ($status === 'late') $lateToday++;
                 elseif ($status === 'wfh') $wfhToday++;
                 elseif ($status === 'leave') $leaveToday++;
                 elseif ($status === 'absent') $absentToday++;
@@ -599,9 +735,9 @@ class ListAttendances extends Page
                     $weekStatus[$wd['date']] = $att?->status ?? 'unmarked';
                 }
 
-                $allAtt = $intern->attendances->whereIn('status', ['present', 'wfh', 'leave', 'absent']);
+                $allAtt = $intern->attendances->whereIn('status', ['present', 'late', 'wfh', 'leave', 'absent']);
                 $tot = $allAtt->count();
-                $rate = $tot > 0 ? round(($allAtt->whereIn('status', ['present', 'wfh'])->count() / $tot) * 100, 1) : 0.0;
+                $rate = $tot > 0 ? round(($allAtt->whereIn('status', ['present', 'late', 'wfh'])->count() / $tot) * 100, 1) : 0.0;
 
                 $memberRows[] = [
                     'intern' => $intern,
@@ -611,13 +747,14 @@ class ListAttendances extends Page
                 ];
             }
 
-            $markedTotal = $presentToday + $wfhToday + $leaveToday + $absentToday;
-            $rate = $markedTotal > 0 ? round((($presentToday + $wfhToday) / $markedTotal) * 100, 1) : 0.0;
+            $markedTotal = $presentToday + $lateToday + $wfhToday + $leaveToday + $absentToday;
+            $rate = $markedTotal > 0 ? round((($presentToday + $lateToday + $wfhToday) / $markedTotal) * 100, 1) : 0.0;
 
             $batchData[] = [
                 'batch' => $batch,
                 'total' => $total,
                 'presentToday' => $presentToday,
+                'lateToday' => $lateToday,
                 'wfhToday' => $wfhToday,
                 'leaveToday' => $leaveToday,
                 'absentToday' => $absentToday,
@@ -636,6 +773,7 @@ class ListAttendances extends Page
         if ($unassignedInterns->count() > 0) {
             $total = $unassignedInterns->count();
             $presentToday = 0;
+            $lateToday = 0;
             $wfhToday = 0;
             $leaveToday = 0;
             $absentToday = 0;
@@ -646,6 +784,7 @@ class ListAttendances extends Page
                 $status = $attToday?->status ?? 'unmarked';
 
                 if ($status === 'present') $presentToday++;
+                elseif ($status === 'late') $lateToday++;
                 elseif ($status === 'wfh') $wfhToday++;
                 elseif ($status === 'leave') $leaveToday++;
                 elseif ($status === 'absent') $absentToday++;
@@ -656,9 +795,9 @@ class ListAttendances extends Page
                     $weekStatus[$wd['date']] = $att?->status ?? 'unmarked';
                 }
 
-                $allAtt = $intern->attendances->whereIn('status', ['present', 'wfh', 'leave', 'absent']);
+                $allAtt = $intern->attendances->whereIn('status', ['present', 'late', 'wfh', 'leave', 'absent']);
                 $tot = $allAtt->count();
-                $rate = $tot > 0 ? round(($allAtt->whereIn('status', ['present', 'wfh'])->count() / $tot) * 100, 1) : 0.0;
+                $rate = $tot > 0 ? round(($allAtt->whereIn('status', ['present', 'late', 'wfh'])->count() / $tot) * 100, 1) : 0.0;
 
                 $memberRows[] = [
                     'intern' => $intern,
@@ -668,8 +807,8 @@ class ListAttendances extends Page
                 ];
             }
 
-            $markedTotal = $presentToday + $wfhToday + $leaveToday + $absentToday;
-            $rate = $markedTotal > 0 ? round((($presentToday + $wfhToday) / $markedTotal) * 100, 1) : 0.0;
+            $markedTotal = $presentToday + $lateToday + $wfhToday + $leaveToday + $absentToday;
+            $rate = $markedTotal > 0 ? round((($presentToday + $lateToday + $wfhToday) / $markedTotal) * 100, 1) : 0.0;
 
             $dummyBatch = new InternshipBatch();
             $dummyBatch->id = 0;
@@ -681,6 +820,7 @@ class ListAttendances extends Page
                 'batch' => $dummyBatch,
                 'total' => $total,
                 'presentToday' => $presentToday,
+                'lateToday' => $lateToday,
                 'wfhToday' => $wfhToday,
                 'leaveToday' => $leaveToday,
                 'absentToday' => $absentToday,
@@ -708,6 +848,7 @@ class ListAttendances extends Page
 
             $total = $interns->count();
             $presentToday = 0;
+            $lateToday = 0;
             $wfhToday = 0;
             $leaveToday = 0;
             $absentToday = 0;
@@ -719,6 +860,7 @@ class ListAttendances extends Page
                 $status = $attToday?->status ?? 'unmarked';
 
                 if ($status === 'present') $presentToday++;
+                elseif ($status === 'late') $lateToday++;
                 elseif ($status === 'wfh') $wfhToday++;
                 elseif ($status === 'leave') $leaveToday++;
                 elseif ($status === 'absent') $absentToday++;
@@ -730,9 +872,9 @@ class ListAttendances extends Page
                     $weekStatus[$wd['date']] = $att?->status ?? 'unmarked';
                 }
 
-                $allAtt = $intern->attendances->whereIn('status', ['present', 'wfh', 'leave', 'absent']);
+                $allAtt = $intern->attendances->whereIn('status', ['present', 'late', 'wfh', 'leave', 'absent']);
                 $tot = $allAtt->count();
-                $rate = $tot > 0 ? round(($allAtt->whereIn('status', ['present', 'wfh'])->count() / $tot) * 100, 1) : 0.0;
+                $rate = $tot > 0 ? round(($allAtt->whereIn('status', ['present', 'late', 'wfh'])->count() / $tot) * 100, 1) : 0.0;
 
                 $memberRows[] = [
                     'intern' => $intern,
@@ -742,13 +884,14 @@ class ListAttendances extends Page
                 ];
             }
 
-            $markedTotal = $presentToday + $wfhToday + $leaveToday + $absentToday;
-            $rate = $markedTotal > 0 ? round((($presentToday + $wfhToday) / $markedTotal) * 100, 1) : 0.0;
+            $markedTotal = $presentToday + $lateToday + $wfhToday + $leaveToday + $absentToday;
+            $rate = $markedTotal > 0 ? round((($presentToday + $lateToday + $wfhToday) / $markedTotal) * 100, 1) : 0.0;
 
             $groupData[] = [
                 'team' => $team,
                 'total' => $total,
                 'presentToday' => $presentToday,
+                'lateToday' => $lateToday,
                 'wfhToday' => $wfhToday,
                 'leaveToday' => $leaveToday,
                 'absentToday' => $absentToday,
@@ -767,6 +910,7 @@ class ListAttendances extends Page
         if ($unassignedTeamInterns->count() > 0) {
             $total = $unassignedTeamInterns->count();
             $presentToday = 0;
+            $lateToday = 0;
             $wfhToday = 0;
             $leaveToday = 0;
             $absentToday = 0;
@@ -777,6 +921,7 @@ class ListAttendances extends Page
                 $status = $attToday?->status ?? 'unmarked';
 
                 if ($status === 'present') $presentToday++;
+                elseif ($status === 'late') $lateToday++;
                 elseif ($status === 'wfh') $wfhToday++;
                 elseif ($status === 'leave') $leaveToday++;
                 elseif ($status === 'absent') $absentToday++;
@@ -787,9 +932,9 @@ class ListAttendances extends Page
                     $weekStatus[$wd['date']] = $att?->status ?? 'unmarked';
                 }
 
-                $allAtt = $intern->attendances->whereIn('status', ['present', 'wfh', 'leave', 'absent']);
+                $allAtt = $intern->attendances->whereIn('status', ['present', 'late', 'wfh', 'leave', 'absent']);
                 $tot = $allAtt->count();
-                $rate = $tot > 0 ? round(($allAtt->whereIn('status', ['present', 'wfh'])->count() / $tot) * 100, 1) : 0.0;
+                $rate = $tot > 0 ? round(($allAtt->whereIn('status', ['present', 'late', 'wfh'])->count() / $tot) * 100, 1) : 0.0;
 
                 $memberRows[] = [
                     'intern' => $intern,
@@ -799,8 +944,8 @@ class ListAttendances extends Page
                 ];
             }
 
-            $markedTotal = $presentToday + $wfhToday + $leaveToday + $absentToday;
-            $rate = $markedTotal > 0 ? round((($presentToday + $wfhToday) / $markedTotal) * 100, 1) : 0.0;
+            $markedTotal = $presentToday + $lateToday + $wfhToday + $leaveToday + $absentToday;
+            $rate = $markedTotal > 0 ? round((($presentToday + $lateToday + $wfhToday) / $markedTotal) * 100, 1) : 0.0;
 
             $dummyTeam = new InternTeam();
             $dummyTeam->id = 0;
@@ -813,6 +958,7 @@ class ListAttendances extends Page
                 'team' => $dummyTeam,
                 'total' => $total,
                 'presentToday' => $presentToday,
+                'lateToday' => $lateToday,
                 'wfhToday' => $wfhToday,
                 'leaveToday' => $leaveToday,
                 'absentToday' => $absentToday,
@@ -882,23 +1028,27 @@ class ListAttendances extends Page
         // Stats for selected intern
         $internStats = [
             'present' => 0,
+            'late' => 0,
             'wfh' => 0,
             'leave' => 0,
             'absent' => 0,
             'compliance' => 0.0,
             'totalMarked' => 0,
+            'totalLateMinutes' => 0,
         ];
 
         if ($selectedIntern) {
             $allAtt = $selectedIntern->attendances;
             $internStats['present'] = $allAtt->where('status', 'present')->count();
+            $internStats['late'] = $allAtt->where('status', 'late')->count();
             $internStats['wfh'] = $allAtt->where('status', 'wfh')->count();
             $internStats['leave'] = $allAtt->where('status', 'leave')->count();
             $internStats['absent'] = $allAtt->where('status', 'absent')->count();
-            $totalMarked = $internStats['present'] + $internStats['wfh'] + $internStats['leave'] + $internStats['absent'];
+            $internStats['totalLateMinutes'] = (int) $allAtt->where('status', 'late')->sum('late_minutes');
+            $totalMarked = $internStats['present'] + $internStats['late'] + $internStats['wfh'] + $internStats['leave'] + $internStats['absent'];
             $internStats['totalMarked'] = $totalMarked;
             $internStats['compliance'] = $totalMarked > 0
-                ? round((($internStats['present'] + $internStats['wfh']) / $totalMarked) * 100, 1)
+                ? round((($internStats['present'] + $internStats['late'] + $internStats['wfh']) / $totalMarked) * 100, 1)
                 : 0.0;
         }
 

@@ -283,7 +283,7 @@
 <body>
 
 @php
-    $logoSrc = $logoBase64 ?: (file_exists(public_path('images/TsLogo.png')) ? public_path('images/TsLogo.png') : null);
+    $logoSrc = ($logoBase64 ?? null) ?: (file_exists(public_path('images/TsLogo.png')) ? public_path('images/TsLogo.png') : null);
     $watermarkSrc = $watermarkBase64 ?? (file_exists(public_path('images/TsLogo_watermark_blurred.png')) ? public_path('images/TsLogo_watermark_blurred.png') : $logoSrc);
 @endphp
 
@@ -341,6 +341,12 @@
         $internshipDuration = $intern?->offerletter?->duration_label ?? ($intern?->batch?->duration ?? '3 Months');
         $internshipType = $intern?->offerletter?->internship_role ?? 'On-site';
         $departmentCourse = $intern?->degree ?: ($intern?->internship_role ?: ($intern?->domain ?: 'Information Technology'));
+
+        // Mentor name fetched from Project Team (intern_team table mentor_name field)
+        $mentorName = $intern?->team?->mentor_name
+            ?: ($report->team?->mentor_name
+            ?: ($repIntern->evaluator?->name
+            ?: ($report->creator?->name ?: 'Badal Jamod')));
 
         // Internship Period
         if ($intern?->joining_date && $intern?->completion_date) {
@@ -485,6 +491,11 @@
                                 $cleanTasks = trim(strip_tags((string) $log->tasks_completed));
                                 $moduleTopic .= ': ' . \Illuminate\Support\Str::limit($cleanTasks, 75);
                             }
+                            if ($status === 'late') {
+                                $dur = ($att && $att->late_minutes > 0) ? " (Late by {$att->formatted_late_duration})" : '';
+                                $rem = ($att && $att->note) ? " — {$att->note}" : '';
+                                $moduleTopic .= " • [Late Arrival{$dur}{$rem}]";
+                            }
                         } else {
                             if ($status === 'holiday') {
                                 $moduleTopic = 'Official Holiday' . ($holidayNote ? " ({$holidayNote})" : '');
@@ -494,6 +505,9 @@
                                 $moduleTopic = 'Intern on Approved Leave';
                             } elseif ($status === 'absent') {
                                 $moduleTopic = 'Marked Absent — No log submitted';
+                            } elseif ($status === 'late') {
+                                $dur = ($att && $att->late_minutes > 0) ? " (Late by {$att->formatted_late_duration})" : '';
+                                $moduleTopic = 'Late Arrival' . $dur . ($att?->note ? " — {$att->note}" : '');
                             } else {
                                 $moduleTopic = 'No log entry submitted';
                             }
@@ -503,6 +517,8 @@
                         $natureOfWork = 'Good';
                         if ($log && filled($log->supervisor_remarks)) {
                             $natureOfWork = $log->supervisor_remarks;
+                        } elseif ($status === 'late') {
+                            $natureOfWork = 'Late' . (($att && $att->late_minutes > 0) ? ' (' . $att->formatted_late_duration . ')' : '');
                         } elseif ($log) {
                             $natureOfWork = 'Good';
                         } elseif ($status === 'holiday') {
@@ -517,10 +533,15 @@
                             $natureOfWork = 'Pending';
                         }
 
-                        // Entry & Exit Time fetched from Batch Schedule
+                        // Entry & Exit Time fetched from Attendance (if recorded) or Batch Schedule
                         $isExplicitNonWorking = in_array($status, ['holiday', 'week_off', 'leave', 'absent']) && !$log;
-                        $entryTime = $isExplicitNonWorking ? '—' : $batchStartTime;
-                        $exitTime  = $isExplicitNonWorking ? '—' : $batchEndTime;
+                        if ($isExplicitNonWorking) {
+                            $entryTime = '—';
+                            $exitTime  = '—';
+                        } else {
+                            $entryTime = ($att && filled($att->start_time)) ? $att->start_time : $batchStartTime;
+                            $exitTime  = ($att && filled($att->end_time)) ? $att->end_time : $batchEndTime;
+                        }
                     @endphp
                     <tr>
                         <td style="text-align: center; font-weight: bold;">
@@ -564,7 +585,7 @@
         {{-- ── 6. Mentor Name and Signature Section (Signature Line Beside Text) ── --}}
         <div class="signature-container">
             <div class="mentor-name-row">
-                <strong>Mentor Name:</strong> {{ $repIntern->evaluator?->name ?? ($report->creator?->name ?? 'Badal Jamod') }}
+                <strong>Mentor Name:</strong> {{ $mentorName }}
             </div>
             <table class="sig-table">
                 <tr>

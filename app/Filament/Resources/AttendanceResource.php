@@ -43,8 +43,30 @@ class AttendanceResource extends Resource
                         'leave' => 'Leave',
                         'holiday' => 'Holiday',
                     ])
+                    ->live()
                     ->required(),
-                Forms\Components\TextInput::make('note'),
+
+                Forms\Components\Grid::make(3)
+                    ->visible(fn (Forms\Get $get) => $get('status') === 'late')
+                    ->schema([
+                        Forms\Components\TextInput::make('start_time')
+                            ->label('Arrival Time (In-Time)')
+                            ->placeholder('e.g. 10:15 AM')
+                            ->required(fn (Forms\Get $get) => $get('status') === 'late'),
+
+                        Forms\Components\TextInput::make('end_time')
+                            ->label('Departure Time (Out-Time)')
+                            ->placeholder('e.g. 01:30 PM'),
+
+                        Forms\Components\TextInput::make('late_minutes')
+                            ->label('Late Duration (Minutes)')
+                            ->numeric()
+                            ->suffix('mins')
+                            ->placeholder('e.g. 75'),
+                    ]),
+
+                Forms\Components\TextInput::make('note')
+                    ->placeholder('Reason for late arrival or notes...'),
             ]);
     }
 
@@ -79,6 +101,22 @@ class AttendanceResource extends Resource
                         // Optional: add logic here if needed
                         $record->update(['status' => $state])
                     ),
+
+                TextColumn::make('start_time')
+                    ->label('Arrival / Late Duration')
+                    ->getStateUsing(function ($record) {
+                        if ($record->status === 'late') {
+                            $dur = $record->formatted_late_duration;
+                            $time = $record->start_time;
+                            if ($time && $dur) return "{$time} (Late by {$dur})";
+                            if ($time) return "{$time} (Late)";
+                            if ($dur) return "Late by {$dur}";
+                            return 'Late';
+                        }
+                        return '—';
+                    })
+                    ->badge()
+                    ->color(fn ($state) => $state !== '—' ? 'warning' : 'gray'),
 
                 TextColumn::make('note')
                     ->limit(20)

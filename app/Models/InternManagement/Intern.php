@@ -133,7 +133,7 @@ class Intern extends Authenticatable implements FilamentUser
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('is_active', true)->whereNull('cohort_archive_name');
     }
 
     public function scopeArchived($query)
@@ -167,6 +167,9 @@ class Intern extends Authenticatable implements FilamentUser
         }
 
         $this->save();
+
+        // Clean up any progress report enrollments for this archived intern
+        $this->progressReportInterns()->delete();
 
         // Also update related project team if this intern belongs to one
         if ($this->intern_team_id && $this->team) {

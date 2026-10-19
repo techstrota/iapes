@@ -17,6 +17,28 @@
             .status-radio-card { transition: all 0.15s ease; cursor: pointer; }
             .status-radio-card:hover { transform: translateY(-1px); }
 
+            /* Custom sleek scrollbar for modal dialog body */
+            .modal-scrollable-body {
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: #2b354f #131b2e;
+                overscroll-behavior: contain;
+            }
+            .modal-scrollable-body::-webkit-scrollbar {
+                width: 6px;
+            }
+            .modal-scrollable-body::-webkit-scrollbar-track {
+                background: #131b2e;
+                border-radius: 4px;
+            }
+            .modal-scrollable-body::-webkit-scrollbar-thumb {
+                background-color: #2b354f;
+                border-radius: 9999px;
+            }
+            .modal-scrollable-body::-webkit-scrollbar-thumb:hover {
+                background-color: #3b82f6;
+            }
+
             @media (max-width: 1024px) {
                 .grid-kpi-row { grid-template-columns: 1fr !important; }
                 .muster-top-grid { grid-template-columns: 1fr !important; }
@@ -174,12 +196,15 @@
                         @php
                             $isBarSelected = ($bar['isSelected'] ?? false);
                             $isSun = ($bar['isSunday'] ?? false) || ($bar['isWeekOff'] ?? false);
-                            $hasAttendance = ($bar['present'] + $bar['wfh'] + $bar['leave'] + $bar['absent']) > 0;
+                            $hasAttendance = ($bar['present'] + ($bar['late'] ?? 0) + $bar['wfh'] + $bar['leave'] + $bar['absent']) > 0;
                         @endphp
                         <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px;">
                             <div style="width: 100%; max-width: 40px; height: 100%; background-color: {{ $isBarSelected ? 'rgba(30, 64, 175, 0.25)' : ($isSun ? '#0c1222' : '#171f33') }}; border-radius: 6px 6px 0 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; {{ $isBarSelected ? 'outline: 2.5px solid #3b82f6; outline-offset: 1px; box-shadow: 0 2px 6px rgba(59,130,246,0.3);' : ($bar['isToday'] ? 'outline: 1.5px solid #222a3d; outline-offset: 1px;' : '') }} {{ $isSun && !$hasAttendance ? 'border: 1px dashed rgba(99, 102, 241, 0.35);' : '' }}">
                                 @if ($bar['present'] > 0)
                                     <div style="background-color: #10B981; width: 100%; height: {{ $bar['pPct'] }}%;" title="{{ $bar['present'] }} Present"></div>
+                                @endif
+                                @if (($bar['late'] ?? 0) > 0)
+                                    <div style="background-color: #F59E0B; width: 100%; height: {{ $bar['latePct'] ?? 0 }}%;" title="{{ $bar['late'] }} Late Arrival"></div>
                                 @endif
                                 @if ($bar['wfh'] > 0)
                                     <div style="background-color: #0284C7; width: 100%; height: {{ $bar['wfh'] }}%;" title="{{ $bar['wfh'] }} WFH"></div>
@@ -208,6 +233,10 @@
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <span style="width: 9px; height: 9px; border-radius: 2px; background-color: #10B981;"></span>
                         <span style="color: #8e909f; font-weight: 500;">Present (Office)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="width: 9px; height: 9px; border-radius: 2px; background-color: #F59E0B;"></span>
+                        <span style="color: #8e909f; font-weight: 500;">Late Arrival</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <span style="width: 9px; height: 9px; border-radius: 2px; background-color: #0284C7;"></span>
@@ -397,7 +426,7 @@
                 {{-- Status Pills Row & Roll-Call All in Muster Tab --}}
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid #222a3d; padding-top: 8px;">
                     <div style="display: flex; align-items: center; gap: 4px; overflow-x: auto;">
-                        @foreach (['all' => 'All Interns', 'present' => 'Present', 'wfh' => 'WFH', 'absent' => 'Absent', 'leave' => 'Leave', 'holiday' => 'Holiday', 'unmarked' => 'Unmarked'] as $val => $label)
+                        @foreach (['all' => 'All Interns', 'present' => 'Present', 'late' => 'Late', 'wfh' => 'WFH', 'absent' => 'Absent', 'leave' => 'Leave', 'holiday' => 'Holiday', 'unmarked' => 'Unmarked'] as $val => $label)
                             <button
                                 type="button"
                                 wire:click="$set('statusFilter', '{{ $val }}')"
@@ -518,12 +547,13 @@
                                     $rawProject = $intern->project_name ?? $intern->team?->team_name;
                                     $projectDisplay = filled($rawProject) ? $rawProject : 'Project not assigned';
 
-                                    $allAtt = $intern->attendances->whereIn('status', ['present', 'wfh', 'leave', 'absent']);
+                                    $allAtt = $intern->attendances->whereIn('status', ['present', 'late', 'wfh', 'leave', 'absent']);
                                     $totMarked = $allAtt->count();
                                     $presentCount = $allAtt->where('status', 'present')->count();
+                                    $lateCount = $allAtt->where('status', 'late')->count();
                                     $wfhCount = $allAtt->where('status', 'wfh')->count();
                                     $absentCount = $allAtt->where('status', 'absent')->count();
-                                    $rate = $totMarked > 0 ? round((($presentCount + $wfhCount) / $totMarked) * 100, 1) : 0.0;
+                                    $rate = $totMarked > 0 ? round((($presentCount + $lateCount + $wfhCount) / $totMarked) * 100, 1) : 0.0;
 
                                     $words = explode(' ', trim($displayName));
                                     $initials = strtoupper(substr($words[0] ?? 'I', 0, 1) . substr($words[1] ?? '', 0, 1));
@@ -589,6 +619,14 @@
                                                     style="width: 26px; height: 26px; border-radius: 6px; background-color: #10B981; color: #FFFFFF; font-weight: 800; font-size: 11px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
                                                     P
                                                 </button>
+                                            @elseif ($st === 'late')
+                                                <button
+                                                    type="button"
+                                                    wire:click="openMarkModal({{ $intern->id }})"
+                                                    title="Late arrival{{ $dayAtt?->start_time ? ' (In: ' . $dayAtt->start_time . ')' : '' }}{{ $dayAtt?->late_minutes > 0 ? ' · Late by ' . $dayAtt->formatted_late_duration : '' }} (Click to edit timing)"
+                                                    style="width: 26px; height: 26px; border-radius: 6px; background-color: #F59E0B; color: #FFFFFF; font-weight: 800; font-size: 11px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);">
+                                                    L
+                                                </button>
                                             @elseif ($st === 'wfh')
                                                 <button
                                                     type="button"
@@ -635,7 +673,7 @@
 
                                     {{-- P / Tot --}}
                                     <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: #4edea3;">
-                                        {{ $presentCount }}/{{ $totMarked }}
+                                        {{ $presentCount + $lateCount }}/{{ $totMarked }}
                                     </td>
 
                                     {{-- Absent --}}
@@ -666,6 +704,15 @@
                                                 title="Mark Present"
                                                 style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'present' ? 'background-color: #10B981; color: #FFF;' : 'background-color: #171f33; color: #4edea3;' }}">
                                                 P
+                                            </button>
+
+                                            {{-- Late Button (Opens Detailed Timing Modal) --}}
+                                            <button
+                                                type="button"
+                                                wire:click="setAttendanceStatus({{ $intern->id }}, 'late')"
+                                                title="Mark Late (Set In/Out Time & Delay)"
+                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'late' ? 'background-color: #F59E0B; color: #FFF;' : 'background-color: #171f33; color: #fbbf24;' }}">
+                                                LT
                                             </button>
 
                                             {{-- Absent Button --}}
@@ -947,6 +994,8 @@
                                                         <span title="Sunday - Scheduled Week-Off" style="display: inline-block; width: 22px; height: 22px; line-height: 20px; border-radius: 4px; background-color: #0f172a; border: 1px solid rgba(99, 102, 241, 0.3); color: #a5b4fc; font-size: 8px; font-weight: 800;">OFF</span>
                                                     @elseif ($daySt === 'present')
                                                         <span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 4px; background-color: #10B981; color: #FFF; font-weight: 800; font-size: 10px;">P</span>
+                                                    @elseif ($daySt === 'late')
+                                                        <span title="Late" style="display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 4px; background-color: #F59E0B; color: #FFF; font-weight: 800; font-size: 10px; box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);">L</span>
                                                     @elseif ($daySt === 'wfh')
                                                         <span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 4px; background-color: #0284C7; color: #FFF; font-weight: 800; font-size: 10px;">W</span>
                                                     @elseif ($daySt === 'absent')
@@ -969,6 +1018,13 @@
                                                         title="Mark Present"
                                                         style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'present' ? 'background-color: #10B981; color: #FFF;' : 'background-color: #171f33; color: #4edea3;' }}">
                                                         P
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        wire:click="setAttendanceStatus({{ $intern->id }}, 'late')"
+                                                        title="Mark Late (Set Timing)"
+                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 8px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'late' ? 'background-color: #F59E0B; color: #FFF;' : 'background-color: #171f33; color: #fbbf24;' }}">
+                                                        LT
                                                     </button>
                                                     <button
                                                         type="button"
@@ -1148,6 +1204,8 @@
                                                                 <span title="Sunday - Scheduled Week-Off" style="color: #a5b4fc; font-weight: 800; font-size: 8px;">OFF</span>
                                                             @elseif ($daySt === 'present')
                                                                 <span style="color: #4edea3; font-weight: 800;">P</span>
+                                                            @elseif ($daySt === 'late')
+                                                                <span style="color: #fbbf24; font-weight: 800;" title="Late">L</span>
                                                             @elseif ($daySt === 'wfh')
                                                                 <span style="color: #93c5fd; font-weight: 800;">W</span>
                                                             @elseif ($daySt === 'absent')
@@ -1167,6 +1225,13 @@
                                                                 title="Mark Present"
                                                                 style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'present' ? 'background-color: #10B981; color: #FFF;' : 'background-color: #171f33; color: #4edea3;' }}">
                                                                 P
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                wire:click="setAttendanceStatus({{ $intern->id }}, 'late')"
+                                                                title="Mark Late"
+                                                                style="padding: 2px 5px; font-size: 8px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'late' ? 'background-color: #F59E0B; color: #FFF;' : 'background-color: #171f33; color: #fbbf24;' }}">
+                                                                LT
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -1235,11 +1300,12 @@
                                 $code = $it->intern_code ?: ('INT-' . str_pad($it->id, 3, '0', STR_PAD_LEFT));
                                 $squadName = $it->project_name ?? $it->team?->team_name ?? 'Project not assigned';
 
-                                $attList = $it->attendances->whereIn('status', ['present', 'wfh', 'leave', 'absent']);
+                                $attList = $it->attendances->whereIn('status', ['present', 'late', 'wfh', 'leave', 'absent']);
                                 $tot = $attList->count();
                                 $pCount = $attList->where('status', 'present')->count();
+                                $lateCount = $attList->where('status', 'late')->count();
                                 $wCount = $attList->where('status', 'wfh')->count();
-                                $rate = $tot > 0 ? round((($pCount + $wCount) / $tot) * 100, 1) : 0.0;
+                                $rate = $tot > 0 ? round((($pCount + $lateCount + $wCount) / $tot) * 100, 1) : 0.0;
 
                                 $words = explode(' ', trim($name));
                                 $inits = strtoupper(substr($words[0] ?? 'I', 0, 1) . substr($words[1] ?? '', 0, 1));
@@ -1358,6 +1424,24 @@
                                 </div>
                                 <div style="font-size: 24px; font-weight: 800; color: #4edea3; margin-top: 6px; line-height: 1;">
                                     {{ $iStats['present'] }} <span style="font-size: 11px; font-weight: 500; color: #8e909f;">days</span>
+                                </div>
+                            </div>
+
+                            {{-- Late Arrivals --}}
+                            <div style="background-color: #131b2e; border: 1px solid #222a3d; border-radius: 12px; padding: 14px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="font-size: 10px; font-weight: 700; color: #fbbf24; text-transform: uppercase;">Late Arrivals</span>
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background-color: #F59E0B;"></span>
+                                </div>
+                                <div style="font-size: 24px; font-weight: 800; color: #fbbf24; margin-top: 6px; line-height: 1;">
+                                    {{ $iStats['late'] ?? 0 }} <span style="font-size: 11px; font-weight: 500; color: #8e909f;">{{ ($iStats['late'] ?? 0) === 1 ? 'day' : 'days' }}</span>
+                                </div>
+                                <div style="font-size: 10px; color: #8e909f; margin-top: 4px;">
+                                    @if (($iStats['totalLateMinutes'] ?? 0) > 0)
+                                        {{ floor($iStats['totalLateMinutes'] / 60) > 0 ? floor($iStats['totalLateMinutes'] / 60) . 'h ' : '' }}{{ ($iStats['totalLateMinutes'] % 60) }}m total delay
+                                    @else
+                                        No delay recorded
+                                    @endif
                                 </div>
                             </div>
 
@@ -1483,10 +1567,18 @@
                                             @elseif ($cStatus === 'present')
                                                 <button
                                                     type="button"
-                                                    wire:click="setAttendanceStatus({{ $sel->id }}, 'absent', '{{ $cDay['date'] }}')"
-                                                    title="Present (Click to mark Absent)"
+                                                    wire:click="openMarkModal({{ $sel->id }}, 'late', '{{ $cDay['date'] }}')"
+                                                    title="Present (Click to mark Late / Edit Timing)"
                                                     style="border: none; cursor: pointer; background-color: #10B981; color: #FFFFFF; font-weight: 800; font-size: 10px; padding: 2px 7px; border-radius: 4px;">
                                                     P
+                                                </button>
+                                            @elseif ($cStatus === 'late')
+                                                <button
+                                                    type="button"
+                                                    wire:click="openMarkModal({{ $sel->id }}, 'late', '{{ $cDay['date'] }}')"
+                                                    title="Late arrival (Click to edit timing)"
+                                                    style="border: none; cursor: pointer; background-color: #F59E0B; color: #FFFFFF; font-weight: 800; font-size: 10px; padding: 2px 7px; border-radius: 4px; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);">
+                                                    L
                                                 </button>
                                             @elseif ($cStatus === 'absent')
                                                 <button
@@ -1510,7 +1602,7 @@
                                                     wire:click="setAttendanceStatus({{ $sel->id }}, 'present', '{{ $cDay['date'] }}')"
                                                     title="Leave (Click to mark Present)"
                                                     style="border: none; cursor: pointer; background-color: #9333EA; color: #FFFFFF; font-weight: 800; font-size: 10px; padding: 2px 7px; border-radius: 4px;">
-                                                    L
+                                                    LV
                                                 </button>
                                             @else
                                                 <button
@@ -1540,9 +1632,9 @@
         {{-- ========================================================================= --}}
         @if ($showMarkModal)
             <div style="position: fixed; inset: 0; background-color: rgba(11, 19, 38, 0.75); backdrop-filter: blur(6px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px;">
-                <div style="background-color: #131b2e; border-radius: 16px; border: 1px solid #222a3d; width: 100%; max-width: 520px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden;">
-                    {{-- Modal Header --}}
-                    <div style="padding: 18px 24px; border-bottom: 1px solid #222a3d; background-color: #171f33; display: flex; align-items: center; justify-content: space-between;">
+                <div style="background-color: #131b2e; border-radius: 16px; border: 1px solid #222a3d; width: 100%; max-width: 520px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden;">
+                    {{-- Modal Header (Fixed at top) --}}
+                    <div style="padding: 16px 22px; border-bottom: 1px solid #222a3d; background-color: #171f33; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div style="width: 36px; height: 36px; border-radius: 10px; background-color: rgba(99, 102, 241, 0.15); color: #b8c4ff; border: 1px solid rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center;">
                                 <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1565,16 +1657,16 @@
                         </button>
                     </div>
 
-                    {{-- Modal Body --}}
-                    <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+                    {{-- Modal Body (Scrollable with custom scrollbar, never overflows screen) --}}
+                    <div class="modal-scrollable-body" style="padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1 1 auto; min-height: 0;">
                         {{-- Intern Target Selection --}}
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 6px;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 5px;">
                                 Target Intern(s)
                             </label>
                             <select
                                 wire:model="markInternId"
-                                style="width: 100%; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #dae2fd; outline: none;">
+                                style="width: 100%; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 7px 11px; font-size: 13px; font-weight: 600; color: #dae2fd; outline: none;">
                                 <option value="">⭐ Roll-Call All Active Interns (Bulk)</option>
                                 @foreach ($allActiveInterns as $internOption)
                                     <option value="{{ $internOption->id }}">
@@ -1586,27 +1678,27 @@
 
                         {{-- Date Selection --}}
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 6px;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 5px;">
                                 Attendance Date
                             </label>
                             <input
                                 type="date"
                                 wire:model="markDate"
-                                style="width: 100%; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #dae2fd; outline: none; color-scheme: dark;"
+                                style="width: 100%; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 7px 11px; font-size: 13px; font-weight: 600; color: #dae2fd; outline: none; color-scheme: dark;"
                             />
                         </div>
 
-                        {{-- 4 Big Status Radio Cards --}}
+                        {{-- 6 Status Radio Cards (Present, Late, Absent, WFH, Leave, Holiday) --}}
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 8px;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 7px;">
                                 Select Attendance Status
                             </label>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                                 {{-- Present --}}
                                 <div
                                     wire:click="setMarkStatus('present')"
                                     class="status-radio-card"
-                                    style="border-radius: 10px; padding: 12px; border: 2px solid {{ $markStatus === 'present' ? '#10B981' : '#222a3d' }}; background-color: {{ $markStatus === 'present' ? 'rgba(16, 185, 129, 0.15)' : '#171f33' }};">
+                                    style="border-radius: 10px; padding: 10px 12px; border: 2px solid {{ $markStatus === 'present' ? '#10B981' : '#222a3d' }}; background-color: {{ $markStatus === 'present' ? 'rgba(16, 185, 129, 0.15)' : '#171f33' }}; cursor: pointer; transition: all 0.15s ease;">
                                     <div style="display: flex; align-items: center; justify-content: space-between;">
                                         <span style="font-weight: 800; font-size: 13px; color: #4edea3;">Present</span>
                                         <span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{ $markStatus === 'present' ? '#10B981' : '#2d3449' }}; display: flex; align-items: center; justify-content: center;">
@@ -1615,14 +1707,30 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <p style="font-size: 11px; color: #4edea3; margin: 4px 0 0;">Physical / Onsite Presence</p>
+                                    <p style="font-size: 11px; color: #4edea3; margin: 3px 0 0;">Physical / Onsite</p>
+                                </div>
+
+                                {{-- Late --}}
+                                <div
+                                    wire:click="setMarkStatus('late')"
+                                    class="status-radio-card"
+                                    style="border-radius: 10px; padding: 10px 12px; border: 2px solid {{ $markStatus === 'late' ? '#F59E0B' : '#222a3d' }}; background-color: {{ $markStatus === 'late' ? 'rgba(245, 158, 11, 0.15)' : '#171f33' }}; cursor: pointer; transition: all 0.15s ease;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <span style="font-weight: 800; font-size: 13px; color: #fbbf24;">Late</span>
+                                        <span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{ $markStatus === 'late' ? '#F59E0B' : '#2d3449' }}; display: flex; align-items: center; justify-content: center;">
+                                            @if ($markStatus === 'late')
+                                                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #F59E0B;"></span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                    <p style="font-size: 11px; color: #fbbf24; margin: 3px 0 0;">Delayed In-Time</p>
                                 </div>
 
                                 {{-- Absent --}}
                                 <div
                                     wire:click="setMarkStatus('absent')"
                                     class="status-radio-card"
-                                    style="border-radius: 10px; padding: 12px; border: 2px solid {{ $markStatus === 'absent' ? '#EF4444' : '#222a3d' }}; background-color: {{ $markStatus === 'absent' ? 'rgba(239, 68, 68, 0.15)' : '#171f33' }};">
+                                    style="border-radius: 10px; padding: 10px 12px; border: 2px solid {{ $markStatus === 'absent' ? '#EF4444' : '#222a3d' }}; background-color: {{ $markStatus === 'absent' ? 'rgba(239, 68, 68, 0.15)' : '#171f33' }}; cursor: pointer; transition: all 0.15s ease;">
                                     <div style="display: flex; align-items: center; justify-content: space-between;">
                                         <span style="font-weight: 800; font-size: 13px; color: #ffb4ab;">Absent</span>
                                         <span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{ $markStatus === 'absent' ? '#EF4444' : '#2d3449' }}; display: flex; align-items: center; justify-content: center;">
@@ -1631,14 +1739,14 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <p style="font-size: 11px; color: #ffb4ab; margin: 4px 0 0;">Unexcused Absence</p>
+                                    <p style="font-size: 11px; color: #ffb4ab; margin: 3px 0 0;">Unexcused Absence</p>
                                 </div>
 
                                 {{-- WFH --}}
                                 <div
                                     wire:click="setMarkStatus('wfh')"
                                     class="status-radio-card"
-                                    style="border-radius: 10px; padding: 12px; border: 2px solid {{ $markStatus === 'wfh' ? '#0284C7' : '#222a3d' }}; background-color: {{ $markStatus === 'wfh' ? 'rgba(2, 132, 199, 0.15)' : '#171f33' }};">
+                                    style="border-radius: 10px; padding: 10px 12px; border: 2px solid {{ $markStatus === 'wfh' ? '#0284C7' : '#222a3d' }}; background-color: {{ $markStatus === 'wfh' ? 'rgba(2, 132, 199, 0.15)' : '#171f33' }}; cursor: pointer; transition: all 0.15s ease;">
                                     <div style="display: flex; align-items: center; justify-content: space-between;">
                                         <span style="font-weight: 800; font-size: 13px; color: #93c5fd;">WFH</span>
                                         <span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{ $markStatus === 'wfh' ? '#0284C7' : '#2d3449' }}; display: flex; align-items: center; justify-content: center;">
@@ -1647,14 +1755,14 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <p style="font-size: 11px; color: #93c5fd; margin: 4px 0 0;">Approved Remote Working</p>
+                                    <p style="font-size: 11px; color: #93c5fd; margin: 3px 0 0;">Approved Remote</p>
                                 </div>
 
                                 {{-- Leave --}}
                                 <div
                                     wire:click="setMarkStatus('leave')"
                                     class="status-radio-card"
-                                    style="border-radius: 10px; padding: 12px; border: 2px solid {{ $markStatus === 'leave' ? '#9333EA' : '#222a3d' }}; background-color: {{ $markStatus === 'leave' ? 'rgba(147, 51, 234, 0.15)' : '#171f33' }};">
+                                    style="border-radius: 10px; padding: 10px 12px; border: 2px solid {{ $markStatus === 'leave' ? '#9333EA' : '#222a3d' }}; background-color: {{ $markStatus === 'leave' ? 'rgba(147, 51, 234, 0.15)' : '#171f33' }}; cursor: pointer; transition: all 0.15s ease;">
                                     <div style="display: flex; align-items: center; justify-content: space-between;">
                                         <span style="font-weight: 800; font-size: 13px; color: #d8b4fe;">Leave</span>
                                         <span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{ $markStatus === 'leave' ? '#9333EA' : '#2d3449' }}; display: flex; align-items: center; justify-content: center;">
@@ -1663,14 +1771,14 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <p style="font-size: 11px; color: #d8b4fe; margin: 4px 0 0;">Approved Vacation / Sick</p>
+                                    <p style="font-size: 11px; color: #d8b4fe; margin: 3px 0 0;">Approved Leave</p>
                                 </div>
 
                                 {{-- Holiday --}}
                                 <div
                                     wire:click="setMarkStatus('holiday')"
                                     class="status-radio-card"
-                                    style="border-radius: 10px; padding: 12px; border: 2px solid {{ $markStatus === 'holiday' ? '#8b5cf6' : '#222a3d' }}; background-color: {{ $markStatus === 'holiday' ? 'rgba(139, 92, 246, 0.15)' : '#171f33' }};">
+                                    style="border-radius: 10px; padding: 10px 12px; border: 2px solid {{ $markStatus === 'holiday' ? '#8b5cf6' : '#222a3d' }}; background-color: {{ $markStatus === 'holiday' ? 'rgba(139, 92, 246, 0.15)' : '#171f33' }}; cursor: pointer; transition: all 0.15s ease;">
                                     <div style="display: flex; align-items: center; justify-content: space-between;">
                                         <span style="font-weight: 800; font-size: 13px; color: #c084fc;">Holiday</span>
                                         <span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{ $markStatus === 'holiday' ? '#8b5cf6' : '#2d3449' }}; display: flex; align-items: center; justify-content: center;">
@@ -1679,27 +1787,87 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <p style="font-size: 11px; color: #c084fc; margin: 4px 0 0;">Public / Company Holiday</p>
+                                    <p style="font-size: 11px; color: #c084fc; margin: 3px 0 0;">Public Holiday</p>
                                 </div>
                             </div>
                         </div>
 
+                        {{-- Late Timing & Delay Calculation Inputs (Visible when 'late' is active) --}}
+                        @if ($markStatus === 'late')
+                            <div style="background-color: rgba(245, 158, 11, 0.08); border: 1.5px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: #F59E0B;"></span>
+                                        <span style="font-size: 12px; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.04em;">Late Timing & Duration Calculation</span>
+                                    </div>
+                                    @if ($scheduledStartTime && $scheduledEndTime)
+                                        <span style="font-size: 11px; color: #b8c4ff; background-color: #171f33; padding: 2px 7px; border-radius: 6px; border: 1px solid #222a3d;">
+                                            Shift: <strong>{{ $scheduledStartTime }} - {{ $scheduledEndTime }}</strong>
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div>
+                                        <label style="display: block; font-size: 11px; font-weight: 700; color: #dae2fd; margin-bottom: 4px;">
+                                            Starting Time (In-Time / Arrival) <span style="color: #ef4444;">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            wire:model.live.debounce.300ms="markStartTime"
+                                            placeholder="e.g. 10:15 AM"
+                                            style="width: 100%; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 7px 11px; font-size: 13px; font-weight: 600; color: #dae2fd; outline: none;"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 11px; font-weight: 700; color: #dae2fd; margin-bottom: 4px;">
+                                            Ending Time (Out-Time / Departure)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            wire:model.live.debounce.300ms="markEndTime"
+                                            placeholder="e.g. 1:30 PM"
+                                            style="width: 100%; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 7px 11px; font-size: 13px; font-weight: 600; color: #dae2fd; outline: none;"
+                                        />
+                                    </div>
+                                </div>
+
+                                {{-- Calculated Delay Status Banner --}}
+                                <div style="background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 7px 11px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                                    <span style="font-size: 11px; color: #8e909f;">Delay relative to shift start:</span>
+                                    @if ($markLateMinutes !== null && $markLateMinutes > 0)
+                                        <span style="font-size: 12px; font-weight: 800; color: #f59e0b; background-color: rgba(245, 158, 11, 0.15); padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.3);">
+                                            ⚠️ Late by {{ floor($markLateMinutes / 60) > 0 ? floor($markLateMinutes / 60) . 'h ' : '' }}{{ ($markLateMinutes % 60) }}m ({{ $markLateMinutes }} mins delay)
+                                        </span>
+                                    @elseif ($markLateMinutes !== null && $markLateMinutes === 0)
+                                        <span style="font-size: 12px; font-weight: 800; color: #10B981; background-color: rgba(16, 185, 129, 0.15); padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                                            ✓ On time or earlier than scheduled shift
+                                        </span>
+                                    @else
+                                        <span style="font-size: 11px; color: #8e909f; font-style: italic;">
+                                            Enter Starting Time to auto-calculate delay
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+
                         {{-- Optional Note --}}
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 6px;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: #dae2fd; margin-bottom: 5px;">
                                 Notes / Remarks (Optional)
                             </label>
                             <input
                                 type="text"
                                 wire:model="markNote"
                                 placeholder="e.g. Approved medical leave, remote presentation..."
-                                style="width: 100%; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #dae2fd; outline: none;"
+                                style="width: 100%; background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 7px 11px; font-size: 12px; color: #dae2fd; outline: none;"
                             />
                         </div>
                     </div>
 
-                    {{-- Modal Footer --}}
-                    <div style="padding: 16px 24px; background-color: #171f33; border-top: 1px solid #222a3d; display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
+                    {{-- Modal Footer (Fixed at bottom) --}}
+                    <div style="padding: 14px 22px; background-color: #171f33; border-top: 1px solid #222a3d; display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
                         <button
                             type="button"
                             wire:click="closeMarkModal"

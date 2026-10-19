@@ -91,7 +91,7 @@ class ProgressReportResource extends Resource
                             ->required(fn ($get) => $get('selection_mode') === 'intern')
                             ->dehydrated(false)
                             ->options(function () {
-                                return Intern::where('is_active', true)
+                                return Intern::active()
                                     ->with(['batch', 'team'])
                                     ->orderBy('name')
                                     ->get()
@@ -244,9 +244,12 @@ class ProgressReportResource extends Resource
 
     public static function processPdfDownload(ProgressReport $record, string $mode, ?int $singleInternId = null)
     {
-        $record->loadMissing('batch');
+        $record->loadMissing(['batch', 'team']);
 
         $reportInterns = $record->reportInterns()
+            ->whereHas('intern', function ($q) {
+                $q->where('is_active', true)->whereNull('cohort_archive_name');
+            })
             ->with(['intern', 'intern.batch', 'intern.team', 'intern.application', 'intern.offerletter'])
             ->get();
 

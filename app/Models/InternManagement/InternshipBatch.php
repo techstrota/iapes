@@ -25,6 +25,21 @@ class InternshipBatch extends Model
         'capacity' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (InternshipBatch $batch) {
+            // Detach all assigned interns so they become unassigned/awaiting batch while remaining active
+            $batch->interns()->update([
+                'internship_batch_id' => null,
+            ]);
+
+            // Detach any squads/teams assigned to this batch
+            $batch->teams()->update([
+                'internship_batch_id' => null,
+            ]);
+        });
+    }
+
     public function getEnrolledCountAttribute(): int
     {
         return $this->interns()->where('is_active', true)->count();

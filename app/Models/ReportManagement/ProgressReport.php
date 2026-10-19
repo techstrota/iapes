@@ -51,12 +51,23 @@ class ProgressReport extends Model
 
     public function reportInterns(): HasMany
     {
+        return $this->hasMany(ProgressReportIntern::class, 'progress_report_id')
+            ->whereHas('intern', function ($q) {
+                $q->where('is_active', true)
+                  ->whereNull('cohort_archive_name');
+            });
+    }
+
+    public function allReportInterns(): HasMany
+    {
         return $this->hasMany(ProgressReportIntern::class, 'progress_report_id');
     }
 
     public function interns(): BelongsToMany
     {
         return $this->belongsToMany(Intern::class, 'progress_report_interns')
+            ->where('interns.is_active', true)
+            ->whereNull('interns.cohort_archive_name')
             ->withPivot(['weekly_summary', 'supervisor_remarks', 'is_evaluated', 'evaluated_at', 'evaluated_by'])
             ->withTimestamps();
     }

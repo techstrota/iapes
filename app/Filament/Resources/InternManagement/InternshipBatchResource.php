@@ -9,7 +9,7 @@ use App\Models\InternManagement\Intern;
 use App\Models\InterviewManagement\Application;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\{TextInput, TextArea, FileUpload, Select, DatePicker, TimePicker, Section, Grid};
+use Filament\Forms\Components\{TextInput, TextArea, FileUpload, Select, DatePicker, TimePicker, Section, Grid, Fieldset, ToggleButtons, Placeholder};
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -86,10 +86,21 @@ class InternshipBatchResource extends Resource
                                     return;
                                 }
 
-                                $newStart = $get('start_time');
-                                $newEnd = $get('end_time');
+                                $sH = $get('start_hour');
+                                $sM = $get('start_minute') ?? '00';
+                                $sA = $get('start_meridiem') ?? 'AM';
+                                $eH = $get('end_hour');
+                                $eM = $get('end_minute') ?? '00';
+                                $eA = $get('end_meridiem') ?? 'PM';
 
-                                if (!$newStart || !$newEnd) return;
+                                if (!$sH || !$eH) return;
+
+                                try {
+                                    $newStart = \Illuminate\Support\Carbon::parse("{$sH}:{$sM} {$sA}")->format('H:i');
+                                    $newEnd = \Illuminate\Support\Carbon::parse("{$eH}:{$eM} {$eA}")->format('H:i');
+                                } catch (\Exception $e) {
+                                    return;
+                                }
 
                                 // Fetch all batches to check for timing overlaps
                                 $allBatches = \App\Models\InternManagement\InternshipBatch::query()
@@ -101,7 +112,7 @@ class InternshipBatchResource extends Resource
                                 foreach ($allBatches as $batch) {
                                     if (!$batch->batch_timing) continue;
                                     
-                                    $times = explode(' - ', $batch->batch_timing);
+                                    $times = preg_split('/(\s+to\s+|\s*-\s*)/i', trim($batch->batch_timing));
                                     if (count($times) !== 2) continue;
 
                                     $existingStart = \Illuminate\Support\Carbon::parse($times[0])->format('H:i');
@@ -119,21 +130,145 @@ class InternshipBatchResource extends Resource
                         },
                     ]),
                 Section::make('Batch Schedule')
+                    ->icon('heroicon-o-clock')
+                    ->description('Set the 12-hour daily shift timing for this batch.')
                     ->schema([
                         Grid::make(2)->schema([
-                            TimePicker::make('start_time')
-                                ->label('Batch Start')
-                                ->withoutSeconds()
-                                ->required()
-                                ->live(), // Keep live() for validation and sync
+                            Fieldset::make('Batch Start Time')
+                                ->schema([
+                                    Select::make('start_hour')
+                                        ->label('Hour')
+                                        ->options(static::getHourOptions())
+                                        ->default('09')
+                                        ->required()
+                                        ->live(),
 
-                            TimePicker::make('end_time')
-                                ->label('Batch End')
-                                ->withoutSeconds()
-                                ->required()
-                                ->after('start_time')
-                                ->live(),
+                                    Select::make('start_minute')
+                                        ->label('Minute')
+                                        ->options(static::getMinuteOptions())
+                                        ->default('00')
+                                        ->required()
+                                        ->live(),
+
+                                    ToggleButtons::make('start_meridiem')
+                                        ->label('AM / PM')
+                                        ->options([
+                                            'AM' => 'AM',
+                                            'PM' => 'PM',
+                                        ])
+                                        ->colors([
+                                            'AM' => 'info',
+                                            'PM' => 'warning',
+                                        ])
+                                        ->default('AM')
+                                        ->grouped()
+                                        ->required()
+                                        ->live(),
+                                ])
+                                ->columns(3),
+
+                            Fieldset::make('Batch End Time')
+                                ->schema([
+                                    Select::make('end_hour')
+                                        ->label('Hour')
+                                        ->options(static::getHourOptions())
+                                        ->default('01')
+                                        ->required()
+                                        ->live(),
+
+                                    Select::make('end_minute')
+                                        ->label('Minute')
+                                        ->options(static::getMinuteOptions())
+                                        ->default('30')
+                                        ->required()
+                                        ->live(),
+
+                                    ToggleButtons::make('end_meridiem')
+                                        ->label('AM / PM')
+                                        ->options([
+                                            'AM' => 'AM',
+                                            'PM' => 'PM',
+                                        ])
+                                        ->colors([
+                                            'AM' => 'info',
+                                            'PM' => 'warning',
+                                        ])
+                                        ->default('PM')
+                                        ->grouped()
+                                        ->required()
+                                        ->live()
+                                        ->rules([
+                                            static function (Forms\Get $get): \Closure {
+                                                return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    $sH = $get('start_hour');
+                                                    $sM = $get('start_minute') ?? '00';
+                                                    $sA = $get('start_meridiem') ?? 'AM';
+                                                    $eH = $get('end_hour');
+                                                    $eM = $get('end_minute') ?? '00';
+                                                    $eA = $value ?? $get('end_meridiem') ?? 'PM';
+
+                                                    if ($sH && $eH) {
+                                                        try {
+                                                            $startCarbon = \Illuminate\Support\Carbon::parse("{$sH}:{$sM} {$sA}");
+                                                            $endCarbon   = \Illuminate\Support\Carbon::parse("{$eH}:{$eM} {$eA}");
+
+                                                            if ($endCarbon->lte($startCarbon)) {
+                                                                $fail('Batch End Time must be later than Batch Start Time.');
+                                                            }
+                                                        } catch (\Exception $e) {}
+                                                    }
+                                                };
+                                            },
+                                        ]),
+                                ])
+                                ->columns(3),
                         ]),
+
+                        Placeholder::make('schedule_preview')
+                            ->label('Batch Schedule Summary')
+                            ->content(function (Forms\Get $get) {
+                                $sH = $get('start_hour');
+                                $sM = $get('start_minute') ?? '00';
+                                $sA = $get('start_meridiem') ?? 'AM';
+                                $eH = $get('end_hour');
+                                $eM = $get('end_minute') ?? '00';
+                                $eA = $get('end_meridiem') ?? 'PM';
+
+                                if (!$sH || !$eH) {
+                                    return new \Illuminate\Support\HtmlString('<span class="text-xs text-gray-400">Select start and end times above to preview batch schedule.</span>');
+                                }
+
+                                try {
+                                    $startCarbon = \Illuminate\Support\Carbon::parse("{$sH}:{$sM} {$sA}");
+                                    $endCarbon   = \Illuminate\Support\Carbon::parse("{$eH}:{$eM} {$eA}");
+
+                                    $startStr = $startCarbon->format('g:i A');
+                                    $endStr   = $endCarbon->format('g:i A');
+
+                                    if ($endCarbon->lte($startCarbon)) {
+                                        return new \Illuminate\Support\HtmlString("
+                                            <div class='inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-danger-50 text-danger-700 dark:bg-danger-950/50 dark:text-danger-300 border border-danger-200 dark:border-danger-800 text-sm font-semibold'>
+                                                <svg class='w-4 h-4 text-danger-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'></path></svg>
+                                                <span>Batch End Time ({$endStr}) must be after Batch Start Time ({$startStr})</span>
+                                            </div>
+                                        ");
+                                    }
+
+                                    $diffMinutes = $startCarbon->diffInMinutes($endCarbon);
+                                    $hours = floor($diffMinutes / 60);
+                                    $mins = $diffMinutes % 60;
+                                    $durationFormatted = $hours . ' hr' . ($hours > 1 ? 's' : '') . ($mins > 0 ? " {$mins} min" : '');
+
+                                    return new \Illuminate\Support\HtmlString("
+                                        <div class='inline-flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-primary-50 text-primary-700 dark:bg-primary-950/50 dark:text-primary-300 border border-primary-200 dark:border-primary-800 text-sm font-medium'>
+                                            <svg class='w-4 h-4 text-primary-600 dark:text-primary-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'></path></svg>
+                                            <span>Scheduled: <strong class='font-semibold text-gray-900 dark:text-white'>{$startStr}</strong> &nbsp;To&nbsp; <strong class='font-semibold text-gray-900 dark:text-white'>{$endStr}</strong> &nbsp;•&nbsp; <span class='inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-primary-100 text-primary-800 dark:bg-primary-900/60 dark:text-primary-200'>{$durationFormatted} shift</span></span>
+                                        </div>
+                                    ");
+                                } catch (\Exception $e) {
+                                    return '';
+                                }
+                            }),
                     ]),
 
                 TextInput::make('no_of_interns')
@@ -205,6 +340,43 @@ class InternshipBatchResource extends Resource
         return parent::getEloquentQuery()
             ->with(['team', 'interns']); 
     }
+    public static function getHourOptions(): array
+    {
+        return [
+            '01' => '01',
+            '02' => '02',
+            '03' => '03',
+            '04' => '04',
+            '05' => '05',
+            '06' => '06',
+            '07' => '07',
+            '08' => '08',
+            '09' => '09',
+            '10' => '10',
+            '11' => '11',
+            '12' => '12',
+        ];
+    }
+
+    public static function getMinuteOptions(): array
+    {
+        return [
+            '00' => '00',
+            '05' => '05',
+            '10' => '10',
+            '15' => '15',
+            '20' => '20',
+            '25' => '25',
+            '30' => '30',
+            '35' => '35',
+            '40' => '40',
+            '45' => '45',
+            '50' => '50',
+            '55' => '55',
+        ];
+    }
+
+
     public static function getPages(): array
     {
         return [

@@ -59,14 +59,18 @@ class EditProgressReport extends EditRecord
         $internIds = [];
 
         if ($mode === 'intern') {
-            $internIds = array_map('intval', $data['intern_ids'] ?? []);
+            $rawIds = array_map('intval', $data['intern_ids'] ?? []);
+            $internIds = Intern::active()
+                ->whereIn('id', $rawIds)
+                ->pluck('id')
+                ->toArray();
         } elseif ($mode === 'batch' && !empty($data['batch_id'])) {
-            $internIds = Intern::where('is_active', true)
+            $internIds = Intern::active()
                 ->where('internship_batch_id', $data['batch_id'])
                 ->pluck('id')
                 ->toArray();
         } elseif ($mode === 'team' && !empty($data['team_id'])) {
-            $internIds = Intern::where('is_active', true)
+            $internIds = Intern::active()
                 ->where('intern_team_id', $data['team_id'])
                 ->pluck('id')
                 ->toArray();

@@ -342,16 +342,6 @@
                                 {{ $stats['pending_submissions'] }} Awaiting
                             </span>
                         </a>
-
-                        <a href="{{ route('filament.admin.resources.reports.index') }}"
-                           style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: #090e1c; border: 1px solid #1c2638; border-radius: 10px; text-decoration: none; color: #dae2fd; font-size: 13px; font-weight: 600; transition: all 0.15s ease;">
-                            <span style="display: flex; align-items: center; gap: 8px;">
-                                📊 Reports & Export Center
-                            </span>
-                            <span style="font-size: 11px; font-weight: 700; color: #dae2fd; background-color: rgba(255, 255, 255, 0.08); padding: 2px 7px; border-radius: 6px;">
-                                Analytics
-                            </span>
-                        </a>
                     </div>
                 </div>
 

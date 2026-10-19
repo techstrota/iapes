@@ -117,7 +117,7 @@ class ListProgressReports extends Page
         if ($report) {
             $reportTitle = $report->title;
             // Delete child pivot records
-            $report->reportInterns()->delete();
+            ProgressReportIntern::where('progress_report_id', $report->id)->delete();
             $report->delete();
 
             Notification::make()
@@ -136,8 +136,13 @@ class ListProgressReports extends Page
         $totalReports = ProgressReport::count();
         $completedReports = ProgressReport::where('status', 'completed')->count();
         $inProgressReports = ProgressReport::where('status', '!=', 'completed')->count();
-        $totalEnrolled = ProgressReportIntern::count();
-        $totalEvaluated = ProgressReportIntern::where('is_evaluated', true)->count();
+        $totalEnrolled = ProgressReportIntern::whereHas('intern', function ($q) {
+            $q->where('is_active', true)->whereNull('cohort_archive_name');
+        })->count();
+        $totalEvaluated = ProgressReportIntern::where('is_evaluated', true)
+            ->whereHas('intern', function ($q) {
+                $q->where('is_active', true)->whereNull('cohort_archive_name');
+            })->count();
         $evalPct = $totalEnrolled > 0 ? round(($totalEvaluated / $totalEnrolled) * 100) : 0;
 
         return [

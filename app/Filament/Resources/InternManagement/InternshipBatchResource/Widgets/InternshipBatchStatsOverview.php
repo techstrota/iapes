@@ -4,23 +4,34 @@ namespace App\Filament\Resources\InternManagement\InternshipBatchResource\Widget
 
 use App\Models\InternManagement\Intern;
 use App\Models\InternManagement\InternshipBatch;
+use App\Models\InterviewManagement\OfferLetter;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\HtmlString;
 
 class InternshipBatchStatsOverview extends BaseWidget
 {
     protected function getStats(): array
     {
+        $activeBatchesList = InternshipBatch::where('is_archived', false)->get();
         $totalBatches = InternshipBatch::count();
-        $activeBatches = InternshipBatch::where('is_archived', false)->count();
+        $activeBatches = $activeBatchesList->count();
         $archivedBatches = InternshipBatch::where('is_archived', true)->count();
 
-        $enrolledInterns = Intern::whereNotNull('internship_batch_id')->where('is_active', true)->count();
+        $activeBatchIds = $activeBatchesList->pluck('id');
+        $enrolledInterns = Intern::whereIn('internship_batch_id', $activeBatchIds)->where('is_active', true)->count();
 
-        $totalCapacity = (int) InternshipBatch::where('is_archived', false)->sum('capacity');
+        // Total interns whose offer letters were accepted
+        $totalAcceptedOffers = OfferLetter::where('offer_status', 'accepted')
+            ->orWhere('is_accepted', true)
+            ->count();
+
+        $totalCapacity = (int) $activeBatchesList->sum(fn ($b) => $b->capacity ?: 50);
         $availableSeats = max(0, $totalCapacity - $enrolledInterns);
         $occupancyPct = $totalCapacity > 0 ? round(($enrolledInterns / $totalCapacity) * 100) : 0;
-        $capacityDisplay = "{$availableSeats} / {$totalCapacity}";
+        $availablePct = 100 - $occupancyPct;
+
+        $capacityDisplay = "{$availableSeats} Seats Left";
 
         return [
             Stat::make('TOTAL BATCHES', $totalBatches)
@@ -34,12 +45,12 @@ class InternshipBatchStatsOverview extends BaseWidget
                 ->color('success'),
 
             Stat::make('TOTAL ENROLLED', $enrolledInterns)
-                ->description('Active batch members')
+                ->description(new HtmlString("Active batch members<br><span style='font-size: 11px; opacity: 0.85;'>Total <strong>{$totalAcceptedOffers}</strong> interns enrolled from accepted offers</span>"))
                 ->descriptionIcon('heroicon-m-user-group')
                 ->color('info'),
 
             Stat::make('AVAILABLE CAPACITY', $capacityDisplay)
-                ->description("{$occupancyPct}% occupied • {$availableSeats} seats left")
+                ->description("{$enrolledInterns} / {$totalCapacity} booked • {$availablePct}% available")
                 ->descriptionIcon('heroicon-m-chart-pie')
                 ->color($availableSeats > 0 ? 'success' : 'danger'),
         ];
