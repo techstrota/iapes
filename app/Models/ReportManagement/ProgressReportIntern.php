@@ -21,14 +21,17 @@ class ProgressReportIntern extends Model
         'intern_id',
         'weekly_summary',
         'supervisor_remarks',
+        'criteria_ratings',
+        'mentor_final_comments',
         'is_evaluated',
         'evaluated_at',
         'evaluated_by',
     ];
 
     protected $casts = [
-        'is_evaluated' => 'boolean',
-        'evaluated_at' => 'datetime',
+        'is_evaluated'     => 'boolean',
+        'evaluated_at'     => 'datetime',
+        'criteria_ratings' => 'array',
     ];
 
     public function progressReport(): BelongsTo

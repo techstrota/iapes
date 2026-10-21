@@ -11,7 +11,7 @@ use App\Models\InternManagement\InternTeam;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\{TextInput, Select, DatePicker, Section, Grid, Radio};
+use Filament\Forms\Components\{TextInput, Select, DatePicker, Section, Grid, Radio, Repeater};
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -33,30 +33,57 @@ class ProgressReportResource extends Resource
         return $form->schema([
             Grid::make(['default' => 1, 'lg' => 12])->schema([
                 Section::make('Progress Report Parameters')
-                    ->description('Set evaluation week duration and target group of interns.')
+                    ->description('Set evaluation period duration and target group of interns.')
                     ->icon('heroicon-o-calendar-days')
                     ->columnSpan(['default' => 12, 'lg' => 7])
                     ->schema([
+                        Radio::make('report_type')
+                            ->label('Report Type')
+                            ->options([
+                                'weekly'  => 'Weekly Progress Report (Daily tasks & attendance review)',
+                                'monthly' => 'Monthly / Final Review Report (Comprehensive criteria evaluation & mentor final review)',
+                            ])
+                            ->default('weekly')
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                if ($state === 'monthly') {
+                                    $set('week_start_date', now()->startOfMonth()->format('Y-m-d'));
+                                    $set('week_end_date', now()->endOfMonth()->format('Y-m-d'));
+                                    if (empty($get('evaluation_criteria'))) {
+                                        $set('evaluation_criteria', ProgressReport::getDefaultEvaluationCriteria());
+                                    }
+                                } elseif ($state === 'weekly') {
+                                    $set('week_start_date', now()->startOfWeek()->format('Y-m-d'));
+                                    $set('week_end_date', now()->endOfWeek()->format('Y-m-d'));
+                                }
+                            })
+                            ->required()
+                            ->columnSpanFull(),
+
                         TextInput::make('title')
-                            ->label('Report Title')
-                            ->placeholder('e.g. Week 4 Progress Report — Frontend & UI Cohort')
+                            ->label(fn ($get) => $get('report_type') === 'monthly' ? 'Monthly Review Title' : 'Report Title')
+                            ->placeholder(fn ($get) => $get('report_type') === 'monthly'
+                                ? 'e.g. October 2026 Monthly / Final Internship Review — Full Stack Cohort'
+                                : 'e.g. Week 4 Progress Report — Frontend & UI Cohort')
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull(),
 
                         Grid::make(2)->schema([
                             DatePicker::make('week_start_date')
-                                ->label('Week Starting Date')
+                                ->label(fn ($get) => $get('report_type') === 'monthly' ? 'Review Period Start Date' : 'Week Starting Date')
                                 ->native(false)
                                 ->displayFormat('d-m-Y')
                                 ->prefixIcon('heroicon-o-calendar')
+                                ->default(fn ($get) => $get('report_type') === 'monthly' ? now()->startOfMonth() : now()->startOfWeek())
                                 ->required(),
 
                             DatePicker::make('week_end_date')
-                                ->label('Week Ending Date')
+                                ->label(fn ($get) => $get('report_type') === 'monthly' ? 'Review Period End Date' : 'Week Ending Date')
                                 ->native(false)
                                 ->displayFormat('d-m-Y')
                                 ->prefixIcon('heroicon-o-calendar')
+                                ->default(fn ($get) => $get('report_type') === 'monthly' ? now()->endOfMonth() : now()->endOfWeek())
                                 ->afterOrEqual('week_start_date')
                                 ->required(),
                         ]),
@@ -105,7 +132,7 @@ class ProgressReportResource extends Resource
                                         return [$intern->id => $intern->name . $suffix];
                                     });
                             })
-                            ->helperText('Search and select individual interns to include in this weekly report.'),
+                            ->helperText('Search and select individual interns to include in this report.'),
 
                         // 2. Select Batch
                         Select::make('batch_id')
@@ -129,6 +156,36 @@ class ProgressReportResource extends Resource
                             ->required(fn ($get) => $get('selection_mode') === 'team')
                             ->helperText('All active interns in this squad will be included.'),
                     ]),
+
+                // 3. Customizable Evaluation Criteria Template (Visible for Monthly / Final Review)
+                Section::make('Evaluation Criteria Template (Customizable)')
+                    ->description('Review and customize the performance criteria for this monthly/final review. You can add new criteria, rename them, or delete any criteria.')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->visible(fn ($get) => $get('report_type') === 'monthly')
+                    ->columnSpanFull()
+                    ->schema([
+                        Repeater::make('evaluation_criteria')
+                            ->label('Evaluation Criteria Rubrics')
+                            ->default(ProgressReport::getDefaultEvaluationCriteria())
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label('Criterion Name')
+                                    ->placeholder('e.g. Attendance, Discipline, Technical Skills')
+                                    ->required()
+                                    ->columnSpan(['default' => 12, 'md' => 4]),
+
+                                TextInput::make('description')
+                                    ->label('Focus Area / Guidance Description')
+                                    ->placeholder('e.g. Punctuality, consistency, work quality standards...')
+                                    ->columnSpan(['default' => 12, 'md' => 8]),
+                            ])
+                            ->columns(['default' => 1, 'md' => 12])
+                            ->addActionLabel('＋ Add Custom Criterion')
+                            ->reorderable()
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? 'Criterion')
+                            ->helperText('Default criteria: Attendance, Discipline, Work Quality, Technical Skills, Communication, Teamwork. Remove or add as needed.'),
+                    ]),
             ]),
         ]);
     }
@@ -144,6 +201,12 @@ class ProgressReportResource extends Resource
                     ->weight('bold')
                     ->description(fn (ProgressReport $record): string => $record->formatted_date_range)
                     ->color('primary'),
+
+                TextColumn::make('report_type')
+                    ->label('Report Type')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state === 'monthly' ? 'Monthly Review' : 'Weekly Report')
+                    ->color(fn ($state) => $state === 'monthly' ? 'purple' : 'info'),
 
                 BadgeColumn::make('selection_mode')
                     ->label('Target Type')
@@ -312,7 +375,7 @@ class ProgressReportResource extends Resource
 
             $safeName = str($repIntern->intern?->name ?? 'Intern')->slug()->toString();
             $safeCode = str_replace(['/', '\\'], '-', $repIntern->intern?->intern_code ?: $repIntern->intern_id);
-            $fileName = "Progress_Report_{$safeName}_{$safeCode}.pdf";
+            $fileName = "Progress_Report_{$safeCode}.pdf";
 
             return response()->streamDownload(
                 fn () => print($pdf->output()),
@@ -364,7 +427,7 @@ class ProgressReportResource extends Resource
 
                 $safeName = str($intern->name ?? 'Intern')->slug()->toString();
                 $safeCode = str_replace(['/', '\\'], '-', $intern->intern_code ?: $intern->id);
-                $docName = "Progress_Report_{$safeName}_{$safeCode}.pdf";
+                $docName = "Progress_Report_{$safeCode}.pdf";
 
                 $zip->addFromString($docName, $pdf->output());
             }

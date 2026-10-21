@@ -20,19 +20,63 @@ class ProgressReport extends Model
 
     protected $fillable = [
         'title',
+        'report_type',
         'week_start_date',
         'week_end_date',
         'selection_mode',
         'batch_id',
         'team_id',
+        'evaluation_criteria',
         'created_by',
         'status',
     ];
 
     protected $casts = [
-        'week_start_date' => 'date',
-        'week_end_date'   => 'date',
+        'week_start_date'     => 'date',
+        'week_end_date'       => 'date',
+        'evaluation_criteria' => 'array',
     ];
+
+    public static function getDefaultEvaluationCriteria(): array
+    {
+        return [
+            [
+                'id'          => 'attendance',
+                'name'        => 'Attendance',
+                'description' => 'Punctuality, consistency, and regular presence throughout the internship.',
+            ],
+            [
+                'id'          => 'discipline',
+                'name'        => 'Discipline',
+                'description' => 'Professional conduct, adherence to rules, and workspace ethics.',
+            ],
+            [
+                'id'          => 'work_quality',
+                'name'        => 'Work Quality',
+                'description' => 'Accuracy, attention to detail, and meeting deliverable standards.',
+            ],
+            [
+                'id'          => 'technical_skills',
+                'name'        => 'Technical Skills',
+                'description' => 'Domain competency, code/design quality, and problem-solving capability.',
+            ],
+            [
+                'id'          => 'communication',
+                'name'        => 'Communication',
+                'description' => 'Responsiveness, clarity in standups, and regular reporting.',
+            ],
+            [
+                'id'          => 'teamwork',
+                'name'        => 'Teamwork',
+                'description' => 'Collaboration with team members, positive attitude, and squad contribution.',
+            ],
+        ];
+    }
+
+    public function isMonthly(): bool
+    {
+        return $this->report_type === 'monthly';
+    }
 
     public function batch(): BelongsTo
     {

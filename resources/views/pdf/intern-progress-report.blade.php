@@ -5,7 +5,7 @@
 <title>{{ $report->title }} - Weekly Progress Report</title>
 <style>
     @page {
-        margin: 68px 12mm 18mm 12mm;
+        margin: 68px 12mm 16mm 12mm;
     }
 
     body {
@@ -71,9 +71,10 @@
         right: 0;
         text-align: center;
         border-top: 2px solid #f39200;
-        padding-top: 5px;
+        padding-top: 4px;
         color: #000;
         background: transparent;
+        height: 48px;
     }
 
     .footer-brand {
@@ -125,6 +126,7 @@
     .report-main-title {
         font-size: 20px;
         font-weight: 800;
+        margin-top: 40px;
         color: #000;
         text-transform: uppercase;
         letter-spacing: 0.03em;
@@ -213,6 +215,15 @@
         background: transparent;
     }
 
+    .eval-tick {
+        font-family: 'DejaVu Sans', sans-serif;
+        font-size: 15px;
+        font-weight: bold;
+        color: #000;
+        display: inline-block;
+        line-height: 1;
+    }
+
     /* ── Summary & Remarks Evaluation Boxes (Simple, No Colored Background) ── */
     .eval-box {
         background: transparent;
@@ -238,8 +249,9 @@
 
     /* ── Signature Section (Left Side Only) ── */
     .signature-container {
-        margin-top: 70px;
+        margin-top: 18px;
         text-align: left;
+        page-break-inside: avoid;
     }
 
     .mentor-name-row {
@@ -247,6 +259,67 @@
         color: #000;
         margin-bottom: 14px;
     }
+
+    @if ($report->isMonthly())
+    .report-header-box {
+        margin-top: 14px;
+        margin-bottom: 3px;
+    }
+    .report-sub-title {
+        margin-top: 4px;
+        margin-bottom: 8px;
+    }
+    .details-container {
+        padding: 2px 4px;
+        margin-bottom: 8px;
+    }
+    .details-table {
+        font-size: 13px;
+    }
+    .details-table td {
+        padding: 1px 0;
+    }
+    .section-title {
+        font-size: 13.5px;
+        margin-top: 8px;
+        margin-bottom: 4px;
+    }
+    .log-table {
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+    .log-table th {
+        font-size: 12.5px;
+        padding: 4px 6px;
+    }
+    .log-table td {
+        font-size: 12.5px;
+        padding: 3.5px 6px;
+    }
+    .eval-box {
+        padding: 2px 0;
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+    .eval-title {
+        font-size: 13px;
+        margin-bottom: 3px;
+    }
+    .eval-content {
+        font-size: 12.5px;
+        line-height: 1.35;
+    }
+    .signature-container {
+        margin-top: 18px;
+    }
+    .mentor-name-row {
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+    .sig-label {
+        font-size: 13px;
+    }
+    @endif
 
     .sig-table {
         border-collapse: collapse;
@@ -405,7 +478,11 @@
         {{-- ── 1. Report Title Section ── --}}
         <div class="report-header-box">
             <div class="report-main-title">{{ strtoupper($report->title) }}</div>
-            <div class="report-sub-title">WEEKLY INTERNSHIP PROGRESS EVALUATION REPORT &bull; EVALUATION PERIOD: {{ $report->formatted_date_range }}</div>
+            @if ($report->isMonthly())
+                <div class="report-sub-title">MONTHLY / FINAL INTERNSHIP EVALUATION & REVIEW REPORT &bull; EVALUATION PERIOD: {{ $report->formatted_date_range }}</div>
+            @else
+                <div class="report-sub-title">WEEKLY INTERNSHIP PROGRESS EVALUATION REPORT &bull; EVALUATION PERIOD: {{ $report->formatted_date_range }}</div>
+            @endif
         </div>
 
         {{-- ── 2. Internship Details Box (Single Part / 1 Column List, No Background Color) ── --}}
@@ -446,150 +523,220 @@
             </table>
         </div>
 
-        {{-- ── 3. Daily Logbook Entries Section (Simple Table, No Heavy Colors, Empty Sign Column) ── --}}
-        <div class="section-title">
-            Daily Logbook Entries
-        </div>
+        @if ($report->isMonthly())
+            {{-- ── 3. Performance Evaluation Criteria & Rating Matrix (Monthly Mode - Matching Physical Review Sheet) ── --}}
+            <div class="section-title">
+                Final Internship Review
+            </div>
 
-        <table class="log-table">
-            <thead>
-                <tr>
-                    <th style="width: 7%;">Day</th>
-                    <th style="width: 11%;">Date</th>
-                    <th style="width: 44%;">Module/Topic</th>
-                    <th style="width: 14%;">Nature of Work</th>
-                    <th style="width: 8%;">Entry time</th>
-                    <th style="width: 8%;">Exit time</th>
-                    <th style="width: 8%;">Supervisor's sign</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($dates as $dayIdx => $d)
-                    @php
-                        $dStr = $d->toDateString();
-                        $att = $internAttendances->get($dStr);
-                        $hol = $globalHolidays->get($dStr);
-                        $log = $dailyLogs->first(fn ($l) => \Carbon\Carbon::parse($l->date)->toDateString() === $dStr);
-
-                        $status = 'unmarked';
-                        $holidayNote = null;
-                        if ($att) {
-                            $status = strtolower($att->status);
-                            $holidayNote = $att->note;
-                        } elseif ($hol) {
-                            $status = 'holiday';
-                            $holidayNote = $hol->note;
-                        } elseif ($d->isSunday()) {
-                            $status = 'week_off';
-                        }
-
-                        // Module / Topic
-                        $moduleTopic = '';
-                        if ($log) {
-                            $moduleTopic = $log->title ?: 'Tasks & Development';
-                            if (filled($log->tasks_completed)) {
-                                $cleanTasks = trim(strip_tags((string) $log->tasks_completed));
-                                $moduleTopic .= ': ' . \Illuminate\Support\Str::limit($cleanTasks, 75);
-                            }
-                            if ($status === 'late') {
-                                $dur = ($att && $att->late_minutes > 0) ? " (Late by {$att->formatted_late_duration})" : '';
-                                $rem = ($att && $att->note) ? " — {$att->note}" : '';
-                                $moduleTopic .= " • [Late Arrival{$dur}{$rem}]";
-                            }
-                        } else {
-                            if ($status === 'holiday') {
-                                $moduleTopic = 'Official Holiday' . ($holidayNote ? " ({$holidayNote})" : '');
-                            } elseif ($status === 'week_off') {
-                                $moduleTopic = 'Scheduled Sunday Week-Off';
-                            } elseif ($status === 'leave') {
-                                $moduleTopic = 'Intern on Approved Leave';
-                            } elseif ($status === 'absent') {
-                                $moduleTopic = 'Marked Absent — No log submitted';
-                            } elseif ($status === 'late') {
-                                $dur = ($att && $att->late_minutes > 0) ? " (Late by {$att->formatted_late_duration})" : '';
-                                $moduleTopic = 'Late Arrival' . $dur . ($att?->note ? " — {$att->note}" : '');
-                            } else {
-                                $moduleTopic = 'No log entry submitted';
-                            }
-                        }
-
-                        // Nature of Work (Good, average, etc.)
-                        $natureOfWork = 'Good';
-                        if ($log && filled($log->supervisor_remarks)) {
-                            $natureOfWork = $log->supervisor_remarks;
-                        } elseif ($status === 'late') {
-                            $natureOfWork = 'Late' . (($att && $att->late_minutes > 0) ? ' (' . $att->formatted_late_duration . ')' : '');
-                        } elseif ($log) {
-                            $natureOfWork = 'Good';
-                        } elseif ($status === 'holiday') {
-                            $natureOfWork = 'Holiday';
-                        } elseif ($status === 'week_off') {
-                            $natureOfWork = 'Week-Off';
-                        } elseif ($status === 'leave') {
-                            $natureOfWork = 'Leave';
-                        } elseif ($status === 'absent') {
-                            $natureOfWork = 'Absent';
-                        } else {
-                            $natureOfWork = 'Pending';
-                        }
-
-                        // Entry & Exit Time fetched from Attendance (if recorded) or Batch Schedule
-                        $isExplicitNonWorking = in_array($status, ['holiday', 'week_off', 'leave', 'absent']) && !$log;
-                        if ($isExplicitNonWorking) {
-                            $entryTime = '—';
-                            $exitTime  = '—';
-                        } else {
-                            $entryTime = ($att && filled($att->start_time)) ? $att->start_time : $batchStartTime;
-                            $exitTime  = ($att && filled($att->end_time)) ? $att->end_time : $batchEndTime;
-                        }
-                    @endphp
+            <table class="log-table">
+                <thead>
                     <tr>
-                        <td style="text-align: center; font-weight: bold;">
-                            Day {{ $dayIdx + 1 }}
-                        </td>
-                        <td style="text-align: center;">
-                            {{ $d->format('d/m/Y') }}
-                        </td>
-                        <td>
-                            {{ $moduleTopic }}
-                        </td>
-                        <td style="text-align: center;">
-                            {{ $natureOfWork }}
-                        </td>
-                        <td style="text-align: center;">
-                            {{ $entryTime }}
-                        </td>
-                        <td style="text-align: center;">
-                            {{ $exitTime }}
-                        </td>
-                        {{-- Supervisor's sign cell remains empty as requested --}}
-                        <td style="text-align: center;">
-                        </td>
+                        <th style="width: 30%; text-align: left; padding-left: 6px;">Evaluation Criteria</th>
+                        <th style="width: 13%; text-align: center;">Excellent</th>
+                        <th style="width: 13%; text-align: center;">Good</th>
+                        <th style="width: 13%; text-align: center;">Average</th>
+                        <th style="width: 31%; text-align: left; padding-left: 6px;">Remarks</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @php
+                        $criteriaList = $report->evaluation_criteria ?: \App\Models\ReportManagement\ProgressReport::getDefaultEvaluationCriteria();
+                        $ratingsData = $repIntern->criteria_ratings ?? [];
+                    @endphp
+                    @foreach ($criteriaList as $cIdx => $crit)
+                        @php
+                            $cKey = $crit['id'] ?? ('crit_' . $cIdx);
+                            $evalRow = $ratingsData[$cKey] ?? [];
+                            $rateVal = strtolower(trim($evalRow['rating'] ?? 'Good'));
+                            $rateRemarks = $evalRow['remarks'] ?? '';
 
-        {{-- ── 4. Summary of Work Done Section ── --}}
-        <div class="eval-box">
-            <div class="eval-title">Summary of work done</div>
-            <div class="eval-content">{{ $repIntern->weekly_summary ?: 'Weekly summary not provided.' }}</div>
-        </div>
+                            $isExcellent = ($rateVal === 'excellent');
+                            $isGood = ($rateVal === 'good');
+                            $isAverage = in_array($rateVal, ['average', 'needs improvement', 'satisfactory', 'fair', 'poor']);
+                        @endphp
+                        <tr>
+                            <td style="font-weight: bold; padding-left: 6px;">
+                                {{ $crit['name'] ?? ucfirst(str_replace('_', ' ', $cKey)) }}
+                            </td>
+                            <td style="text-align: center;">
+                                @if ($isExcellent)
+                                    <span class="eval-tick">&#10003;</span>
+                                @endif
+                            </td>
+                            <td style="text-align: center;">
+                                @if ($isGood)
+                                    <span class="eval-tick">&#10003;</span>
+                                @endif
+                            </td>
+                            <td style="text-align: center;">
+                                @if ($isAverage)
+                                    <span class="eval-tick">&#10003;</span>
+                                @endif
+                            </td>
+                            <td style="padding-left: 6px; font-size: 13px;">
+                                {{ $rateRemarks ?: '—' }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
 
-        {{-- ── 5. Mentor's Remarks Section ── --}}
-        <div class="eval-box">
-            <div class="eval-title">Mentor's remarks</div>
-            <div class="eval-content">{{ $repIntern->supervisor_remarks ?: 'Mentor remarks not recorded.' }}</div>
-        </div>
+            {{-- ── 4. Final Comments by Mentor (Matching Physical Sheet) ── --}}
+            <div class="eval-box" style="margin-top: 10px; margin-bottom: 12px; page-break-inside: avoid;">
+                <div class="eval-title">Final Comments by Mentor:</div>
+                <div class="eval-content" style="white-space: pre-line; line-height: 1.35;">{{ $repIntern->mentor_final_comments ?: ($repIntern->supervisor_remarks ?: 'Candidate demonstrated steady performance and met expectations.') }}</div>
+            </div>
+        @else
+            {{-- ── 3. Daily Logbook Entries Section (Simple Table, No Heavy Colors, Empty Sign Column) ── --}}
+            <div class="section-title">
+                Daily Logbook Entries
+            </div>
+
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th style="width: 7%;">Day</th>
+                        <th style="width: 11%;">Date</th>
+                        <th style="width: 44%;">Module/Topic</th>
+                        <th style="width: 14%;">Nature of Work</th>
+                        <th style="width: 8%;">Entry time</th>
+                        <th style="width: 8%;">Exit time</th>
+                        <th style="width: 8%;">Supervisor's sign</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($dates as $dayIdx => $d)
+                        @php
+                            $dStr = $d->toDateString();
+                            $att = $internAttendances->get($dStr);
+                            $hol = $globalHolidays->get($dStr);
+                            $log = $dailyLogs->first(fn ($l) => \Carbon\Carbon::parse($l->date)->toDateString() === $dStr);
+
+                            $status = 'unmarked';
+                            $holidayNote = null;
+                            if ($att) {
+                                $status = strtolower($att->status);
+                                $holidayNote = $att->note;
+                            } elseif ($hol) {
+                                $status = 'holiday';
+                                $holidayNote = $hol->note;
+                            } elseif ($d->isSunday()) {
+                                $status = 'week_off';
+                            }
+
+                            // Module / Topic
+                            $moduleTopic = '';
+                            if ($log) {
+                                $moduleTopic = $log->title ?: 'Tasks & Development';
+                                if (filled($log->tasks_completed)) {
+                                    $cleanTasks = trim(strip_tags((string) $log->tasks_completed));
+                                    $moduleTopic .= ': ' . \Illuminate\Support\Str::limit($cleanTasks, 75);
+                                }
+                                if ($status === 'late') {
+                                    $dur = ($att && $att->late_minutes > 0) ? " (Late by {$att->formatted_late_duration})" : '';
+                                    $rem = ($att && $att->note) ? " — {$att->note}" : '';
+                                    $moduleTopic .= " • [Late Arrival{$dur}{$rem}]";
+                                }
+                            } else {
+                                if ($status === 'holiday') {
+                                    $moduleTopic = 'Official Holiday' . ($holidayNote ? " ({$holidayNote})" : '');
+                                } elseif ($status === 'week_off') {
+                                    $moduleTopic = 'Scheduled Sunday Week-Off';
+                                } elseif ($status === 'leave') {
+                                    $moduleTopic = 'Intern on Approved Leave';
+                                } elseif ($status === 'absent') {
+                                    $moduleTopic = 'Marked Absent — No log submitted';
+                                } elseif ($status === 'late') {
+                                    $dur = ($att && $att->late_minutes > 0) ? " (Late by {$att->formatted_late_duration})" : '';
+                                    $moduleTopic = 'Late Arrival' . $dur . ($att?->note ? " — {$att->note}" : '');
+                                } else {
+                                    $moduleTopic = 'No log entry submitted';
+                                }
+                            }
+
+                            // Nature of Work (Good, average, etc.)
+                            $natureOfWork = 'Good';
+                            if ($log && filled($log->supervisor_remarks)) {
+                                $natureOfWork = $log->supervisor_remarks;
+                            } elseif ($status === 'late') {
+                                $natureOfWork = 'Late' . (($att && $att->late_minutes > 0) ? ' (' . $att->formatted_late_duration . ')' : '');
+                            } elseif ($log) {
+                                $natureOfWork = 'Good';
+                            } elseif ($status === 'holiday') {
+                                $natureOfWork = 'Holiday';
+                            } elseif ($status === 'week_off') {
+                                $natureOfWork = 'Week-Off';
+                            } elseif ($status === 'leave') {
+                                $natureOfWork = 'Leave';
+                            } elseif ($status === 'absent') {
+                                $natureOfWork = 'Absent';
+                            } else {
+                                $natureOfWork = 'Pending';
+                            }
+
+                            // Entry & Exit Time fetched from Attendance (if recorded) or Batch Schedule
+                            $isExplicitNonWorking = in_array($status, ['holiday', 'week_off', 'leave', 'absent']) && !$log;
+                            if ($isExplicitNonWorking) {
+                                $entryTime = '—';
+                                $exitTime  = '—';
+                            } else {
+                                $entryTime = ($att && filled($att->start_time)) ? $att->start_time : $batchStartTime;
+                                $exitTime  = ($att && filled($att->end_time)) ? $att->end_time : $batchEndTime;
+                            }
+                        @endphp
+                        <tr>
+                            <td style="text-align: center; font-weight: bold;">
+                                Day {{ $dayIdx + 1 }}
+                            </td>
+                            <td style="text-align: center;">
+                                {{ $d->format('d/m/Y') }}
+                            </td>
+                            <td>
+                                {{ $moduleTopic }}
+                            </td>
+                            <td style="text-align: center;">
+                                {{ $natureOfWork }}
+                            </td>
+                            <td style="text-align: center;">
+                                {{ $entryTime }}
+                            </td>
+                            <td style="text-align: center;">
+                                {{ $exitTime }}
+                            </td>
+                            {{-- Supervisor's sign cell remains empty as requested --}}
+                            <td style="text-align: center;">
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            {{-- ── 4. Summary of Work Done Section ── --}}
+            <div class="eval-box">
+                <div class="eval-title">Summary of work done</div>
+                <div class="eval-content">{{ $repIntern->weekly_summary ?: 'Weekly summary not provided.' }}</div>
+            </div>
+
+            {{-- ── 5. Mentor's Remarks Section ── --}}
+            <div class="eval-box">
+                <div class="eval-title">Mentor's remarks</div>
+                <div class="eval-content">{{ $repIntern->supervisor_remarks ?: 'Mentor remarks not recorded.' }}</div>
+            </div>
+        @endif
 
         {{-- ── 6. Mentor Name and Signature Section (Signature Line Beside Text) ── --}}
         <div class="signature-container">
-            <div class="mentor-name-row">
+            <div class="mentor-name-row" style="margin-bottom: 6px;">
                 <strong>Mentor Name:</strong> {{ $mentorName }}
             </div>
             <table class="sig-table">
                 <tr>
-                    <td class="sig-label">Signature:</td>
+                    <td class="sig-label" style="padding-bottom: 6px;">Signature:</td>
+                    <td class="sig-line-beside" style="padding-bottom: 6px;">________________________</td>
+                </tr>
+                <tr>
+                    <td class="sig-label">Date:</td>
                     <td class="sig-line-beside">________________________</td>
                 </tr>
             </table>

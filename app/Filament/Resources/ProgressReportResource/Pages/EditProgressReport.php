@@ -21,6 +21,9 @@ class EditProgressReport extends EditRecord
         if (($data['selection_mode'] ?? '') === 'intern') {
             $data['intern_ids'] = $this->record->reportInterns()->pluck('intern_id')->toArray();
         }
+        if (($data['report_type'] ?? '') === 'monthly' && empty($data['evaluation_criteria'])) {
+            $data['evaluation_criteria'] = \App\Models\ReportManagement\ProgressReport::getDefaultEvaluationCriteria();
+        }
         return $data;
     }
 

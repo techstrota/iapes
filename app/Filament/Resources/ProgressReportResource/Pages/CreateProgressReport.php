@@ -8,6 +8,8 @@ use App\Models\InternManagement\Intern;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
+use App\Models\ReportManagement\ProgressReport;
+
 class CreateProgressReport extends CreateRecord
 {
     protected static string $resource = ProgressReportResource::class;
@@ -16,10 +18,38 @@ class CreateProgressReport extends CreateRecord
 
     protected static ?string $title = 'Create New Progress Report';
 
+    public function mount(): void
+    {
+        parent::mount();
+
+        if (request()->query('type') === 'monthly') {
+            $this->form->fill([
+                'report_type'         => 'monthly',
+                'title'               => now()->format('F Y') . ' Monthly / Final Internship Review',
+                'week_start_date'     => now()->startOfMonth()->toDateString(),
+                'week_end_date'       => now()->endOfMonth()->toDateString(),
+                'selection_mode'      => 'intern',
+                'evaluation_criteria' => ProgressReport::getDefaultEvaluationCriteria(),
+            ]);
+        }
+    }
+
+    public function getTitle(): string
+    {
+        return request()->query('type') === 'monthly' || ($this->data['report_type'] ?? '') === 'monthly'
+            ? 'Create Monthly / Final Review Report'
+            : 'Create New Progress Report';
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by'] = auth()->id();
         $data['status'] = 'in_progress';
+
+        if (($data['report_type'] ?? '') === 'monthly' && empty($data['evaluation_criteria'])) {
+            $data['evaluation_criteria'] = ProgressReport::getDefaultEvaluationCriteria();
+        }
+
         return $data;
     }
 

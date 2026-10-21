@@ -281,6 +281,15 @@
                     <h1 style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 0; letter-spacing: -0.01em;">
                         {{ $report->title }}
                     </h1>
+                    @if ($report->isMonthly())
+                        <span class="pr-badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.45);">
+                            🟣 Monthly / Final Review
+                        </span>
+                    @else
+                        <span class="pr-badge" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);">
+                            🔵 Weekly Evaluation
+                        </span>
+                    @endif
                     <span class="pr-badge" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);">
                         🗓️ {{ $formattedRange }}
                     </span>
@@ -895,84 +904,257 @@
                     @endif
                 </div>
 
-                {{-- Section 2: Supervisor Weekly Evaluation Form --}}
-                <div class="pr-card" style="padding: 22px 24px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #222a3d;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #34d399; display: flex; align-items: center; justify-content: center;">
-                                <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 style="font-size: 16px; font-weight: 800; color: #ffffff; margin: 0;">
-                                    Supervisor Evaluation & Remarks
-                                </h3>
-                                <div style="font-size: 12px; color: #8e909f; margin-top: 2px;">
-                                    Provide the weekly summary and remarks for {{ $selectedIntern->name }}
+                @if ($report->isMonthly())
+                    {{-- ── Section 2 (Monthly Mode): Compact & Premium Evaluation Matrix & Mentor Final Review ── --}}
+                    <div class="pr-card" style="padding: 18px 20px;">
+                        {{-- Header Row --}}
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1.5px solid #222a3d;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(168, 85, 247, 0.18); color: #c084fc; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(168, 85, 247, 0.35); flex-shrink: 0; font-size: 16px;">
+                                    🎓
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 15px; font-weight: 800; color: #ffffff; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                        <span>Monthly Evaluation Criteria & Final Review</span>
+                                    </h3>
+                                    <div style="font-size: 11px; color: #8e909f; margin-top: 1px;">
+                                        Final review & evaluation criteria for <strong style="color: #cbd5e1;">{{ $selectedIntern->name }}</strong>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {{-- Auto-generate summary helper button --}}
-                        @if ($dailyLogbooks->count() > 0)
-                            <button
-                                type="button"
-                                wire:click="autoDraftSummary"
-                                style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.15s ease;"
-                                title="Synthesize weekly summary from intern's daily tasks">
-                                <span>⚡ Auto-Draft Summary from Tasks</span>
-                            </button>
-                        @endif
-                    </div>
+                            {{-- Actions Bar --}}
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <button
+                                    type="button"
+                                    wire:click="autoCalculateAllCriteria"
+                                    title="Auto-calculate all criteria ratings based on monthly attendance, task marks, and daily work logs"
+                                    style="background: linear-gradient(135deg, rgba(147, 51, 234, 0.22), rgba(59, 130, 246, 0.22)); color: #c084fc; border: 1.5px solid rgba(168, 85, 247, 0.45); font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(147, 51, 234, 0.2); transition: all 0.2s ease;">
+                                    <span>⚡ Auto-Calculate All</span>
+                                </button>
 
-                    <div style="display: flex; flex-direction: column; gap: 18px;">
-                        
-                        {{-- Weekly Summary Input --}}
-                        <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
-                                Weekly Summary:
-                            </label>
-                            <textarea
-                                wire:model="weeklySummary"
-                                rows="5"
-                                placeholder="Summarize deliverables completed, overall performance, code quality, and attendance for this week..."
-                                class="pr-textarea"
-                            ></textarea>
-                            <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">
-                                Outline the key milestones and performance highlights achieved by the intern this week.
+                                <span style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 2px;">Quick:</span>
+                                <button
+                                    type="button"
+                                    wire:click="setAllRatings('Excellent')"
+                                    title="Set all criteria to Excellent"
+                                    style="background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 10.5px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease;">
+                                    🟢 All Excellent
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="setAllRatings('Good')"
+                                    title="Set all criteria to Good"
+                                    style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-size: 10.5px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease;">
+                                    🔵 All Good
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="setAllRatings('Average')"
+                                    title="Set all criteria to Average"
+                                    style="background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 10.5px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease;">
+                                    🟡 All Average
+                                </button>
                             </div>
                         </div>
 
-                        {{-- Supervisor Remarks Input --}}
-                        <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
-                                Supervisor Remarks:
-                            </label>
-                            <textarea
-                                wire:model="supervisorRemarks"
-                                rows="4"
-                                placeholder="Mentor remarks, feedback on accuracy/speed, areas for improvement, and directives for the upcoming week..."
-                                class="pr-textarea"
-                            ></textarea>
-                            <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">
-                                Specific feedback or recommendations from the supervisor/coordinator.
+                        {{-- 1. Criteria Evaluation Rubric Matrix Table (5 Columns matching Physical Paper Template) --}}
+                        <div style="margin-bottom: 14px; border: 1.5px solid #222a3d; border-radius: 10px; overflow: hidden; background: #080e1d;">
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                    <thead>
+                                        <tr style="background: #0b1326; border-bottom: 1.5px solid #222a3d;">
+                                            <th style="padding: 9px 14px; text-align: left; font-weight: 700; color: #8e909f; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; width: 22%;">Evaluation Criteria</th>
+                                            <th style="padding: 9px 6px; text-align: center; font-weight: 700; color: #34d399; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; width: 11%;">Excellent</th>
+                                            <th style="padding: 9px 6px; text-align: center; font-weight: 700; color: #60a5fa; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; width: 11%;">Good</th>
+                                            <th style="padding: 9px 6px; text-align: center; font-weight: 700; color: #fbbf24; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; width: 11%;">Average</th>
+                                            <th style="padding: 9px 14px; text-align: left; font-weight: 700; color: #8e909f; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; width: 37%;">Specific Remarks</th>
+                                            <th style="padding: 9px 8px; text-align: center; font-weight: 700; color: #c084fc; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; width: 8%;">Edit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($criteriaRatings as $key => $crit)
+                                            @php
+                                                $curRating = $crit['rating'] ?? 'Good';
+                                                $metric = $this->calculatedMetrics[$key] ?? null;
+                                                if (!$metric) {
+                                                    $cName = strtolower($crit['name'] ?? '');
+                                                    if (str_contains($cName, 'attend')) $metric = $this->calculatedMetrics['attendance'] ?? null;
+                                                    elseif (str_contains($cName, 'disciplin') || str_contains($cName, 'punctual') || str_contains($cName, 'conduct')) $metric = $this->calculatedMetrics['discipline'] ?? null;
+                                                    elseif (str_contains($cName, 'qualit') || str_contains($cName, 'deliverable')) $metric = $this->calculatedMetrics['work_quality'] ?? null;
+                                                    elseif (str_contains($cName, 'technic') || str_contains($cName, 'skill') || str_contains($cName, 'coding')) $metric = $this->calculatedMetrics['technical_skills'] ?? null;
+                                                    elseif (str_contains($cName, 'communicat') || str_contains($cName, 'report')) $metric = $this->calculatedMetrics['communication'] ?? null;
+                                                    elseif (str_contains($cName, 'team') || str_contains($cName, 'collaborat')) $metric = $this->calculatedMetrics['teamwork'] ?? null;
+                                                    else $metric = $this->calculatedMetrics['_composite'] ?? null;
+                                                }
+
+                                                $isEx = ($curRating === 'Excellent');
+                                                $isGd = ($curRating === 'Good');
+                                                $isAv = in_array($curRating, ['Average', 'Needs Improvement']);
+                                            @endphp
+                                            <tr style="border-bottom: 1px solid #1c2638; background: {{ $loop->even ? 'rgba(11, 19, 38, 0.45)' : 'transparent' }};">
+                                                {{-- Criteria Name & Compact Live Badge with Pencil Edit Icon --}}
+                                                <td style="padding: 8px 14px; vertical-align: middle;">
+                                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                                            <span style="font-weight: 700; color: #ffffff; font-size: 12.5px;">
+                                                                 {{ $crit['name'] ?? ucfirst(str_replace('_', ' ', $key)) }}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                wire:click="openCriterionModal('{{ $key }}')"
+                                                                title="Edit '{{ $crit['name'] ?? $key }}' in pop-up form"
+                                                                style="background: transparent; border: none; color: #a855f7; cursor: pointer; padding: 2px 4px; border-radius: 4px; display: inline-flex; align-items: center; line-height: 1; transition: transform 0.15s ease;"
+                                                                onmouseover="this.style.transform='scale(1.2)';"
+                                                                onmouseout="this.style.transform='scale(1)';">
+                                                                <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        @if ($metric)
+                                                            <span style="font-size: 10px; font-weight: 700; color: #94a3b8; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(59, 130, 246, 0.25); padding: 2px 6px; border-radius: 5px; white-space: nowrap;" title="{{ $metric['detail'] }}">
+                                                                📊 {{ $metric['score'] }}%
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </td>
+
+                                                {{-- Excellent Column Cell --}}
+                                                <td style="padding: 6px 6px; vertical-align: middle; text-align: center;">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="setRating('{{ $key }}', 'Excellent')"
+                                                        style="width: 100%; max-width: 95px; font-size: 11px; font-weight: 700; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; {{ $isEx ? 'background: rgba(16, 185, 129, 0.22); color: #34d399; border: 1.5px solid #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);' : 'background: #0b1326; color: #64748b; border: 1px solid #1e293b;' }}">
+                                                        {{ $isEx ? '✓ Excellent' : '○ Excellent' }}
+                                                    </button>
+                                                </td>
+
+                                                {{-- Good Column Cell --}}
+                                                <td style="padding: 6px 6px; vertical-align: middle; text-align: center;">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="setRating('{{ $key }}', 'Good')"
+                                                        style="width: 100%; max-width: 95px; font-size: 11px; font-weight: 700; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; {{ $isGd ? 'background: rgba(59, 130, 246, 0.22); color: #60a5fa; border: 1.5px solid #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.35);' : 'background: #0b1326; color: #64748b; border: 1px solid #1e293b;' }}">
+                                                        {{ $isGd ? '✓ Good' : '○ Good' }}
+                                                    </button>
+                                                </td>
+
+                                                {{-- Average Column Cell --}}
+                                                <td style="padding: 6px 6px; vertical-align: middle; text-align: center;">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="setRating('{{ $key }}', 'Average')"
+                                                        style="width: 100%; max-width: 95px; font-size: 11px; font-weight: 700; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; {{ $isAv ? 'background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1.5px solid #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);' : 'background: #0b1326; color: #64748b; border: 1px solid #1e293b;' }}">
+                                                        {{ $isAv ? '✓ Average' : '○ Average' }}
+                                                    </button>
+                                                </td>
+
+                                                {{-- Specific Remarks Column (Larger Multi-line Textarea to read full message) --}}
+                                                <td style="padding: 6px 14px; vertical-align: middle;">
+                                                    <textarea
+                                                        wire:model.defer="criteriaRatings.{{ $key }}.remarks"
+                                                        rows="2"
+                                                        placeholder="Evaluator feedback / specific remark..."
+                                                        style="width: 100%; min-height: 52px; background: #0b1326; border: 1.5px solid #222a3d; border-radius: 7px; padding: 7px 10px; color: #dae2fd; font-size: 12px; line-height: 1.45; outline: none; resize: vertical; transition: border-color 0.15s ease; box-sizing: border-box;"
+                                                        onfocus="this.style.borderColor='#a855f7'; this.style.boxShadow='0 0 8px rgba(168, 85, 247, 0.25)';"
+                                                        onblur="this.style.borderColor='#222a3d'; this.style.boxShadow='none';"
+                                                    ></textarea>
+                                                </td>
+
+                                                {{-- Dedicated Edit Pop-up Button Column --}}
+                                                <td style="padding: 6px 8px; vertical-align: middle; text-align: center;">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="openCriterionModal('{{ $key }}')"
+                                                        title="Edit '{{ $crit['name'] ?? $key }}' in pop-up form"
+                                                        style="background: rgba(168, 85, 247, 0.12); border: 1.5px solid #a855f7; border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: 700; color: #c084fc; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s ease;"
+                                                        onmouseover="this.style.backgroundColor='#7c3aed'; this.style.color='#ffffff';"
+                                                        onmouseout="this.style.backgroundColor='rgba(168, 85, 247, 0.12)'; this.style.color='#c084fc';">
+                                                        <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                        </svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" style="padding: 18px; text-align: center; color: #8e909f;">
+                                                    No evaluation criteria configured for this report.
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
-                        {{-- Bottom Save Actions Bar --}}
-                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 10px; border-top: 1px solid #1c2638;">
+                        {{-- 2. Final Comments by Mentor (Compact & Integrated with Edit in Pop-up) --}}
+                        <div style="background: #080e1d; border: 1.5px solid #222a3d; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 7px;">
+                                    <span style="font-size: 14px;">📝</span>
+                                    <label style="font-size: 12px; font-weight: 800; color: #ffffff; letter-spacing: 0.02em;">
+                                        Final Comments by Mentor
+                                    </label>
+                                    <button
+                                        type="button"
+                                        wire:click="openMentorCommentsModal"
+                                        title="Edit final mentor comments in pop-up form"
+                                        style="background: transparent; border: none; color: #a855f7; cursor: pointer; padding: 2px 4px; border-radius: 4px; display: inline-flex; align-items: center; line-height: 1; transition: transform 0.15s ease;"
+                                        onmouseover="this.style.transform='scale(1.2)';"
+                                        onmouseout="this.style.transform='scale(1)';">
+                                        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    {{-- Edit in Pop-up Button --}}
+                                    <button
+                                        type="button"
+                                        wire:click="openMentorCommentsModal"
+                                        style="background: rgba(168, 85, 247, 0.14); color: #c084fc; border: 1.5px solid #a855f7; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 2px 6px rgba(168, 85, 247, 0.2);"
+                                        onmouseover="this.style.backgroundColor='#7c3aed'; this.style.color='#ffffff';"
+                                        onmouseout="this.style.backgroundColor='rgba(168, 85, 247, 0.14)'; this.style.color='#c084fc';"
+                                        title="Edit final mentor comments in pop-up modal">
+                                        <span>✏️ Edit</span>
+                                    </button>
+
+                                    {{-- Auto-Draft Helper Button --}}
+                                    <button
+                                        type="button"
+                                        wire:click="autoDraftMentorComments"
+                                        style="background: rgba(124, 58, 237, 0.14); color: #c084fc; border: 1px solid rgba(124, 58, 237, 0.35); font-size: 10.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.15s ease;"
+                                        title="Auto-draft mentor comments from monthly attendance and tasks">
+                                        <span>⚡ Auto-Draft Comments</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <textarea
+                                wire:model.defer="mentorFinalComments"
+                                rows="3"
+                                placeholder="Provide comprehensive final feedback on the intern's overall performance during the month, discipline, speed, teamwork, and recommendations..."
+                                class="pr-textarea"
+                                style="width: 100%; min-height: 65px; font-size: 12px; padding: 8px 12px; line-height: 1.4;"
+                            ></textarea>
+                        </div>
+
+                        {{-- 3. Bottom Save Actions Bar (Rich Premium Gradient Button Design) --}}
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid #1c2638;">
                             <div>
                                 @if ($lastSavedAt)
                                     <span style="font-size: 12px; color: #34d399; display: inline-flex; align-items: center; gap: 5px;">
                                         <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                         </svg>
-                                        <span>Last saved: {{ $lastSavedAt }}</span>
+                                        <span>Saved at {{ $lastSavedAt }}</span>
                                     </span>
                                 @else
-                                    <span style="font-size: 12px; color: #8e909f;">
-                                        Enter weekly summary & remarks and click save.
+                                    <span style="font-size: 12px; color: #f59e0b; display: inline-flex; align-items: center; gap: 5px;">
+                                        <span>● Evaluation not saved yet</span>
                                     </span>
                                 @endif
                             </div>
@@ -980,18 +1162,115 @@
                             <button
                                 type="button"
                                 wire:click="saveRemarks"
-                                style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; border: none; font-size: 13.5px; font-weight: 700; padding: 10px 24px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px rgba(30, 64, 175, 0.4); transition: transform 0.15s ease;"
+                                style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #ffffff; border: none; font-size: 13.5px; font-weight: 700; padding: 10px 24px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4); transition: transform 0.15s ease;"
                                 onmouseover="this.style.transform='scale(1.02)';"
                                 onmouseout="this.style.transform='scale(1)';">
                                 <svg style="width: 17px; height: 17px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                                 </svg>
-                                <span>Save Evaluation & Remarks</span>
+                                <span>Save Monthly Evaluation & Final Review</span>
                             </button>
                         </div>
-
                     </div>
-                </div>
+                @else
+                    {{-- ── Section 2 (Weekly Mode): Supervisor Weekly Evaluation Form ── --}}
+                    <div class="pr-card" style="padding: 22px 24px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #222a3d;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #34d399; display: flex; align-items: center; justify-content: center;">
+                                    <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 16px; font-weight: 800; color: #ffffff; margin: 0;">
+                                        Supervisor Evaluation & Remarks
+                                    </h3>
+                                    <div style="font-size: 12px; color: #8e909f; margin-top: 2px;">
+                                        Provide the weekly summary and remarks for {{ $selectedIntern->name }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Auto-generate summary helper button --}}
+                            @if ($dailyLogbooks->count() > 0)
+                                <button
+                                    type="button"
+                                    wire:click="autoDraftSummary"
+                                    style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.15s ease;"
+                                    title="Synthesize weekly summary from intern's daily tasks">
+                                    <span>⚡ Auto-Draft Summary from Tasks</span>
+                                </button>
+                            @endif
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 18px;">
+                            
+                            {{-- Weekly Summary Input --}}
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
+                                    Weekly Summary:
+                                </label>
+                                <textarea
+                                    wire:model="weeklySummary"
+                                    rows="5"
+                                    placeholder="Summarize deliverables completed, overall performance, code quality, and attendance for this week..."
+                                    class="pr-textarea"
+                                ></textarea>
+                                <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">
+                                    Outline the key milestones and performance highlights achieved by the intern this week.
+                                </div>
+                            </div>
+
+                            {{-- Supervisor Remarks Input --}}
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
+                                    Supervisor Remarks:
+                                </label>
+                                <textarea
+                                    wire:model="supervisorRemarks"
+                                    rows="4"
+                                    placeholder="Mentor remarks, feedback on accuracy/speed, areas for improvement, and directives for the upcoming week..."
+                                    class="pr-textarea"
+                                ></textarea>
+                                <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">
+                                    Specific feedback or recommendations from the supervisor/coordinator.
+                                </div>
+                            </div>
+
+                            {{-- Bottom Save Actions Bar --}}
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 10px; border-top: 1px solid #1c2638;">
+                                <div>
+                                    @if ($lastSavedAt)
+                                        <span style="font-size: 12px; color: #34d399; display: inline-flex; align-items: center; gap: 5px;">
+                                            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <span>Last saved: {{ $lastSavedAt }}</span>
+                                        </span>
+                                    @else
+                                        <span style="font-size: 12px; color: #8e909f;">
+                                            Enter weekly summary & remarks and click save.
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <button
+                                    type="button"
+                                    wire:click="saveRemarks"
+                                    style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; border: none; font-size: 13.5px; font-weight: 700; padding: 10px 24px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px rgba(30, 64, 175, 0.4); transition: transform 0.15s ease;"
+                                    onmouseover="this.style.transform='scale(1.02)';"
+                                    onmouseout="this.style.transform='scale(1)';">
+                                    <svg style="width: 17px; height: 17px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                    </svg>
+                                    <span>Save Evaluation & Remarks</span>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                @endif
 
             </div>
         @else
@@ -1267,6 +1546,224 @@
                         style="padding: 7px 18px; font-size: 12.5px; font-weight: 700; color: #ffffff; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(30,64,175,0.4); display: inline-flex; align-items: center; gap: 6px;">
                         <span wire:loading.remove wire:target="saveTiming">Confirm & Save All Changes</span>
                         <span wire:loading wire:target="saveTiming">Saving & Syncing...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ── 1. Individual Criterion Edit Pop-up Modal ── --}}
+    @if ($showCriterionModal)
+        <div style="position: fixed; inset: 0; z-index: 9999; background: rgba(11, 19, 38, 0.82); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px;">
+            <div style="background-color: #131b2e; border-radius: 16px; border: 1.5px solid #222a3d; width: 100%; max-width: 540px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65); overflow: hidden;">
+                {{-- Header (Pinned) --}}
+                <div style="padding: 16px 22px; border-bottom: 1.5px solid #222a3d; background-color: #171f33; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 36px; height: 36px; border-radius: 10px; background-color: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); display: flex; align-items: center; justify-content: center;">
+                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 15px; font-weight: 800; color: #ffffff; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <span>Edit Criterion:</span>
+                                <span style="color: #c084fc;">{{ $modalCritName }}</span>
+                            </h3>
+                            <p style="font-size: 11.5px; color: #8e909f; margin: 2px 0 0;">
+                                Candidate: <strong style="color: #cbd5e1;">{{ $selectedIntern?->name }}</strong>
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        wire:click="closeCriterionModal"
+                        style="background: transparent; border: none; color: #8e909f; cursor: pointer; padding: 4px; border-radius: 6px; line-height: 1;"
+                        onmouseover="this.style.color='#ffffff';"
+                        onmouseout="this.style.color='#8e909f';">
+                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Body (Scrollable) --}}
+                <div class="modal-scrollable-body" style="padding: 18px 22px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; flex: 1 1 auto; min-height: 0;">
+                    
+                    {{-- Live Performance Metric Banner --}}
+                    @if ($modalCritMetric && !empty($modalCritMetric['score']))
+                        <div style="background-color: #0b1326; border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                            <div>
+                                <span style="font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em;">Calculated Performance Score:</span>
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+                                    {{ $modalCritMetric['detail'] ?? 'Computed based on monthly logs and tasks' }}
+                                </div>
+                            </div>
+                            <span style="font-size: 14px; font-weight: 800; color: #60a5fa; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); padding: 4px 10px; border-radius: 7px; white-space: nowrap;">
+                                📊 {{ $modalCritMetric['score'] }}%
+                            </span>
+                        </div>
+                    @endif
+
+                    {{-- Performance Rating Selection --}}
+                    <div>
+                        <label style="display: block; font-size: 11.5px; font-weight: 700; color: #dae2fd; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+                            Performance Rating
+                        </label>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                            {{-- Excellent --}}
+                            <button
+                                type="button"
+                                wire:click="setModalCriterionRating('Excellent')"
+                                style="padding: 9px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; {{ $modalCritRating === 'Excellent' ? 'background: rgba(16, 185, 129, 0.22); color: #34d399; border: 1.5px solid #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);' : 'background: #0b1326; color: #64748b; border: 1px solid #1e293b;' }}">
+                                {{ $modalCritRating === 'Excellent' ? '✓ Excellent' : '○ Excellent' }}
+                            </button>
+
+                            {{-- Good --}}
+                            <button
+                                type="button"
+                                wire:click="setModalCriterionRating('Good')"
+                                style="padding: 9px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; {{ $modalCritRating === 'Good' ? 'background: rgba(59, 130, 246, 0.22); color: #60a5fa; border: 1.5px solid #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.35);' : 'background: #0b1326; color: #64748b; border: 1px solid #1e293b;' }}">
+                                {{ $modalCritRating === 'Good' ? '✓ Good' : '○ Good' }}
+                            </button>
+
+                            {{-- Average --}}
+                            <button
+                                type="button"
+                                wire:click="setModalCriterionRating('Average')"
+                                style="padding: 9px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; {{ in_array($modalCritRating, ['Average', 'Needs Improvement']) ? 'background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1.5px solid #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);' : 'background: #0b1326; color: #64748b; border: 1px solid #1e293b;' }}">
+                                {{ in_array($modalCritRating, ['Average', 'Needs Improvement']) ? '✓ Average' : '○ Average' }}
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Specific Remarks Textarea --}}
+                    <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                            <label style="display: block; font-size: 11.5px; font-weight: 700; color: #dae2fd; text-transform: uppercase; letter-spacing: 0.05em;">
+                                Specific Remarks & Feedback
+                            </label>
+                            <button
+                                type="button"
+                                wire:click="refreshModalCriterionRemarks"
+                                style="background: rgba(147, 51, 234, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                                title="Auto-generate smart remarks from calculated metrics">
+                                <span>⚡ Refresh Auto Remark</span>
+                            </button>
+                        </div>
+
+                        <textarea
+                            wire:model="modalCritRemarks"
+                            rows="4"
+                            placeholder="Provide detailed feedback on the intern's performance for this criteria..."
+                            style="width: 100%; min-height: 90px; background-color: #0b1326; border: 1.5px solid #222a3d; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #ffffff; outline: none; line-height: 1.5; resize: vertical;"
+                            onfocus="this.style.borderColor='#a855f7'; this.style.boxShadow='0 0 8px rgba(168, 85, 247, 0.25)';"
+                            onblur="this.style.borderColor='#222a3d'; this.style.boxShadow='none';"
+                        ></textarea>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                            This remark appears in the Remarks column of the official Monthly Review document.
+                        </div>
+                    </div>
+
+                </div>
+
+                {{-- Footer (Pinned) --}}
+                <div style="padding: 12px 22px; border-top: 1.5px solid #222a3d; background-color: #171f33; display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                    <button
+                        type="button"
+                        wire:click="closeCriterionModal"
+                        style="background: transparent; color: #cbd5e1; border: 1px solid #334155; padding: 8px 16px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="saveCriterionModal"
+                        style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #ffffff; border: none; font-size: 12.5px; font-weight: 700; padding: 8px 20px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);">
+                        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Save Criterion</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ── 2. Final Mentor Comments Edit Pop-up Modal ── --}}
+    @if ($showMentorCommentsModal)
+        <div style="position: fixed; inset: 0; z-index: 9999; background: rgba(11, 19, 38, 0.82); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px;">
+            <div style="background-color: #131b2e; border-radius: 16px; border: 1.5px solid #222a3d; width: 100%; max-width: 580px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65); overflow: hidden;">
+                {{-- Header (Pinned) --}}
+                <div style="padding: 16px 22px; border-bottom: 1.5px solid #222a3d; background-color: #171f33; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 36px; height: 36px; border-radius: 10px; background-color: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 18px;">📝</span>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 15.5px; font-weight: 800; color: #ffffff; margin: 0;">
+                                Edit Final Comments by Mentor
+                            </h3>
+                            <p style="font-size: 11.5px; color: #8e909f; margin: 2px 0 0;">
+                                Candidate: <strong style="color: #cbd5e1;">{{ $selectedIntern?->name }}</strong> &bull; Monthly / Final Review
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        wire:click="closeMentorCommentsModal"
+                        style="background: transparent; border: none; color: #8e909f; cursor: pointer; padding: 4px; border-radius: 6px; line-height: 1;"
+                        onmouseover="this.style.color='#ffffff';"
+                        onmouseout="this.style.color='#8e909f';">
+                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Body (Scrollable) --}}
+                <div class="modal-scrollable-body" style="padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1 1 auto; min-height: 0;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                        <span style="font-size: 11.5px; font-weight: 700; color: #dae2fd; text-transform: uppercase; letter-spacing: 0.05em;">
+                            Mentor's Final Assessment & Recommendations:
+                        </span>
+                        <button
+                            type="button"
+                            wire:click="autoDraftMentorComments"
+                            style="background: rgba(124, 58, 237, 0.16); color: #c084fc; border: 1px solid rgba(124, 58, 237, 0.4); font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
+                            title="Auto-draft mentor comments from monthly attendance and tasks">
+                            <span>⚡ Auto-Draft from Metrics</span>
+                        </button>
+                    </div>
+
+                    <textarea
+                        wire:model="modalMentorComments"
+                        rows="6"
+                        placeholder="Provide comprehensive final feedback on the intern's overall performance during the month, discipline, speed, teamwork, and recommendations..."
+                        style="width: 100%; min-height: 130px; background-color: #0b1326; border: 1.5px solid #222a3d; border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: #ffffff; outline: none; line-height: 1.55; resize: vertical;"
+                        onfocus="this.style.borderColor='#a855f7'; this.style.boxShadow='0 0 8px rgba(168, 85, 247, 0.25)';"
+                        onblur="this.style.borderColor='#222a3d'; this.style.boxShadow='none';"
+                    ></textarea>
+
+                    <div style="font-size: 11.5px; color: #64748b; line-height: 1.4;">
+                        These final comments appear directly beneath the evaluation criteria table on the intern's official Monthly / Final Internship Review document.
+                    </div>
+                </div>
+
+                {{-- Footer (Pinned) --}}
+                <div style="padding: 12px 22px; border-top: 1.5px solid #222a3d; background-color: #171f33; display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                    <button
+                        type="button"
+                        wire:click="closeMentorCommentsModal"
+                        style="background: transparent; color: #cbd5e1; border: 1px solid #334155; padding: 8px 16px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="saveMentorCommentsModal"
+                        style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #ffffff; border: none; font-size: 12.5px; font-weight: 700; padding: 8px 20px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);">
+                        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Save Final Comments</span>
                     </button>
                 </div>
             </div>

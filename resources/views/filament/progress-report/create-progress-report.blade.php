@@ -105,16 +105,21 @@
                     </svg>
                 </div>
                 <div>
+                    @php
+                        $isMonthlyMode = ($this->data['report_type'] ?? '') === 'monthly' || request()->query('type') === 'monthly';
+                    @endphp
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <h1 style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 0; line-height: 1.2;">
-                            Create New Progress Report
+                            {{ $isMonthlyMode ? 'Create Monthly / Final Review Report' : 'Create New Progress Report' }}
                         </h1>
-                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; padding: 3px 9px; border-radius: 9999px; border: 1px solid rgba(59, 130, 246, 0.3);">
-                            ● Weekly Evaluation
+                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background-color: {{ $isMonthlyMode ? 'rgba(168, 85, 247, 0.18)' : 'rgba(59, 130, 246, 0.15)' }}; color: {{ $isMonthlyMode ? '#c084fc' : '#93c5fd' }}; padding: 3px 9px; border-radius: 9999px; border: 1px solid {{ $isMonthlyMode ? 'rgba(168, 85, 247, 0.35)' : 'rgba(59, 130, 246, 0.3)' }};">
+                            ● {{ $isMonthlyMode ? 'Monthly / Final Review' : 'Weekly Evaluation' }}
                         </span>
                     </div>
                     <p style="font-size: 12.5px; color: #8e909f; margin: 4px 0 0 0;">
-                        Specify evaluation week duration and target interns, batch, or project squad to compile weekly daily tasks and write supervisor feedback.
+                        {{ $isMonthlyMode 
+                            ? 'Configure evaluation criteria rubric and select target interns or batch to conduct monthly evaluation and final mentor reviews.'
+                            : 'Specify evaluation week duration and target interns, batch, or project squad to compile weekly daily tasks and write supervisor feedback.' }}
                     </p>
                 </div>
             </div>

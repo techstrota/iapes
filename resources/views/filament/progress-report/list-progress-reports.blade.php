@@ -187,7 +187,8 @@
                 <a href="{{ $createUrl }}"
                    style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: #ffffff; border: none; font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 4px 16px rgba(217, 119, 6, 0.4); transition: transform 0.15s ease;"
                    onmouseover="this.style.transform='scale(1.02)';"
-                   onmouseout="this.style.transform='scale(1)';">
+                   onmouseout="this.style.transform='scale(1)';"
+                   title="Generate a new progress report">
                     <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
@@ -353,10 +354,21 @@
                     {{-- ── Card Top Header Row ── --}}
                     <div>
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px;">
-                            {{-- Target Cohort Tag --}}
-                            <span class="pr-badge" style="background: rgba(59, 130, 246, 0.12); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3);">
-                                {{ $targetLabel }}
-                            </span>
+                            {{-- Target Cohort Tag & Report Type Badge --}}
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                @if ($report->isMonthly())
+                                    <span class="pr-badge" style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35);">
+                                        🟣 Monthly Review
+                                    </span>
+                                @else
+                                    <span class="pr-badge" style="background: rgba(59, 130, 246, 0.12); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3);">
+                                        🔵 Weekly Report
+                                    </span>
+                                @endif
+                                <span class="pr-badge" style="background: rgba(148, 163, 184, 0.1); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.25);">
+                                    {{ $targetLabel }}
+                                </span>
+                            </div>
 
                             {{-- Status Tag --}}
                             @if ($isDone)
