@@ -30,7 +30,7 @@ class ListInterns extends Page
     public ?string $selectedArchiveCycle = null;
     public ?int $selectedBatchId = null;
     public array $selectedInterns = [];
-    public int $perPage = 10;
+    public int $perPage = 11;
 
     // Archival / Promotion Modal state
     public bool $showArchiveModal = false;
@@ -525,7 +525,7 @@ class ListInterns extends Page
 
         // View Mode Filter: Current Active, Archived Cycles, or All
         if ($this->viewMode === 'current') {
-            $query->where('is_active', true);
+            $query->where('is_active', true)->whereNull('cohort_archive_name');
         } elseif ($this->viewMode === 'archived') {
             $query->where('is_active', false);
             if (filled($this->selectedArchiveCycle)) {
@@ -578,9 +578,17 @@ class ListInterns extends Page
                 ->implode(', ');
         }
 
-        $activeCount = Intern::where('is_active', true)->count();
+        $activeCount = Intern::where('is_active', true)->whereNull('cohort_archive_name')->count();
         $archivedCount = Intern::where('is_active', false)->count();
         $totalCount = Intern::count();
+
+        $totalInternsCount = Intern::whereNotNull('internship_batch_id')
+            ->when($this->selectedBatchId, fn ($q) => $q->where('internship_batch_id', $this->selectedBatchId))
+            ->count();
+
+        if ($totalInternsCount === 0) {
+            $totalInternsCount = $totalCount;
+        }
 
         $archiveCycles = Intern::whereNotNull('cohort_archive_name')
             ->where('cohort_archive_name', '!=', '')
@@ -655,7 +663,8 @@ class ListInterns extends Page
             'groupedBatches' => $groupedBatches,
             'groupedTeams' => $groupedTeams,
             'currentPageIds' => $interns->pluck('id')->map(fn ($id) => (int) $id)->toArray(),
-            'totalInternsCount' => $totalCount,
+            'totalInternsCount' => $totalInternsCount,
+            'totalCount' => $totalCount,
             'activeCount' => $activeCount,
             'archivedCount' => $archivedCount,
             'archiveCycles' => $archiveCycles,

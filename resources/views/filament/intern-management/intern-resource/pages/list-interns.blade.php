@@ -77,7 +77,7 @@
                     type="button"
                     wire:click="$set('viewMode', 'all')"
                     style="padding: 7px 16px; font-size: 13px; font-weight: 700; border-radius: 9px; border: none; cursor: pointer; transition: all 0.15s ease; {{ $viewMode === 'all' ? 'background-color: #1e40af; color: #FFFFFF; box-shadow: 0 2px 8px rgba(30,64,175,0.4);' : 'background-color: transparent; color: #8e909f;' }}">
-                    All Interns ({{ $totalInternsCount }})
+                    All Interns ({{ $totalCount ?? $totalInternsCount }})
                 </button>
             </div>
 
@@ -138,7 +138,7 @@
                         type="button"
                         wire:click="$set('activeTab', 'all')"
                         style="padding: 6px 14px; font-size: 13px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s ease; {{ $activeTab === 'all' ? 'background-color: #1e40af; color: #FFFFFF; font-weight: 700;' : 'background-color: transparent; color: #8e909f; font-weight: 500;' }}">
-                        All ({{ $totalInternsCount }})
+                        All ({{ $totalCount ?? $totalInternsCount }})
                     </button>
                     <button
                         type="button"
@@ -452,18 +452,18 @@
             <div style="background-color: #131b2e; border: 1px solid #222a3d; border-radius: 12px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
                 <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
                     <div style="color: #8e909f; font-size: 13px; font-weight: 500;">
-                        Showing <span style="font-weight: 700; color: #dae2fd;">{{ $interns->count() }}</span> of <span style="font-weight: 700; color: #dae2fd;">{{ $interns->total() }}</span> interns
+                        Showing <span style="font-weight: 700; color: #dae2fd;">{{ $interns->total() }}</span> of <span style="font-weight: 700; color: #dae2fd;">{{ max($totalInternsCount ?? 0, $interns->total()) }}</span> interns
                     </div>
 
-                    {{-- Per Page Selector (10, 20, 50, all) --}}
+                    {{-- Per Page Selector (11, 20, 50, all) --}}
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span style="font-size: 12px; color: #8e909f; font-weight: 600;">Per page:</span>
                         <select
                             wire:model.live="perPage"
                             style="background-color: #171f33; border: 1px solid #222a3d; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: #dae2fd; cursor: pointer; outline: none;">
-                            <option value="12">12</option>
-                            <option value="24">24</option>
-                            <option value="36">36</option>
+                            <option value="11">11</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
                             <option value="-1">All</option>
                         </select>
                     </div>
