@@ -28,7 +28,7 @@ class ListAttendances extends Page
     public ?int $selectedTeamId = null;
     public string $statusFilter = 'all'; // all, present, wfh, absent, leave, unmarked
     public string $selectedDate = '';
-    public int $perPage = 10;
+    public int $perPage = 11;
 
     // For Individual Tab
     public ?int $selectedInternId = null;
@@ -52,7 +52,7 @@ class ListAttendances extends Page
         $this->calendarMonth = now()->format('Y-m');
 
         // Set initial selected intern for individual view
-        $firstIntern = Intern::where('is_active', true)->first();
+        $firstIntern = Intern::where('is_active', true)->whereNull('cohort_archive_name')->first();
         $this->selectedInternId = $firstIntern?->id;
     }
 
@@ -440,7 +440,7 @@ class ListAttendances extends Page
             ->send();
     }
 
-    public function markAllHoliday(?string $holidayName = 'Public Holiday'): void
+    public function markAllHoliday(?string $holidayName = 'Holiday'): void
     {
         $interns = Intern::where('is_active', true)->get();
         foreach ($interns as $intern) {
@@ -549,7 +549,7 @@ class ListAttendances extends Page
 
     public function getStats(): array
     {
-        $total = Intern::where('is_active', true)->count();
+        $total = Intern::where('is_active', true)->whereNull('cohort_archive_name')->count();
         $date = $this->selectedDate;
 
         $present = Attendance::where('date', $date)->where('status', 'present')->count();
@@ -610,7 +610,7 @@ class ListAttendances extends Page
     public function getWeeklyChartDistribution(): array
     {
         $weekDays = $this->getWeekDays();
-        $total = Intern::where('is_active', true)->count() ?: 1;
+        $total = Intern::where('is_active', true)->whereNull('cohort_archive_name')->count() ?: 1;
         $distribution = [];
 
         foreach ($weekDays as $day) {
@@ -655,11 +655,13 @@ class ListAttendances extends Page
     public function getInternsQuery()
     {
         $date = $this->selectedDate;
-        $query = Intern::where('is_active', true)->with([
-            'attendances',
-            'batch',
-            'team',
-        ]);
+        $query = Intern::where('is_active', true)
+            ->whereNull('cohort_archive_name')
+            ->with([
+                'attendances',
+                'batch',
+                'team',
+            ]);
 
         if (filled($this->search)) {
             $term = '%' . trim($this->search) . '%';
@@ -974,6 +976,7 @@ class ListAttendances extends Page
     public function getIndividualData(): array
     {
         $allActiveInterns = Intern::where('is_active', true)
+            ->whereNull('cohort_archive_name')
             ->with(['attendances', 'batch', 'team'])
             ->orderBy('name')
             ->get();
@@ -1063,12 +1066,21 @@ class ListAttendances extends Page
 
     public function getViewData(): array
     {
+        $totalInternsCount = Intern::whereNotNull('internship_batch_id')
+            ->when($this->selectedBatchId, fn ($q) => $q->where('internship_batch_id', $this->selectedBatchId))
+            ->count();
+
+        if ($totalInternsCount === 0) {
+            $totalInternsCount = Intern::count();
+        }
+
         return [
             'stats' => $this->getStats(),
             'batches' => InternshipBatch::where('is_archived', false)->get(),
             'teams' => InternTeam::where('is_archived', false)->get(),
             'interns' => $this->getInternsQuery()->paginate($this->perPage),
-            'allActiveInterns' => Intern::where('is_active', true)->orderBy('name')->get(),
+            'totalInternsCount' => $totalInternsCount,
+            'allActiveInterns' => Intern::where('is_active', true)->whereNull('cohort_archive_name')->orderBy('name')->get(),
             'selectedDateFormatted' => Carbon::parse($this->selectedDate)->format('D, d M Y'),
             'selectedWeekFormatted' => Carbon::parse($this->selectedDate)->format('F Y') . ' (Week ' . Carbon::parse($this->selectedDate)->weekOfYear . ')',
             'isToday' => $this->selectedDate === now()->toDateString(),

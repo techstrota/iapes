@@ -27,6 +27,20 @@ class ListDailyLogbooks extends ListRecords
                     $internId = auth()->id();
                     $targetDate = Carbon::parse($data['date'])->format('Y-m-d');
 
+                    // Check if date is eligible (not Sunday, Holiday, or Absent)
+                    $eligibility = DailyLogbook::isDateEligibleForLog($targetDate, $internId);
+                    if (!($eligibility['allowed'] ?? $eligibility['eligible'] ?? true)) {
+                        Notification::make()
+                            ->title('Logbook Submission Disabled')
+                            ->body($eligibility['reason'])
+                            ->warning()
+                            ->persistent()
+                            ->send();
+
+                        $action->halt();
+                        return null;
+                    }
+
                     // Check if entry already exists for this date
                     $existing = DailyLogbook::where('intern_id', $internId)
                         ->whereDate('date', $targetDate)

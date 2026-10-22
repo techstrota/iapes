@@ -86,6 +86,23 @@ class DailyLogbook extends Model
             ];
         }
 
+        // 3. Absent Attendance Rule
+        $resolvedInternId = $internId ?: (auth()->check() ? auth()->id() : null);
+        if ($resolvedInternId) {
+            $isAbsent = Attendance::whereDate('date', $dateStr)
+                ->where('intern_id', $resolvedInternId)
+                ->where('status', 'absent')
+                ->exists();
+
+            if ($isAbsent) {
+                return [
+                    'allowed' => false,
+                    'eligible' => false,
+                    'reason' => 'Attendance for ' . $carbon->format('d M Y') . ' is marked as Absent. Daily work logbook submission is disabled for absent dates.',
+                ];
+            }
+        }
+
         return [
             'allowed' => true,
             'eligible' => true,

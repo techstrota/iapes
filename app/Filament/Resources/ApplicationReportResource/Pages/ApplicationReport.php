@@ -35,6 +35,19 @@ class ApplicationReport extends Page
     public string $sortDir = 'desc';
     public int $perPage = 15;
 
+    // Pop-up Modal State for Column Selector & CSV Export
+    public bool $showExportModal = false;
+
+    public function openExportModal(): void
+    {
+        $this->showExportModal = true;
+    }
+
+    public function closeExportModal(): void
+    {
+        $this->showExportModal = false;
+    }
+
     // ── Dynamic Column Visibility (All DB columns supported, ID removed, Sr. No. added by default) ──
     public array $visibleColumns = [
         'application_code',
@@ -331,6 +344,7 @@ class ApplicationReport extends Page
     // ── Export CSV with Default "Sr. No." as first column ─────────────────────
     public function exportCsv(): StreamedResponse
     {
+        $this->showExportModal = false;
         $filename = 'application-report-' . now()->format('Y-m-d-His') . '.csv';
         $query = $this->getApplicationsQuery();
         $visible = $this->visibleColumns;

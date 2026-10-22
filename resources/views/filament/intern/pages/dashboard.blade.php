@@ -299,19 +299,7 @@
                                                     </a>
                                                 @endif
                                             </div>
-                                        </div>
-
-                                        {{-- Action Button: Submit Work --}}
-                                        <div>
-                                            <button type="button"
-                                                    wire:click="mountAction('submitWork', { task_id: {{ $t->id }}, task_title: '{{ addslashes($t->title) }}' })"
-                                                    style="display: inline-flex; align-items: center; gap: 6px; background-color: #1e40af; color: #ffffff; padding: 8px 14px; border-radius: 9px; font-size: 12px; font-weight: 700; border: 1px solid #3b82f6; cursor: pointer; box-shadow: 0 2px 8px rgba(30, 64, 175, 0.4); transition: background-color 0.15s ease;">
-                                                <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                                </svg>
-                                                {{ $isRejected ? 'Resubmit Work' : 'Submit Work' }}
-                                            </button>
-                                        </div>
+                                        </div>     
                                     </div>
                                 @endforeach
                             </div>
@@ -485,84 +473,6 @@
 
                 {{-- RIGHT COLUMN: Quick Management Hub & Team Squad & System Milestones --}}
                 <div style="display: flex; flex-direction: column; gap: 20px;">
-
-                    {{-- Module Hub 1: Quick Action Launchpad --}}
-                    <div style="background-color: #131b2e; border: 1px solid #222a3d; border-radius: 14px; padding: 18px 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
-                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8e909f; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                            <svg style="width: 14px; height: 14px; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Intern Launchpad
-                        </div>
-
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <a href="{{ route('filament.intern.resources.task-management.assigned-tasks.index') }}"
-                               style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: #090e1c; border: 1px solid #1c2638; border-radius: 10px; text-decoration: none; color: #dae2fd; font-size: 13px; font-weight: 600; transition: all 0.15s ease;">
-                                <span style="display: flex; align-items: center; gap: 8px;">
-                                    📋 Assigned Task Board
-                                </span>
-                                <span style="font-size: 11px; font-weight: 700; color: {{ $data['pending_count'] > 0 ? '#fbbf24' : '#4edea3' }}; background-color: {{ $data['pending_count'] > 0 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(16, 185, 129, 0.12)' }}; padding: 2px 7px; border-radius: 6px;">
-                                    {{ $data['pending_count'] }} Pending
-                                </span>
-                            </a>
-
-                            <a href="{{ route('filament.intern.resources.attendances.index') }}"
-                               style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: #090e1c; border: 1px solid #1c2638; border-radius: 10px; text-decoration: none; color: #dae2fd; font-size: 13px; font-weight: 600; transition: all 0.15s ease;">
-                                <span style="display: flex; align-items: center; gap: 8px;">
-                                    📅 Attendance History
-                                </span>
-                                <span style="font-size: 11px; font-weight: 700; color: #4edea3; background-color: rgba(16, 185, 129, 0.12); padding: 2px 7px; border-radius: 6px;">
-                                    {{ $data['attendance_rate'] }}%
-                                </span>
-                            </a>
-
-                            <a href="{{ route('print-id-card', ['id' => $intern->id]) }}" target="_blank"
-                               style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: #090e1c; border: 1px solid #1c2638; border-radius: 10px; text-decoration: none; color: #dae2fd; font-size: 13px; font-weight: 600; transition: all 0.15s ease;">
-                                <span style="display: flex; align-items: center; gap: 8px;">
-                                    🪪 Official ID Card
-                                </span>
-                                <span style="font-size: 11px; font-weight: 700; color: #fbbf24; background-color: rgba(245, 158, 11, 0.12); padding: 2px 7px; border-radius: 6px;">
-                                    Print / PDF
-                                </span>
-                            </a>
-
-                            @if($intern->offer_letter_id)
-                                <a href="{{ route('view-offer-pdf', ['id' => $intern->offer_letter_id]) }}" target="_blank"
-                                   style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: #090e1c; border: 1px solid #1c2638; border-radius: 10px; text-decoration: none; color: #dae2fd; font-size: 13px; font-weight: 600; transition: all 0.15s ease;">
-                                    <span style="display: flex; align-items: center; gap: 8px;">
-                                        📄 Offer Letter Document
-                                    </span>
-                                    <span style="font-size: 11px; font-weight: 700; color: #93c5fd; background-color: rgba(59, 130, 246, 0.12); padding: 2px 7px; border-radius: 6px;">
-                                        View PDF
-                                    </span>
-                                </a>
-                            @endif
-
-                            @if(filled($intern->cert_token) || $intern->completionCertificate)
-                                <a href="{{ route('intern.certificate.view', ['id' => $intern->id]) }}" target="_blank"
-                                   style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: #090e1c; border: 1px solid #1c2638; border-radius: 10px; text-decoration: none; color: #dae2fd; font-size: 13px; font-weight: 600; transition: all 0.15s ease;">
-                                    <span style="display: flex; align-items: center; gap: 8px;">
-                                        🎓 Completion Certificate
-                                    </span>
-                                    <span style="font-size: 11px; font-weight: 700; color: #34d399; background-color: rgba(16, 185, 129, 0.15); padding: 2px 7px; border-radius: 6px;">
-                                        Issued
-                                    </span>
-                                </a>
-                            @endif
-
-                            @if($intern->completionLetter)
-                                <a href="{{ route('intern.completion_letter.view', ['id' => $intern->id]) }}" target="_blank"
-                                   style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: #090e1c; border: 1px solid #1c2638; border-radius: 10px; text-decoration: none; color: #dae2fd; font-size: 13px; font-weight: 600; transition: all 0.15s ease;">
-                                    <span style="display: flex; align-items: center; gap: 8px;">
-                                        📜 Experience Letter
-                                    </span>
-                                    <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background-color: rgba(56, 189, 248, 0.15); padding: 2px 7px; border-radius: 6px;">
-                                        Available
-                                    </span>
-                                </a>
-                            @endif
-                        </div>
-                    </div>
 
                     {{-- Module Hub 2: Cohort & Project Squad --}}
                     <div style="background-color: #131b2e; border: 1px solid #222a3d; border-radius: 14px; padding: 18px 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">

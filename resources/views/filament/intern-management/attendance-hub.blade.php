@@ -789,7 +789,11 @@
                 <div style="padding: 14px 18px; border-top: 1px solid #222a3d; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background-color: #131b2e;">
                     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                         <div style="color: #8e909f; font-size: 12px; font-weight: 500;">
-                            Showing <span style="font-weight: 700; color: #dae2fd;">{{ $interns->count() }}</span> of <span style="font-weight: 700; color: #dae2fd;">{{ $interns->total() }}</span> interns
+                            Showing <span style="font-weight: 700; color: #dae2fd;">
+                                {{ $interns->total() }}
+                            </span> of <span style="font-weight: 700; color: #dae2fd;">
+                                {{ max($totalInternsCount ?? 0, $interns->total()) }}
+                            </span> interns
                         </div>
 
                         <div style="display: flex; align-items: center; gap: 6px;">
@@ -797,7 +801,7 @@
                             <select
                                 wire:model.live="perPage"
                                 style="background-color: #171f33; border: 1px solid #222a3d; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 700; color: #dae2fd; cursor: pointer; outline: none;">
-                                <option value="10">10</option>
+                                <option value="11">11</option>
                                 <option value="20">20</option>
                                 <option value="50">50</option>
                             </select>
@@ -1787,7 +1791,6 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <p style="font-size: 11px; color: #c084fc; margin: 3px 0 0;">Public Holiday</p>
                                 </div>
                             </div>
                         </div>
