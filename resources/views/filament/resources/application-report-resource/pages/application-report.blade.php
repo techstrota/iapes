@@ -241,6 +241,15 @@
             .exec-scroll::-webkit-scrollbar-thumb:hover {
                 background: #3b82f6;
             }
+
+            /* Modal animations & overlay */
+            @keyframes modalFadeIn {
+                from { opacity: 0; transform: scale(0.97) translateY(-8px); }
+                to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            .exec-modal-animate {
+                animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
         </style>
 
         {{-- ───────────────────────────────────────────────────────────────── --}}
@@ -287,14 +296,23 @@
                     </div>
                 </div>
 
-                {{-- Status Overview Pills --}}
-                <div style="display: flex; align-items: center; gap: 10px;">
+                {{-- Status Overview Pills & Download Trigger --}}
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                     <span style="font-size: 12px; font-weight: 600; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 6px 14px; border-radius: 10px;">
                         {{ number_format($activeCount) }} Active
                     </span>
                     <span style="font-size: 12px; font-weight: 600; color: #fbbf24; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 6px 14px; border-radius: 10px;">
                         {{ number_format($archivedCount) }} Archived
                     </span>
+                    <button type="button" wire:click="openExportModal" class="exec-btn-primary" style="padding: 8px 16px; font-size: 12.5px; border-radius: 10px;">
+                        <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Download CSV</span>
+                        <span style="background: rgba(255, 255, 255, 0.22); color: #ffffff; font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 9999px;">
+                            {{ count($this->visibleColumns) }}
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -624,30 +642,38 @@
         </div>
 
         {{-- ───────────────────────────────────────────────────────────────── --}}
-        {{-- 5. COLUMN ARCHITECT & DIRECT CSV DOWNLOAD (ID removed, grouped)   --}}
+        {{-- 5. COLUMN ARCHITECT & CSV DOWNLOAD MODAL TRIGGER                  --}}
         {{-- ───────────────────────────────────────────────────────────────── --}}
-        <div id="section-columns" class="exec-card" style="padding: 24px 26px; margin-bottom: 22px; border: 1.5px solid rgba(59, 130, 246, 0.35); background: linear-gradient(145deg, rgba(30, 58, 138, 0.25) 0%, rgba(12, 19, 36, 0.95) 100%);">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
-                {{-- Left: Section Title & Info --}}
-                <div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(59, 130, 246, 0.2); display: flex; align-items: center; justify-content: center; color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">
-                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                            </svg>
-                        </div>
-                        <h2 style="font-size: 16.5px; font-weight: 800; color: #ffffff; margin: 0; letter-spacing: -0.01em;">
-                            Column Selector & CSV Download Hub
-                        </h2>
+        <div id="section-columns" class="exec-card" style="padding: 18px 24px; margin-bottom: 22px; border: 1.5px solid rgba(59, 130, 246, 0.3); background: linear-gradient(145deg, rgba(30, 58, 138, 0.2) 0%, rgba(12, 19, 36, 0.95) 100%);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                {{-- Left: Hub Brand & Live Selection Telemetry --}}
+                <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(59, 130, 246, 0.2); display: flex; align-items: center; justify-content: center; color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); flex-shrink: 0; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);">
+                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                        </svg>
                     </div>
-                    <p style="font-size: 12.5px; color: #94a3b8; margin: 5px 0 0 44px;">
-                        Customize your report output. All active columns below will be displayed in the table and exported in the CSV.
-                    </p>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <h2 style="font-size: 15.5px; font-weight: 800; color: #ffffff; margin: 0; letter-spacing: -0.01em;">
+                                Column Customization & CSV Export Hub
+                            </h2>
+                            <span style="font-size: 11px; font-weight: 700; color: #93c5fd; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.35); padding: 2px 10px; border-radius: 9999px;">
+                                {{ count($this->visibleColumns) }} of {{ count($colDefs) }} Active Columns
+                            </span>
+                            <span style="font-size: 11px; font-weight: 600; color: #34d399; background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 10px; border-radius: 9999px;">
+                                {{ number_format($applications->total()) }} Records Exportable
+                            </span>
+                        </div>
+                        <p style="font-size: 12px; color: #94a3b8; margin: 3px 0 0 0;">
+                            Customize visible report fields and export clean CSV reports with automatic sequential <strong>Sr. No.</strong> indexing.
+                        </p>
+                    </div>
                 </div>
 
-                {{-- Right: Direct Download CSV Button & Helpers --}}
+                {{-- Right: Direct Download & Customize Modal Triggers --}}
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <button type="button" wire:click="exportCsv" class="exec-btn-primary" title="Download CSV Report with currently selected columns & active filters">
+                    <button type="button" wire:click="openExportModal" class="exec-btn-primary" style="padding: 10px 22px;">
                         <svg style="width: 17px; height: 17px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
@@ -657,90 +683,17 @@
                         </span>
                     </button>
 
-                    <button type="button" wire:click="selectAllColumns" class="exec-btn-secondary" style="padding: 9px 13px; font-size: 12px;">
-                        Select All ({{ count($colDefs) }})
+                    <button type="button" wire:click="openExportModal" class="exec-btn-secondary" style="padding: 10px 15px;">
+                        <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                        <span>Customize Columns</span>
                     </button>
 
-                    <button type="button" wire:click="resetColumns" class="exec-btn-secondary" style="padding: 9px 13px; font-size: 12px;">
+                    <button type="button" wire:click="resetColumns" class="exec-btn-secondary" style="padding: 10px 14px;" title="Reset columns back to standard default 20 fields">
                         Reset Default
                     </button>
                 </div>
-            </div>
-
-            {{-- Categorized Column Toggles --}}
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-                
-                {{-- Group 1: Candidate & Academics --}}
-                <div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px;">
-                        <span style="font-size: 11px; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.06em;">
-                            🎓 Candidate & Academic Columns
-                        </span>
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 7px;">
-                        @foreach(['application_code', 'name', 'email', 'phone', 'college', 'degree', 'year', 'cgpa'] as $colKey)
-                            @if(isset($colDefs[$colKey]))
-                                @php $isVisible = $this->isColumnVisible($colKey); @endphp
-                                <div wire:click="toggleColumn('{{ $colKey }}')" class="col-toggle-pill {{ $isVisible ? 'col-toggle-on' : 'col-toggle-off' }}" title="{{ $colDefs[$colKey]['description'] }}">
-                                    <span style="font-size: 11px; font-weight: 800;">{!! $isVisible ? '&#10003;' : '&ndash;' !!}</span>
-                                    <span>{{ $colDefs[$colKey]['label'] }}</span>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-
-                {{-- Group 2: Track & Technical Skills --}}
-                <div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px;">
-                        <span style="font-size: 11px; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.06em;">
-                            💼 Track, Skills & Status
-                        </span>
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 7px;">
-                        @foreach(['domain', 'duration', 'duration_unit', 'skills', 'resume_path', 'status'] as $colKey)
-                            @if(isset($colDefs[$colKey]))
-                                @php $isVisible = $this->isColumnVisible($colKey); @endphp
-                                <div wire:click="toggleColumn('{{ $colKey }}')" class="col-toggle-pill {{ $isVisible ? 'col-toggle-on' : 'col-toggle-off' }}" title="{{ $colDefs[$colKey]['description'] }}">
-                                    <span style="font-size: 11px; font-weight: 800;">{!! $isVisible ? '&#10003;' : '&ndash;' !!}</span>
-                                    <span>{{ $colDefs[$colKey]['label'] }}</span>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-
-                {{-- Group 3: Archival & Timestamps --}}
-                <div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px;">
-                        <span style="font-size: 11px; font-weight: 700; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.06em;">
-                            📦 Archival, Audit & Timestamps
-                        </span>
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 7px;">
-                        @foreach(['is_archived', 'cohort_archive_name', 'archive_note', 'archived_at', 'verification_token', 'created_at', 'updated_at'] as $colKey)
-                            @if(isset($colDefs[$colKey]))
-                                @php $isVisible = $this->isColumnVisible($colKey); @endphp
-                                <div wire:click="toggleColumn('{{ $colKey }}')" class="col-toggle-pill {{ $isVisible ? 'col-toggle-on' : 'col-toggle-off' }}" title="{{ $colDefs[$colKey]['description'] }}">
-                                    <span style="font-size: 11px; font-weight: 800;">{!! $isVisible ? '&#10003;' : '&ndash;' !!}</span>
-                                    <span>{{ $colDefs[$colKey]['label'] }}</span>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-
-            </div>
-
-            {{-- Real-time export info hint --}}
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding-top: 14px; border-top: 1px dashed rgba(255, 255, 255, 0.08); font-size: 11.5px; color: #94a3b8; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #3b82f6;"></span>
-                    <span>Excel/CSV export will automatically include a <strong>Sr. No.</strong> column (1, 2, 3...) followed by your {{ count($this->visibleColumns) }} selected columns.</span>
-                </div>
-                <span style="color: #60a5fa; font-weight: 600;">
-                    Export Ready ({{ number_format($applications->total()) }} records)
-                </span>
             </div>
         </div>
 
@@ -855,11 +808,17 @@
                         Showing {{ $applications->firstItem() ?? 0 }} - {{ $applications->lastItem() ?? 0 }} of {{ number_format($applications->total()) }} results
                     </span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 11.5px; color: #94a3b8;">Active Columns:</span>
                     <span style="font-size: 11px; font-weight: 700; color: #93c5fd; background: rgba(59, 130, 246, 0.2); padding: 2px 9px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3);">
                         {{ count($this->visibleColumns) }} Visible + Sr. No.
                     </span>
+                    <button type="button" wire:click="openExportModal" class="exec-btn-secondary" style="padding: 5px 12px; font-size: 11.5px; border-color: rgba(59, 130, 246, 0.35); color: #93c5fd;">
+                        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Export CSV</span>
+                    </button>
                 </div>
             </div>
 
@@ -1342,6 +1301,170 @@
                 </div>
             </div>
         </div>
+
+        {{-- ───────────────────────────────────────────────────────────────── --}}
+        {{-- 8. Pop-up Modal Form: Column Selector & CSV Download Hub         --}}
+        {{-- ───────────────────────────────────────────────────────────────── --}}
+        @if($showExportModal)
+            <div style="position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; background: rgba(2, 6, 23, 0.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 18px;">
+                {{-- Backdrop Click Dismiss --}}
+                <div wire:click="closeExportModal" style="position: absolute; inset: 0; cursor: pointer;"></div>
+
+                {{-- Modal Container --}}
+                <div class="exec-card exec-modal-animate" style="position: relative; z-index: 10; width: 100%; max-width: 860px; max-height: 90vh; display: flex; flex-direction: column; background: linear-gradient(150deg, #0e172e 0%, #080d1a 100%); border: 1.5px solid rgba(59, 130, 246, 0.4); box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.85), 0 0 45px rgba(37, 99, 235, 0.25); border-radius: 20px; overflow: hidden;">
+                    
+                    {{-- Modal Header --}}
+                    <div style="padding: 20px 26px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(14, 22, 41, 0.85); display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); display: flex; align-items: center; justify-content: center; color: #ffffff; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45); flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.25);">
+                                <svg style="width: 22px; height: 22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 18px; font-weight: 800; color: #ffffff; margin: 0; letter-spacing: -0.01em;">
+                                    Column Selector & CSV Download Hub
+                                </h3>
+                                <p style="font-size: 12.5px; color: #94a3b8; margin: 3px 0 0 0;">
+                                    Customize your report output. All active columns below will be displayed in the table and exported in the CSV.
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Close Button --}}
+                        <button type="button" wire:click="closeExportModal" style="width: 34px; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'; this.style.color='#f87171'; this.style.borderColor='rgba(239, 68, 68, 0.4)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.color='#94a3b8'; this.style.borderColor='rgba(255, 255, 255, 0.1)'">
+                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- Modal Subheader / Quick Actions Toolbar --}}
+                    <div style="padding: 12px 26px; background: rgba(10, 16, 31, 0.7); border-bottom: 1px solid rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 12px; color: #94a3b8;">Selection Count:</span>
+                            <span style="font-size: 12px; font-weight: 800; color: #60a5fa; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.35); padding: 2px 10px; border-radius: 9999px;">
+                                {{ count($this->visibleColumns) }} of {{ count($colDefs) }} Active Columns
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" wire:click="selectAllColumns" class="exec-btn-secondary" style="padding: 6px 12px; font-size: 11.5px;">
+                                Select All ({{ count($colDefs) }})
+                            </button>
+                            <button type="button" wire:click="resetColumns" class="exec-btn-secondary" style="padding: 6px 12px; font-size: 11.5px;">
+                                Reset Default (20)
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Modal Body (Scrollable with categorised column pills) --}}
+                    <div class="exec-scroll" style="padding: 24px 26px; overflow-y: auto; max-height: calc(90vh - 210px); display: flex; flex-direction: column; gap: 20px;">
+                        
+                        {{-- Category 1: Candidate & Academics --}}
+                        <div style="background: rgba(14, 22, 41, 0.6); padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(59, 130, 246, 0.15);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 11.5px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.06em;">
+                                        🎓 Candidate & Academic Columns
+                                    </span>
+                                </div>
+                                <span style="font-size: 11px; color: #64748b;">Basic profile & academic records</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                @foreach(['application_code', 'name', 'email', 'phone', 'college', 'degree', 'year', 'cgpa'] as $colKey)
+                                    @if(isset($colDefs[$colKey]))
+                                        @php $isVisible = $this->isColumnVisible($colKey); @endphp
+                                        <div wire:click="toggleColumn('{{ $colKey }}')" class="col-toggle-pill {{ $isVisible ? 'col-toggle-on' : 'col-toggle-off' }}" title="{{ $colDefs[$colKey]['description'] }}" style="padding: 7px 13px; font-size: 12px;">
+                                            <span style="font-size: 12px; font-weight: 800;">{!! $isVisible ? '&#10003;' : '&ndash;' !!}</span>
+                                            <span>{{ $colDefs[$colKey]['label'] }}</span>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Category 2: Track & Technical Skills --}}
+                        <div style="background: rgba(14, 22, 41, 0.6); padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(16, 185, 129, 0.15);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 11.5px; font-weight: 800; color: #34d399; text-transform: uppercase; letter-spacing: 0.06em;">
+                                        💼 Track, Skills & Status
+                                    </span>
+                                </div>
+                                <span style="font-size: 11px; color: #64748b;">Role details, duration & recruitment status</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                @foreach(['domain', 'duration', 'duration_unit', 'skills', 'resume_path', 'status'] as $colKey)
+                                    @if(isset($colDefs[$colKey]))
+                                        @php $isVisible = $this->isColumnVisible($colKey); @endphp
+                                        <div wire:click="toggleColumn('{{ $colKey }}')" class="col-toggle-pill {{ $isVisible ? 'col-toggle-on' : 'col-toggle-off' }}" title="{{ $colDefs[$colKey]['description'] }}" style="padding: 7px 13px; font-size: 12px;">
+                                            <span style="font-size: 12px; font-weight: 800;">{!! $isVisible ? '&#10003;' : '&ndash;' !!}</span>
+                                            <span>{{ $colDefs[$colKey]['label'] }}</span>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Category 3: Archival, Audit & Timestamps --}}
+                        <div style="background: rgba(14, 22, 41, 0.6); padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(245, 158, 11, 0.15);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 11.5px; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.06em;">
+                                        📦 Archival, Audit & Timestamps
+                                    </span>
+                                </div>
+                                <span style="font-size: 11px; color: #64748b;">Cohort archive name, audit notes & system timestamps</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                @foreach(['is_archived', 'cohort_archive_name', 'archive_note', 'archived_at', 'verification_token', 'created_at', 'updated_at'] as $colKey)
+                                    @if(isset($colDefs[$colKey]))
+                                        @php $isVisible = $this->isColumnVisible($colKey); @endphp
+                                        <div wire:click="toggleColumn('{{ $colKey }}')" class="col-toggle-pill {{ $isVisible ? 'col-toggle-on' : 'col-toggle-off' }}" title="{{ $colDefs[$colKey]['description'] }}" style="padding: 7px 13px; font-size: 12px;">
+                                            <span style="font-size: 12px; font-weight: 800;">{!! $isVisible ? '&#10003;' : '&ndash;' !!}</span>
+                                            <span>{{ $colDefs[$colKey]['label'] }}</span>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Real-time export info hint --}}
+                        <div style="background: rgba(30, 58, 138, 0.18); border: 1px solid rgba(59, 130, 246, 0.28); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: #93c5fd; flex-shrink: 0;">
+                                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div style="font-size: 12px; color: #cbd5e1;">
+                                    Excel/CSV export will automatically include a <strong>Sr. No.</strong> column (1, 2, 3...) followed by your {{ count($this->visibleColumns) }} selected columns.
+                                </div>
+                            </div>
+                            <span style="font-size: 12px; font-weight: 700; color: #60a5fa; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); padding: 3px 10px; border-radius: 8px;">
+                                Export Ready ({{ number_format($applications->total()) }} records)
+                            </span>
+                        </div>
+
+                    </div>
+
+                    {{-- Modal Footer --}}
+                    <div style="padding: 16px 26px; border-top: 1px solid rgba(255, 255, 255, 0.08); background: rgba(14, 22, 41, 0.95); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                        <button type="button" wire:click="closeExportModal" class="exec-btn-secondary" style="padding: 10px 18px;">
+                            Cancel & Close
+                        </button>
+
+                        <button type="button" wire:click="exportCsv" class="exec-btn-primary" style="padding: 11px 26px; font-size: 13.5px; box-shadow: 0 4px 22px rgba(37, 99, 235, 0.55);">
+                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            <span>Download CSV Report ({{ count($this->visibleColumns) }} Cols)</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        @endif
 
     </div>
 </x-filament-panels::page>

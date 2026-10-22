@@ -72,8 +72,21 @@ class ListAttendances extends ListRecords
 
     public function openCreateLogModal(?string $date = null): void
     {
+        $targetDate = $date ?: ($this->selectedDate ?: now()->toDateString());
+        $internId = Auth::id();
+
+        $eligibility = DailyLogbook::isDateEligibleForLog($targetDate, $internId);
+        if (!($eligibility['allowed'] ?? $eligibility['eligible'] ?? true)) {
+            Notification::make()
+                ->title('Logbook Submission Disabled')
+                ->body($eligibility['reason'])
+                ->warning()
+                ->send();
+            return;
+        }
+
         $this->editingLogId = null;
-        $this->modalDate = $date ?: ($this->selectedDate ?: now()->toDateString());
+        $this->modalDate = $targetDate;
         $this->modalTasks = '';
         $this->modalSupervisorFeedback = '';
         $this->showLogModal = true;
@@ -87,8 +100,19 @@ class ListAttendances extends ListRecords
             return;
         }
 
+        $targetDate = $log->date instanceof \DateTimeInterface ? $log->date->format('Y-m-d') : (string)$log->date;
+        $eligibility = DailyLogbook::isDateEligibleForLog($targetDate, Auth::id());
+        if (!($eligibility['allowed'] ?? $eligibility['eligible'] ?? true)) {
+            Notification::make()
+                ->title('Logbook Editing Disabled')
+                ->body($eligibility['reason'])
+                ->warning()
+                ->send();
+            return;
+        }
+
         $this->editingLogId = $log->id;
-        $this->modalDate = $log->date instanceof \DateTimeInterface ? $log->date->format('Y-m-d') : (string)$log->date;
+        $this->modalDate = $targetDate;
         $this->modalTasks = $log->tasks_completed;
         $this->modalSupervisorFeedback = $log->supervisor_remarks ?? '';
         $this->showLogModal = true;

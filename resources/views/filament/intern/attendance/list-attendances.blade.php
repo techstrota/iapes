@@ -224,7 +224,7 @@
                     wire:click="openCreateLogModal"
                     style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: linear-gradient(135deg, #1E40AF 0%, #2563eb 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.35); transition: all 0.15s ease;">
                     <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
-                    <span>+ Add Work Log</span>
+                    <span>Add Work Log</span>
                 </button>
             </div>
         </div>
@@ -628,6 +628,13 @@
                         <span style="font-size: 15px;">☕</span>
                         <span style="font-size: 12px; color: #a5b4fc;">
                             <strong>Scheduled Rest Day / Holiday:</strong> Daily work log note is not required on Sundays or official holidays.
+                        </span>
+                    </div>
+                @elseif (($selDay['status'] ?? '') === 'absent')
+                    <div style="margin-top: 14px; padding: 12px 16px; background-color: #090e1c; border: 1px dashed rgba(239, 68, 68, 0.4); border-radius: 10px; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 15px;">✕</span>
+                        <span style="font-size: 12px; color: #f87171;">
+                            <strong>Marked Absent:</strong> Attendance for this date is marked as Absent. Daily work logbook submission is disabled for absent dates.
                         </span>
                     </div>
                 @else
