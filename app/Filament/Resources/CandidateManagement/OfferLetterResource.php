@@ -369,12 +369,15 @@ class OfferLetterResource extends Resource
                                     ->label('College / Institution')
                                     ->dehydrated(true)
                                     ->live(debounce: 250)
-                                    ->placeholder('e.g. M B Patel College of Engineering'),
+                                    ->datalist(fn () => \App\Models\ReportManagement\College::pluck('name')->filter()->unique()->values()->toArray())
+                                    ->placeholder('e.g. M B Patel College of Engineering')
+                                    ->helperText('Auto-registers into Colleges master upon saving offer letter.'),
 
                                 TextInput::make('university')
                                     ->label('University')
                                     ->dehydrated(true)
                                     ->live(debounce: 250)
+                                    ->datalist(fn () => \App\Models\ReportManagement\College::whereNotNull('university_name')->where('university_name', '!=', '')->pluck('university_name')->unique()->values()->toArray())
                                     ->placeholder('e.g. GTU'),
 
                                 TextInput::make('degree')

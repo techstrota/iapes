@@ -419,6 +419,17 @@
                             <option value="{{ $t->id }}">{{ $t->team_name }}</option>
                         @endforeach
                     </select>
+
+                    {{-- Sort Order Select (Default: ID Wise) --}}
+                    <select
+                        wire:model.live="sortBy"
+                        title="Display Ordering"
+                        style="background-color: #171f33; border: 1px solid #3b82f6; border-radius: 8px; padding: 7px 12px; font-size: 12px; color: #b8c4ff; font-weight: 700; cursor: pointer; outline: none;">
+                        <option value="id_asc">Sort: Intern ID (Ascending)</option>
+                        <option value="id_desc">Sort: Intern ID (Descending)</option>
+                        <option value="name_asc">Sort: Intern Name (A-Z)</option>
+                        <option value="name_desc">Sort: Intern Name (Z-A)</option>
+                    </select>
                 </div>
             </div>
 
@@ -470,6 +481,18 @@
                             style="padding: 4px 8px; font-size: 11px; font-weight: 700; border-radius: 6px; background-color: rgba(147, 51, 234, 0.15); color: #d8b4fe; border: 1px solid rgba(147, 51, 234, 0.3); cursor: pointer;">
                             🎉 Mark Holiday
                         </button>
+
+                        @if ($stats['isAnyMarked'])
+                            <button
+                                type="button"
+                                wire:click="undoAllAttendance"
+                                wire:confirm="Are you sure you want to undo and reset all attendance records for {{ Carbon\Carbon::parse($selectedDate)->format('d M Y') }} back to Unmarked?"
+                                title="Undo / Reset All Attendance for Selected Date"
+                                style="padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); color: #ffb4ab; border: 1px solid rgba(239, 68, 68, 0.35); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s ease;">
+                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                                <span>Undo Roll-Call</span>
+                            </button>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -510,7 +533,7 @@
                     <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
                         <thead>
                             <tr style="background-color: #171f33; border-bottom: 1px solid #222a3d; font-size: 11px; font-weight: 800; color: #8e909f; text-transform: uppercase; letter-spacing: 0.05em;">
-                                <th style="padding: 12px 18px; min-width: 220px;">Intern Profile</th>
+                                <th style="padding: 12px 18px; min-width: 220px;">Intern ID & Name</th>
                                 <th style="padding: 12px 14px;">Batch & Squad</th>
                                 @foreach ($weekDays as $wd)
                                     @php
@@ -573,12 +596,17 @@
                                                 @endif
                                             </div>
                                             <div style="min-width: 0;">
-                                                <div style="font-weight: 700; color: #dae2fd; display: flex; align-items: center; gap: 4px;">
-                                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $displayName }}</span>
-                                                    <svg style="width: 13px; height: 13px; color: #4edea3; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                                    <span style="font-size: 11px; font-weight: 800; color: #b8c4ff; background-color: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); padding: 1px 7px; border-radius: 4px; font-family: monospace; letter-spacing: 0.03em;">
+                                                        {{ $internCode }}
+                                                    </span>
+                                                    <svg style="width: 12px; height: 12px; color: #4edea3; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
                                                 </div>
-                                                <div style="font-size: 11px; color: #8e909f;">
-                                                    <span style="font-weight: 600; color: #b8c4ff;">{{ $internCode }}</span> • {{ $role }}
+                                                <div style="font-weight: 700; color: #dae2fd; font-size: 13px; line-height: 1.2;">
+                                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $displayName }}</span>
+                                                </div>
+                                                <div style="font-size: 11px; color: #8e909f; margin-top: 2px;">
+                                                    {{ $role }}
                                                 </div>
                                             </div>
                                         </div>
@@ -701,8 +729,8 @@
                                             <button
                                                 type="button"
                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'present')"
-                                                title="Mark Present"
-                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'present' ? 'background-color: #10B981; color: #FFF;' : 'background-color: #171f33; color: #4edea3;' }}">
+                                                title="{{ $currentStatus === 'present' ? 'Present (Click to Undo / Reset to Unmarked)' : 'Mark Present' }}"
+                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'present' ? 'background-color: #10B981; color: #FFF; box-shadow: 0 0 8px rgba(16,185,129,0.5);' : 'background-color: #171f33; color: #4edea3;' }}">
                                                 P
                                             </button>
 
@@ -710,8 +738,8 @@
                                             <button
                                                 type="button"
                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'late')"
-                                                title="Mark Late (Set In/Out Time & Delay)"
-                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'late' ? 'background-color: #F59E0B; color: #FFF;' : 'background-color: #171f33; color: #fbbf24;' }}">
+                                                title="{{ $currentStatus === 'late' ? 'Late (Click to Undo / Reset to Unmarked)' : 'Mark Late (Set In/Out Time & Delay)' }}"
+                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'late' ? 'background-color: #F59E0B; color: #FFF; box-shadow: 0 0 8px rgba(245,158,11,0.5);' : 'background-color: #171f33; color: #fbbf24;' }}">
                                                 LT
                                             </button>
 
@@ -719,8 +747,8 @@
                                             <button
                                                 type="button"
                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'absent')"
-                                                title="Mark Absent"
-                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'absent' ? 'background-color: #EF4444; color: #FFF;' : 'background-color: #171f33; color: #ffb4ab;' }}">
+                                                title="{{ $currentStatus === 'absent' ? 'Absent (Click to Undo / Reset to Unmarked)' : 'Mark Absent' }}"
+                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'absent' ? 'background-color: #EF4444; color: #FFF; box-shadow: 0 0 8px rgba(239,68,68,0.5);' : 'background-color: #171f33; color: #ffb4ab;' }}">
                                                 A
                                             </button>
 
@@ -728,8 +756,8 @@
                                             <button
                                                 type="button"
                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'wfh')"
-                                                title="Mark WFH"
-                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'wfh' ? 'background-color: #0284C7; color: #FFF;' : 'background-color: #171f33; color: #93c5fd;' }}">
+                                                title="{{ $currentStatus === 'wfh' ? 'WFH (Click to Undo / Reset to Unmarked)' : 'Mark WFH' }}"
+                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'wfh' ? 'background-color: #0284C7; color: #FFF; box-shadow: 0 0 8px rgba(2,132,199,0.5);' : 'background-color: #171f33; color: #93c5fd;' }}">
                                                 W
                                             </button>
 
@@ -737,8 +765,8 @@
                                             <button
                                                 type="button"
                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'leave')"
-                                                title="Mark Leave"
-                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'leave' ? 'background-color: #9333EA; color: #FFF;' : 'background-color: #171f33; color: #d8b4fe;' }}">
+                                                title="{{ $currentStatus === 'leave' ? 'Leave (Click to Undo / Reset to Unmarked)' : 'Mark Leave' }}"
+                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'leave' ? 'background-color: #9333EA; color: #FFF; box-shadow: 0 0 8px rgba(147,51,234,0.5);' : 'background-color: #171f33; color: #d8b4fe;' }}">
                                                 L
                                             </button>
 
@@ -746,10 +774,21 @@
                                             <button
                                                 type="button"
                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'holiday')"
-                                                title="Mark Holiday"
-                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'holiday' ? 'background-color: #8b5cf6; color: #FFF;' : 'background-color: #171f33; color: #c084fc;' }}">
+                                                title="{{ $currentStatus === 'holiday' ? 'Holiday (Click to Undo / Reset to Unmarked)' : 'Mark Holiday' }}"
+                                                style="width: 24px; height: 24px; border-radius: 5px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $currentStatus === 'holiday' ? 'background-color: #8b5cf6; color: #FFF; box-shadow: 0 0 8px rgba(139,92,246,0.5);' : 'background-color: #171f33; color: #c084fc;' }}">
                                                 H
                                             </button>
+
+                                            {{-- Explicit Undo / Reset Button (Shown only when attendance is marked) --}}
+                                            @if ($currentStatus !== 'unmarked')
+                                                <button
+                                                    type="button"
+                                                    wire:click="undoAttendance({{ $intern->id }})"
+                                                    title="Undo Attendance (Reset to Unmarked)"
+                                                    style="width: 24px; height: 24px; border-radius: 5px; font-size: 11px; font-weight: 800; cursor: pointer; border: 1px solid rgba(239, 68, 68, 0.45); background-color: rgba(239, 68, 68, 0.15); color: #ffb4ab; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s ease;">
+                                                    <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                                                </button>
+                                            @endif
 
                                             {{-- Mark Modal Trigger --}}
                                             <button
@@ -929,6 +968,17 @@
                                     <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                                     <span>Batch Roll-Call All</span>
                                 </button>
+                                @if (($bData['presentToday'] + $bData['lateToday'] + $bData['wfhToday'] + $bData['leaveToday'] + $bData['absentToday']) > 0)
+                                    <button
+                                        type="button"
+                                        wire:click="undoBatchAttendance({{ $b->id }})"
+                                        wire:confirm="Undo and reset attendance for all interns in this batch today?"
+                                        title="Undo batch attendance (Reset to Unmarked)"
+                                        style="background-color: rgba(239, 68, 68, 0.15); color: #ffb4ab; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 700; font-size: 12px; border-radius: 8px; padding: 8px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                                        <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                                        <span>Undo Batch</span>
+                                    </button>
+                                @endif
                             </div>
                         </div>
 
@@ -981,8 +1031,10 @@
                                         @endphp
                                         <tr style="border-bottom: 1px solid #222a3d;">
                                             <td style="padding: 10px 14px;">
+                                                <div style="margin-bottom: 2px;">
+                                                    <span style="font-size: 10px; font-weight: 700; color: #b8c4ff; background-color: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 1px 5px; border-radius: 4px; font-family: monospace;">{{ $code }}</span>
+                                                </div>
                                                 <div style="font-weight: 700; color: #dae2fd;">{{ $name }}</div>
-                                                <div style="font-size: 10px; color: #8e909f;">{{ $code }}</div>
                                             </td>
                                             <td style="padding: 10px 12px; color: #c4c5d5;">
                                                 {{ $proj }}
@@ -1019,38 +1071,47 @@
                                                     <button
                                                         type="button"
                                                         wire:click="setAttendanceStatus({{ $intern->id }}, 'present')"
-                                                        title="Mark Present"
-                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'present' ? 'background-color: #10B981; color: #FFF;' : 'background-color: #171f33; color: #4edea3;' }}">
+                                                        title="{{ $m['statusToday'] === 'present' ? 'Present (Click to Undo / Reset to Unmarked)' : 'Mark Present' }}"
+                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'present' ? 'background-color: #10B981; color: #FFF; box-shadow: 0 0 6px rgba(16,185,129,0.5);' : 'background-color: #171f33; color: #4edea3;' }}">
                                                         P
                                                     </button>
                                                     <button
                                                         type="button"
                                                         wire:click="setAttendanceStatus({{ $intern->id }}, 'late')"
-                                                        title="Mark Late (Set Timing)"
-                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 8px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'late' ? 'background-color: #F59E0B; color: #FFF;' : 'background-color: #171f33; color: #fbbf24;' }}">
+                                                        title="{{ $m['statusToday'] === 'late' ? 'Late (Click to Undo / Reset to Unmarked)' : 'Mark Late (Set Timing)' }}"
+                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 8px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'late' ? 'background-color: #F59E0B; color: #FFF; box-shadow: 0 0 6px rgba(245,158,11,0.5);' : 'background-color: #171f33; color: #fbbf24;' }}">
                                                         LT
                                                     </button>
                                                     <button
                                                         type="button"
                                                         wire:click="setAttendanceStatus({{ $intern->id }}, 'absent')"
-                                                        title="Mark Absent"
-                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'absent' ? 'background-color: #EF4444; color: #FFF;' : 'background-color: #171f33; color: #ffb4ab;' }}">
+                                                        title="{{ $m['statusToday'] === 'absent' ? 'Absent (Click to Undo / Reset to Unmarked)' : 'Mark Absent' }}"
+                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'absent' ? 'background-color: #EF4444; color: #FFF; box-shadow: 0 0 6px rgba(239,68,68,0.5);' : 'background-color: #171f33; color: #ffb4ab;' }}">
                                                         A
                                                     </button>
                                                     <button
                                                         type="button"
                                                         wire:click="setAttendanceStatus({{ $intern->id }}, 'wfh')"
-                                                        title="Mark WFH"
-                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'wfh' ? 'background-color: #0284C7; color: #FFF;' : 'background-color: #171f33; color: #93c5fd;' }}">
+                                                        title="{{ $m['statusToday'] === 'wfh' ? 'WFH (Click to Undo / Reset to Unmarked)' : 'Mark WFH' }}"
+                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'wfh' ? 'background-color: #0284C7; color: #FFF; box-shadow: 0 0 6px rgba(2,132,199,0.5);' : 'background-color: #171f33; color: #93c5fd;' }}">
                                                         W
                                                     </button>
                                                     <button
                                                         type="button"
                                                         wire:click="setAttendanceStatus({{ $intern->id }}, 'leave')"
-                                                        title="Mark Leave"
-                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'leave' ? 'background-color: #9333EA; color: #FFF;' : 'background-color: #171f33; color: #d8b4fe;' }}">
+                                                        title="{{ $m['statusToday'] === 'leave' ? 'Leave (Click to Undo / Reset to Unmarked)' : 'Mark Leave' }}"
+                                                        style="width: 22px; height: 22px; border-radius: 4px; font-size: 9px; font-weight: 800; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'leave' ? 'background-color: #9333EA; color: #FFF; box-shadow: 0 0 6px rgba(147,51,234,0.5);' : 'background-color: #171f33; color: #d8b4fe;' }}">
                                                         L
                                                     </button>
+                                                    @if ($m['statusToday'] !== 'unmarked')
+                                                        <button
+                                                            type="button"
+                                                            wire:click="undoAttendance({{ $intern->id }})"
+                                                            title="Undo Attendance (Reset to Unmarked)"
+                                                            style="width: 22px; height: 22px; border-radius: 4px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid rgba(239, 68, 68, 0.45); background-color: rgba(239, 68, 68, 0.15); color: #ffb4ab; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s ease;">
+                                                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                                                        </button>
+                                                    @endif
                                                     <button
                                                         type="button"
                                                         wire:click="openMarkModal({{ $intern->id }})"
@@ -1158,12 +1219,25 @@
                                             </span>
                                         @endforeach
                                     </div>
-                                    <button
-                                        type="button"
-                                        wire:click="markTeamPresent({{ $team->id }})"
-                                        style="font-size: 11px; font-weight: 700; background-color: #10B981; color: #FFFFFF; border: none; border-radius: 6px; padding: 4px 10px; cursor: pointer;">
-                                        Pod Roll-Call
-                                    </button>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button
+                                            type="button"
+                                            wire:click="markTeamPresent({{ $team->id }})"
+                                            style="font-size: 11px; font-weight: 700; background-color: #10B981; color: #FFFFFF; border: none; border-radius: 6px; padding: 4px 10px; cursor: pointer;">
+                                            Pod Roll-Call
+                                        </button>
+                                        @if (($gData['presentToday'] + $gData['lateToday'] + $gData['wfhToday'] + $gData['leaveToday'] + $gData['absentToday']) > 0)
+                                            <button
+                                                type="button"
+                                                wire:click="undoTeamAttendance({{ $team->id }})"
+                                                wire:confirm="Undo and reset attendance for all interns in this squad today?"
+                                                title="Undo squad attendance (Reset to Unmarked)"
+                                                style="font-size: 11px; font-weight: 700; background-color: rgba(239, 68, 68, 0.15); color: #ffb4ab; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; padding: 4px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;">
+                                                <svg style="width: 11px; height: 11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                                                <span>Undo</span>
+                                            </button>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 {{-- Squad Members Table --}}
@@ -1188,11 +1262,15 @@
                                                 @php
                                                     $intern = $m['intern'];
                                                     $name = $intern->name ?: ($intern->offerletter?->name ?? 'Intern');
+                                                    $code = $intern->intern_code ?: ('INT-' . str_pad($intern->id, 3, '0', STR_PAD_LEFT));
                                                     $role = $intern->internship_role ?: 'Developer';
                                                 @endphp
                                                 <tr style="border-bottom: 1px solid #222a3d;">
-                                                    <td style="padding: 8px 12px; font-weight: 700; color: #dae2fd;">
-                                                        {{ $name }}
+                                                    <td style="padding: 8px 12px;">
+                                                        <div style="margin-bottom: 2px;">
+                                                            <span style="font-size: 9px; font-weight: 700; color: #b8c4ff; background-color: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 1px 4px; border-radius: 3px; font-family: monospace;">{{ $code }}</span>
+                                                        </div>
+                                                        <div style="font-weight: 700; color: #dae2fd;">{{ $name }}</div>
                                                     </td>
                                                     <td style="padding: 8px 8px; color: #8e909f;">
                                                         {{ $role }}
@@ -1226,38 +1304,47 @@
                                                             <button
                                                                 type="button"
                                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'present')"
-                                                                title="Mark Present"
-                                                                style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'present' ? 'background-color: #10B981; color: #FFF;' : 'background-color: #171f33; color: #4edea3;' }}">
+                                                                title="{{ $m['statusToday'] === 'present' ? 'Present (Click to Undo / Reset to Unmarked)' : 'Mark Present' }}"
+                                                                style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'present' ? 'background-color: #10B981; color: #FFF; box-shadow: 0 0 6px rgba(16,185,129,0.5);' : 'background-color: #171f33; color: #4edea3;' }}">
                                                                 P
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'late')"
-                                                                title="Mark Late"
-                                                                style="padding: 2px 5px; font-size: 8px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'late' ? 'background-color: #F59E0B; color: #FFF;' : 'background-color: #171f33; color: #fbbf24;' }}">
+                                                                title="{{ $m['statusToday'] === 'late' ? 'Late (Click to Undo / Reset to Unmarked)' : 'Mark Late' }}"
+                                                                style="padding: 2px 5px; font-size: 8px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'late' ? 'background-color: #F59E0B; color: #FFF; box-shadow: 0 0 6px rgba(245,158,11,0.5);' : 'background-color: #171f33; color: #fbbf24;' }}">
                                                                 LT
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'absent')"
-                                                                title="Mark Absent"
-                                                                style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'absent' ? 'background-color: #EF4444; color: #FFF;' : 'background-color: #171f33; color: #ffb4ab;' }}">
+                                                                title="{{ $m['statusToday'] === 'absent' ? 'Absent (Click to Undo / Reset to Unmarked)' : 'Mark Absent' }}"
+                                                                style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'absent' ? 'background-color: #EF4444; color: #FFF; box-shadow: 0 0 6px rgba(239,68,68,0.5);' : 'background-color: #171f33; color: #ffb4ab;' }}">
                                                                 A
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'wfh')"
-                                                                title="Mark WFH"
-                                                                style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'wfh' ? 'background-color: #0284C7; color: #FFF;' : 'background-color: #171f33; color: #93c5fd;' }}">
+                                                                title="{{ $m['statusToday'] === 'wfh' ? 'WFH (Click to Undo / Reset to Unmarked)' : 'Mark WFH' }}"
+                                                                style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'wfh' ? 'background-color: #0284C7; color: #FFF; box-shadow: 0 0 6px rgba(2,132,199,0.5);' : 'background-color: #171f33; color: #93c5fd;' }}">
                                                                 W
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 wire:click="setAttendanceStatus({{ $intern->id }}, 'leave')"
-                                                                title="Mark Leave"
-                                                                style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'leave' ? 'background-color: #9333EA; color: #FFF;' : 'background-color: #171f33; color: #d8b4fe;' }}">
+                                                                title="{{ $m['statusToday'] === 'leave' ? 'Leave (Click to Undo / Reset to Unmarked)' : 'Mark Leave' }}"
+                                                                style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid #222a3d; {{ $m['statusToday'] === 'leave' ? 'background-color: #9333EA; color: #FFF; box-shadow: 0 0 6px rgba(147,51,234,0.5);' : 'background-color: #171f33; color: #d8b4fe;' }}">
                                                                 L
                                                             </button>
+                                                            @if ($m['statusToday'] !== 'unmarked')
+                                                                <button
+                                                                    type="button"
+                                                                    wire:click="undoAttendance({{ $intern->id }})"
+                                                                    title="Undo Attendance (Reset to Unmarked)"
+                                                                    style="padding: 2px 5px; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; border: 1px solid rgba(239, 68, 68, 0.45); background-color: rgba(239, 68, 68, 0.15); color: #ffb4ab; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s ease;">
+                                                                    <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                                                                </button>
+                                                            @endif
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -1327,10 +1414,13 @@
                                             @endif
                                         </div>
                                         <div style="min-width: 0;">
+                                            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                                                <span style="font-size: 9px; font-weight: 800; color: #b8c4ff; background-color: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 0 5px; border-radius: 3px; font-family: monospace;">{{ $code }}</span>
+                                            </div>
                                             <div style="font-size: 13px; font-weight: 700; color: {{ $isSelected ? '#b8c4ff' : '#dae2fd' }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 {{ $name }}
                                             </div>
-                                            <div style="font-size: 10px; color: #8e909f;">{{ $code }} • {{ $squadName }}</div>
+                                            <div style="font-size: 10px; color: #8e909f; margin-top: 1px;">{{ $squadName }}</div>
                                         </div>
                                     </div>
                                     @if ($tot === 0)
@@ -1559,7 +1649,17 @@
                                             </div>
                                         </div>
 
-                                        <div style="display: flex; justify-content: flex-end; gap: 2px; margin-top: 4px;">
+                                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 4px;">
+                                            @if ($cStatus !== 'unmarked' && !$cDay['isWeekend'])
+                                                <button
+                                                    type="button"
+                                                    wire:click="undoAttendance({{ $sel->id }}, '{{ $cDay['date'] }}')"
+                                                    title="Undo / Reset {{ \Carbon\Carbon::parse($cDay['date'])->format('d M') }} to Unmarked"
+                                                    style="border: 1px solid rgba(239, 68, 68, 0.4); cursor: pointer; background-color: rgba(239, 68, 68, 0.15); color: #ffb4ab; font-weight: 800; font-size: 9px; width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 0; transition: all 0.15s ease;">
+                                                    <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                                                </button>
+                                            @endif
+
                                             @if ($cDay['isWeekend'])
                                                 @if ($cStatus === 'present')
                                                     <span style="font-size: 9px; font-weight: 700; color: #10B981; background-color: rgba(16, 185, 129, 0.15); padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(78, 222, 163, 0.3);">P (Sun)</span>
@@ -1791,6 +1891,23 @@
                                             @endif
                                         </span>
                                     </div>
+                                    <p style="font-size: 11px; color: #c084fc; margin: 3px 0 0;">Official Holiday</p>
+                                </div>
+
+                                {{-- Unmarked / Reset Option --}}
+                                <div
+                                    wire:click="setMarkStatus('unmarked')"
+                                    class="status-radio-card"
+                                    style="border-radius: 10px; padding: 10px 12px; border: 2px solid {{ $markStatus === 'unmarked' ? '#EF4444' : '#222a3d' }}; background-color: {{ $markStatus === 'unmarked' ? 'rgba(239, 68, 68, 0.15)' : '#171f33' }}; cursor: pointer; transition: all 0.15s ease;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <span style="font-weight: 800; font-size: 13px; color: #ffb4ab;">Unmarked</span>
+                                        <span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{ $markStatus === 'unmarked' ? '#EF4444' : '#2d3449' }}; display: flex; align-items: center; justify-content: center;">
+                                            @if ($markStatus === 'unmarked')
+                                                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #EF4444;"></span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                    <p style="font-size: 11px; color: #ffb4ab; margin: 3px 0 0;">Reset / Clear Record</p>
                                 </div>
                             </div>
                         </div>
@@ -1871,6 +1988,16 @@
 
                     {{-- Modal Footer (Fixed at bottom) --}}
                     <div style="padding: 14px 22px; background-color: #171f33; border-top: 1px solid #222a3d; display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+                        @if ($markInternId)
+                            <button
+                                type="button"
+                                wire:click="resetFromMarkModal"
+                                title="Delete attendance record and revert to Unmarked"
+                                style="padding: 8px 14px; font-size: 12px; font-weight: 700; color: #ffb4ab; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 8px; cursor: pointer; margin-right: auto; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s ease;">
+                                <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                                <span>Reset to Unmarked</span>
+                            </button>
+                        @endif
                         <button
                             type="button"
                             wire:click="closeMarkModal"

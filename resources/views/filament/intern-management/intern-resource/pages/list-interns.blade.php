@@ -952,6 +952,24 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                {{-- Option 5: Unmarked / Undo --}}
+                                @php $isUnmarked = $selectedAttendanceStatus === 'unmarked'; @endphp
+                                <div
+                                    wire:click="$set('selectedAttendanceStatus', 'unmarked')"
+                                    style="grid-column: span 2; padding: 12px 14px; border-radius: 12px; cursor: pointer; transition: all 0.15s ease; display: flex; align-items: center; gap: 12px; {{ $isUnmarked ? 'background-color: rgba(239, 68, 68, 0.18); border: 2px solid #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);' : 'background-color: #171f33; border: 1.5px dashed #2d3449;' }}">
+                                    <div style="width: 34px; height: 34px; border-radius: 10px; background-color: {{ $isUnmarked ? '#ef4444' : '#222a3d' }}; color: {{ $isUnmarked ? '#ffffff' : '#ffb4ab' }}; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0;">
+                                        ↩
+                                    </div>
+                                    <div style="min-width: 0;">
+                                        <div style="font-size: 13px; font-weight: 800; color: {{ $isUnmarked ? '#ffffff' : '#ffb4ab' }};">
+                                            Reset to Unmarked (Undo)
+                                        </div>
+                                        <div style="font-size: 11px; color: #8e909f; margin-top: 1px;">
+                                            Delete existing attendance record for selected date
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -971,15 +989,17 @@
                         {{-- Confirmation Action Button --}}
                         @php
                             $btnStyle = match($selectedAttendanceStatus) {
-                                'present' => 'background: linear-gradient(135deg, #10B981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);',
-                                'wfh'     => 'background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);',
-                                'leave'   => 'background: linear-gradient(135deg, #d97706 0%, #b45309 100%); box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4);',
-                                'absent'  => 'background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);',
-                                default   => 'background: linear-gradient(135deg, #10B981 0%, #059669 100%);',
+                                'present'  => 'background: linear-gradient(135deg, #10B981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);',
+                                'wfh'      => 'background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);',
+                                'leave'    => 'background: linear-gradient(135deg, #d97706 0%, #b45309 100%); box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4);',
+                                'absent'   => 'background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);',
+                                'unmarked' => 'background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);',
+                                default    => 'background: linear-gradient(135deg, #10B981 0%, #059669 100%);',
                             };
                             $labelStatus = match($selectedAttendanceStatus) {
-                                'wfh' => 'WFH',
-                                default => ucfirst($selectedAttendanceStatus),
+                                'wfh'      => 'WFH',
+                                'unmarked' => 'Unmarked (Undo Record)',
+                                default    => ucfirst($selectedAttendanceStatus),
                             };
                         @endphp
                         <button
@@ -989,18 +1009,27 @@
                             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                             </svg>
-                            <span>Mark as {{ $labelStatus }} for {{ count($selectedInterns) }} {{ \Illuminate\Support\Str::plural('Candidate', count($selectedInterns)) }}</span>
+                            <span>{{ $selectedAttendanceStatus === 'unmarked' ? 'Reset to Unmarked' : 'Mark as ' . $labelStatus }} for {{ count($selectedInterns) }} {{ \Illuminate\Support\Str::plural('Candidate', count($selectedInterns)) }}</span>
                         </button>
                     </div>
 
                     {{-- Modal Footer --}}
-                    <div style="background-color: #171f33; border-top: 1px solid #222a3d; padding: 14px 24px; display: flex; align-items: center; justify-content: flex-end;">
+                    <div style="background-color: #171f33; border-top: 1px solid #222a3d; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;">
+                        <button
+                            type="button"
+                            wire:click="executeUndoAttendance"
+                            title="Directly delete attendance records for selected candidates on this date"
+                            style="padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.4); background-color: rgba(239, 68, 68, 0.12); color: #ffb4ab; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s ease;">
+                            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6" /></svg>
+                            <span>Undo / Reset to Unmarked</span>
+                        </button>
                         <button
                             type="button"
                             wire:click="closeAttendanceModal"
                             style="padding: 8px 18px; border-radius: 8px; border: 1px solid #222a3d; background-color: #131b2e; color: #c4c5d5; font-size: 12px; font-weight: 600; cursor: pointer;">
                             Cancel
                         </button>
+                    </div>
                     </div>
                 </div>
             </div>

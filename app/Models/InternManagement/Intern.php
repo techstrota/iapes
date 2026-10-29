@@ -107,6 +107,13 @@ class Intern extends Authenticatable implements FilamentUser
             if ($intern->intern_team_id && $intern->team) {
                 $intern->team->checkAndAutoArchive($intern->cohort_archive_name, $intern->archive_note);
             }
+            if (filled($intern->college)) {
+                \App\Models\InterviewManagement\OfferLetter::syncCollegeFromOffer((object)[
+                    'college'    => $intern->college,
+                    'university' => $intern->university,
+                    'degree'     => $intern->degree,
+                ]);
+            }
         });
     }
 
@@ -271,6 +278,11 @@ class Intern extends Authenticatable implements FilamentUser
     {
         return $this->hasOne(DailyLogbook::class, 'intern_id')
             ->whereDate('date', now()->toDateString());
+    }
+
+    public function collegeEvaluations(): HasMany
+    {
+        return $this->hasMany(\App\Models\ReportManagement\CollegeEvaluationIntern::class, 'intern_id');
     }
 
     /**

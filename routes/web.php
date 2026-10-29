@@ -140,3 +140,13 @@ Route::get('/certificates/event/print/{record}', function (EventRegistration $re
 Route::get('/reports/download', [ReportController::class, 'download'])
     ->name('report.download')
     ->middleware(['auth:web']);
+
+// ─── College Evaluation PDF Download & Live Preview ─────────────────────────
+Route::get('/college-evaluations/{record}/pdf', function (\App\Models\ReportManagement\CollegeEvaluation $record) {
+    $resp = \App\Filament\Resources\CollegeEvaluationResource::downloadPdf($record, request()->all());
+    return $resp ?: back();
+})->name('college-evaluations.download-pdf')->middleware(['web', 'auth']);
+
+Route::get('/college-evaluations/{record}/preview', function (\App\Models\ReportManagement\CollegeEvaluation $record) {
+    return \App\Filament\Resources\CollegeEvaluationResource::streamPdf($record, request()->all());
+})->name('college-evaluations.preview-pdf')->middleware(['web', 'auth']);

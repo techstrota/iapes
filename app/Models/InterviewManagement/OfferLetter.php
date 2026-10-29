@@ -55,6 +55,72 @@ class OfferLetter extends Model
 
             $offer->offer_letter_code = "OFFER/{$year}/{$sequence}";
         });
+
+        static::saved(function ($offer) {
+            self::syncCollegeFromOffer($offer);
+        });
+    }
+
+    public static function isUniversityOrInvalidCollege(?string $name): bool
+    {
+        $n = strtolower(trim((string) $name));
+        if ($n === '') {
+            return true;
+        }
+
+        // Common company/internal/placeholder names
+        if (in_array($n, ['techstrota', 'company', 'na', 'n/a', 'none', 'self', 'other'], true)) {
+            return true;
+        }
+
+        // Contains university / univercity / vishwavidyalaya / vidhyapith
+        if (preg_match('/universit|univercit|vishwavidyalaya|vidhyapith/i', $n)) {
+            return true;
+        }
+
+        // Known university acronyms
+        $knownUniversities = [
+            'spu',
+            'gtu',
+            'cvmu',
+            'cvm university',
+            'vnsgu',
+            'hngu',
+            'msu',
+            'du',
+            'pu',
+            'rku',
+            'tu',
+        ];
+
+        return in_array($n, $knownUniversities, true);
+    }
+
+    public static function syncCollegeFromOffer($offer): void
+    {
+        $collegeName = trim((string) ($offer->college ?? ''));
+        if ($collegeName === '' || self::isUniversityOrInvalidCollege($collegeName)) {
+            return;
+        }
+
+        try {
+            $existing = \App\Models\ReportManagement\College::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($collegeName)])->first();
+
+            $univ = filled($offer->university) ? trim((string) $offer->university) : null;
+
+            if (! $existing) {
+                \App\Models\ReportManagement\College::create([
+                    'name'            => $collegeName,
+                    'university_name' => $univ,
+                ]);
+            } else {
+                if (blank($existing->university_name) && filled($univ)) {
+                    $existing->update(['university_name' => $univ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed auto-syncing college '{$collegeName}' from offer/intern: " . $e->getMessage());
+        }
     }
 
     public function application()

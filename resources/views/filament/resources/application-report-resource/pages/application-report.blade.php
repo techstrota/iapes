@@ -304,6 +304,43 @@
                     <span style="font-size: 12px; font-weight: 600; color: #fbbf24; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 6px 14px; border-radius: 10px;">
                         {{ number_format($archivedCount) }} Archived
                     </span>
+
+                    {{-- Custom Date Selection Filter --}}
+                    <div style="display: flex; align-items: center; gap: 6px; background: #0b1326; border: 1.5px solid #222a3d; border-radius: 10px; padding: 4px 10px;">
+                        <span style="font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+                            📅 Date:
+                        </span>
+                        <select wire:model.live="dateField" style="background: transparent; border: none; color: #60a5fa; font-size: 12px; font-weight: 700; cursor: pointer; outline: none; padding: 2px 4px;">
+                            <option value="created_at" style="background: #0f172a; color: #ffffff;">Applied Date</option>
+                            <option value="archived_at" style="background: #0f172a; color: #ffffff;">Archival Date</option>
+                            <option value="updated_at" style="background: #0f172a; color: #ffffff;">Updated Date</option>
+                        </select>
+                        <input
+                            type="date"
+                            wire:model.live="customStartDate"
+                            class="exec-input"
+                            style="padding: 4px 8px; font-size: 12px; width: 130px; height: 34px;"
+                            title="Start Date"
+                        />
+                        <span style="color: #8e909f; font-size: 11px; font-weight: 600;">to</span>
+                        <input
+                            type="date"
+                            wire:model.live="customEndDate"
+                            class="exec-input"
+                            style="padding: 4px 8px; font-size: 12px; width: 130px; height: 34px;"
+                            title="End Date"
+                        />
+                        @if ($customStartDate || $customEndDate)
+                            <button
+                                type="button"
+                                wire:click="$set('customStartDate', null); $set('customEndDate', null);"
+                                style="background: transparent; border: none; color: #ffb4ab; cursor: pointer; font-size: 13px; padding: 0 4px;"
+                                title="Clear date filter">
+                                ✕
+                            </button>
+                        @endif
+                    </div>
+
                     <button type="button" wire:click="openExportModal" class="exec-btn-primary" style="padding: 8px 16px; font-size: 12.5px; border-radius: 10px;">
                         <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -673,6 +710,42 @@
 
                 {{-- Right: Direct Download & Customize Modal Triggers --}}
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    {{-- Custom Date Selection Filter --}}
+                    <div style="display: flex; align-items: center; gap: 6px; background: #0b1326; border: 1.5px solid #222a3d; border-radius: 10px; padding: 4px 10px;">
+                        <span style="font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+                            📅 Date:
+                        </span>
+                        <select wire:model.live="dateField" style="background: transparent; border: none; color: #60a5fa; font-size: 12px; font-weight: 700; cursor: pointer; outline: none; padding: 2px 4px;">
+                            <option value="created_at" style="background: #0f172a; color: #ffffff;">Applied Date</option>
+                            <option value="archived_at" style="background: #0f172a; color: #ffffff;">Archival Date</option>
+                            <option value="updated_at" style="background: #0f172a; color: #ffffff;">Updated Date</option>
+                        </select>
+                        <input
+                            type="date"
+                            wire:model.live="customStartDate"
+                            class="exec-input"
+                            style="padding: 4px 8px; font-size: 12px; width: 130px; height: 34px;"
+                            title="Start Date"
+                        />
+                        <span style="color: #8e909f; font-size: 11px; font-weight: 600;">to</span>
+                        <input
+                            type="date"
+                            wire:model.live="customEndDate"
+                            class="exec-input"
+                            style="padding: 4px 8px; font-size: 12px; width: 130px; height: 34px;"
+                            title="End Date"
+                        />
+                        @if ($customStartDate || $customEndDate)
+                            <button
+                                type="button"
+                                wire:click="$set('customStartDate', null); $set('customEndDate', null);"
+                                style="background: transparent; border: none; color: #ffb4ab; cursor: pointer; font-size: 13px; padding: 0 4px;"
+                                title="Clear date filter">
+                                ✕
+                            </button>
+                        @endif
+                    </div>
+
                     <button type="button" wire:click="openExportModal" class="exec-btn-primary" style="padding: 10px 22px;">
                         <svg style="width: 17px; height: 17px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -780,19 +853,6 @@
                 </div>
             </div>
 
-            {{-- Custom Date Range Picker (Visible only when timeRange === 'custom') --}}
-            @if($timeRange === 'custom')
-                <div style="display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(255, 255, 255, 0.08); flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <label style="font-size: 12px; color: #94a3b8;">From:</label>
-                        <input type="date" wire:model.live="customStartDate" class="exec-input">
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <label style="font-size: 12px; color: #94a3b8;">To:</label>
-                        <input type="date" wire:model.live="customEndDate" class="exec-input">
-                    </div>
-                </div>
-            @endif
         </div>
 
         {{-- ───────────────────────────────────────────────────────────────── --}}
@@ -1360,6 +1420,68 @@
                     {{-- Modal Body (Scrollable with categorised column pills) --}}
                     <div class="exec-scroll" style="padding: 24px 26px; overflow-y: auto; max-height: calc(90vh - 210px); display: flex; flex-direction: column; gap: 20px;">
                         
+                        {{-- Custom Date Selection Filter for Export --}}
+                        <div style="background: rgba(14, 22, 41, 0.85); padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 4px 18px rgba(0,0,0,0.4);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.2); display: flex; align-items: center; justify-content: center; font-size: 15px; color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">
+                                        📅
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 13.5px; font-weight: 800; color: #ffffff;">Custom Date Selection (Filter Downloaded Data)</div>
+                                        <div style="font-size: 11.5px; color: #94a3b8;">Choose start and end dates to download only applications submitted within this timeframe. Leave empty for all dates.</div>
+                                    </div>
+                                </div>
+                                @php
+                                    [$modalStart, $modalEnd] = $this->getDateRangeBounds();
+                                @endphp
+                                @if($modalStart || $modalEnd)
+                                    <span class="pill-badge" style="background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-size: 11.5px; font-weight: 700;">
+                                        Range: {{ $modalStart ?: 'Any' }} &rarr; {{ $modalEnd ?: 'Any' }}
+                                    </span>
+                                @else
+                                    <span class="pill-badge" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 11.5px;">
+                                        All Dates Included
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: rgba(10, 16, 31, 0.6); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 11.5px; color: #94a3b8; font-weight: 600;">Date Basis:</label>
+                                    <select wire:model.live="dateField" class="exec-input" style="padding: 6px 10px; font-size: 12px; cursor: pointer;">
+                                        <option value="created_at">Application Date</option>
+                                        <option value="archived_at">Archival Date</option>
+                                        <option value="updated_at">Last Updated</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 11.5px; color: #94a3b8; font-weight: 600;">Preset:</label>
+                                    <select wire:model.live="timeRange" class="exec-input" style="padding: 6px 10px; font-size: 12px; cursor: pointer;">
+                                        <option value="all">All Time</option>
+                                        <option value="7_days">Last 7 Days</option>
+                                        <option value="30_days">Last 30 Days</option>
+                                        <option value="this_month">This Month</option>
+                                        <option value="last_month">Last Month</option>
+                                        <option value="custom">Custom Range</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 11.5px; color: #94a3b8; font-weight: 600;">Start Date:</label>
+                                    <input type="date" wire:model.live="customStartDate" class="exec-input" style="padding: 6px 10px; font-size: 12px;">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 11.5px; color: #94a3b8; font-weight: 600;">End Date:</label>
+                                    <input type="date" wire:model.live="customEndDate" class="exec-input" style="padding: 6px 10px; font-size: 12px;">
+                                </div>
+                                @if($customStartDate || $customEndDate || $timeRange !== 'all')
+                                    <button type="button" wire:click="$set('customStartDate', null); $set('customEndDate', null); $set('timeRange', 'all');" style="font-size: 11.5px; font-weight: 700; color: #ffb4ab; background: transparent; border: none; cursor: pointer; text-decoration: underline;">
+                                        Clear Dates
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+
                         {{-- Category 1: Candidate & Academics --}}
                         <div style="background: rgba(14, 22, 41, 0.6); padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(59, 130, 246, 0.15);">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">

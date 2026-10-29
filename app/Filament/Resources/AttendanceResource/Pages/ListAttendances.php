@@ -27,6 +27,7 @@ class ListAttendances extends Page
     public ?int $selectedBatchId = null;
     public ?int $selectedTeamId = null;
     public string $statusFilter = 'all'; // all, present, wfh, absent, leave, unmarked
+    public string $sortBy = 'id_asc'; // id_asc, id_desc, name_asc, name_desc
     public string $selectedDate = '';
     public int $perPage = 11;
 
@@ -51,9 +52,18 @@ class ListAttendances extends Page
         $this->selectedDate = now()->toDateString();
         $this->calendarMonth = now()->format('Y-m');
 
-        // Set initial selected intern for individual view
-        $firstIntern = Intern::where('is_active', true)->whereNull('cohort_archive_name')->first();
+        // Set initial selected intern for individual view (ID wise)
+        $firstIntern = Intern::where('is_active', true)
+            ->whereNull('cohort_archive_name')
+            ->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')
+            ->orderBy('id', 'asc')
+            ->first();
         $this->selectedInternId = $firstIntern?->id;
+    }
+
+    public function updatedSortBy(): void
+    {
+        $this->resetPage();
     }
 
     public function updatedSelectedDate(): void
@@ -273,6 +283,15 @@ class ListAttendances extends Page
         $status = $this->markStatus;
         $note = filled($this->markNote) ? trim($this->markNote) : null;
 
+        // If user chose to reset to unmarked
+        if ($status === 'unmarked') {
+            if ($this->markInternId) {
+                $this->undoAttendance($this->markInternId, $date);
+            }
+            $this->showMarkModal = false;
+            return;
+        }
+
         $startTime = ($status === 'late') ? $this->markStartTime : null;
         $endTime = ($status === 'late') ? $this->markEndTime : null;
         $lateMinutes = ($status === 'late') ? $this->markLateMinutes : null;
@@ -330,12 +349,58 @@ class ListAttendances extends Page
         $this->showMarkModal = false;
     }
 
+    public function resetFromMarkModal(): void
+    {
+        if ($this->markInternId) {
+            $this->undoAttendance($this->markInternId, $this->markDate ?: $this->selectedDate);
+        }
+        $this->showMarkModal = false;
+    }
+
+    public function undoAttendance(int $internId, ?string $date = null): void
+    {
+        $targetDate = $date ?: $this->selectedDate;
+
+        $record = Attendance::where('intern_id', $internId)
+            ->where('date', $targetDate)
+            ->first();
+
+        if ($record) {
+            $record->delete();
+
+            $intern = Intern::find($internId);
+            $name = $intern?->name ?: ($intern?->intern_code ?? 'Intern');
+
+            Notification::make()
+                ->title("Attendance undone for {$name}")
+                ->body('Status reset back to Unmarked.')
+                ->info()
+                ->duration(1500)
+                ->send();
+        }
+    }
+
     public function setAttendanceStatus(int $internId, string $status, ?string $date = null): void
     {
         $targetDate = $date ?: $this->selectedDate;
 
+        // Check if existing record has the exact same status -> Toggle OFF (Undo to Unmarked)
+        $existing = Attendance::where('intern_id', $internId)
+            ->where('date', $targetDate)
+            ->first();
+
+        if ($existing && $existing->status === $status) {
+            $this->undoAttendance($internId, $targetDate);
+            return;
+        }
+
         if ($status === 'late') {
             $this->openMarkModal($internId, 'late', $targetDate);
+            return;
+        }
+
+        if ($status === 'unmarked') {
+            $this->undoAttendance($internId, $targetDate);
             return;
         }
 
@@ -346,6 +411,9 @@ class ListAttendances extends Page
             ],
             [
                 'status' => $status,
+                'start_time' => null,
+                'end_time' => null,
+                'late_minutes' => null,
             ]
         );
 
@@ -353,6 +421,67 @@ class ListAttendances extends Page
             ->title('Attendance marked as ' . ucfirst($status))
             ->success()
             ->duration(1500)
+            ->send();
+    }
+
+    public function undoAllAttendance(): void
+    {
+        $date = $this->selectedDate;
+        $count = Attendance::where('date', $date)->count();
+
+        if ($count === 0) {
+            Notification::make()
+                ->title('No attendance records found to undo for ' . Carbon::parse($date)->format('d M Y'))
+                ->info()
+                ->send();
+            return;
+        }
+
+        Attendance::where('date', $date)->delete();
+
+        Notification::make()
+            ->title("Roll-Call undone: {$count} attendance record(s) reset to Unmarked for " . Carbon::parse($date)->format('d M Y'))
+            ->warning()
+            ->send();
+    }
+
+    public function undoBatchAttendance(int $batchId): void
+    {
+        $query = Intern::where('is_active', true);
+        if ($batchId > 0) {
+            $query->where('internship_batch_id', $batchId);
+        } else {
+            $query->whereNull('internship_batch_id');
+        }
+        $internIds = $query->pluck('id');
+
+        $count = Attendance::whereIn('intern_id', $internIds)
+            ->where('date', $this->selectedDate)
+            ->delete();
+
+        Notification::make()
+            ->title("Batch attendance undone: {$count} record(s) reset to Unmarked")
+            ->warning()
+            ->send();
+    }
+
+    public function undoTeamAttendance(int $teamId): void
+    {
+        $query = Intern::where('is_active', true);
+        if ($teamId > 0) {
+            $query->where('intern_team_id', $teamId);
+        } else {
+            $query->whereNull('intern_team_id');
+        }
+        $internIds = $query->pluck('id');
+
+        $count = Attendance::whereIn('intern_id', $internIds)
+            ->where('date', $this->selectedDate)
+            ->delete();
+
+        Notification::make()
+            ->title("Squad attendance undone: {$count} record(s) reset to Unmarked")
+            ->warning()
             ->send();
     }
 
@@ -695,7 +824,13 @@ class ListAttendances extends Page
             }
         }
 
-        return $query->orderBy('name');
+        // Display ID-wise by default
+        return match ($this->sortBy) {
+            'id_desc'   => $query->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) DESC')->orderBy('id', 'desc'),
+            'name_asc'  => $query->orderBy('name', 'asc')->orderBy('id', 'asc'),
+            'name_desc' => $query->orderBy('name', 'desc')->orderBy('id', 'desc'),
+            default     => $query->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')->orderBy('id', 'asc'),
+        };
     }
 
     public function getBatchesOverview(): array
@@ -709,6 +844,8 @@ class ListAttendances extends Page
             $interns = Intern::where('is_active', true)
                 ->where('internship_batch_id', $batch->id)
                 ->with(['attendances', 'team'])
+                ->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')
+                ->orderBy('id', 'asc')
                 ->get();
 
             $total = $interns->count();
@@ -770,6 +907,8 @@ class ListAttendances extends Page
         $unassignedInterns = Intern::where('is_active', true)
             ->whereNull('internship_batch_id')
             ->with(['attendances', 'team'])
+            ->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')
+            ->orderBy('id', 'asc')
             ->get();
 
         if ($unassignedInterns->count() > 0) {
@@ -846,6 +985,8 @@ class ListAttendances extends Page
             $interns = Intern::where('is_active', true)
                 ->where('intern_team_id', $team->id)
                 ->with(['attendances', 'batch'])
+                ->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')
+                ->orderBy('id', 'asc')
                 ->get();
 
             $total = $interns->count();
@@ -907,6 +1048,8 @@ class ListAttendances extends Page
         $unassignedTeamInterns = Intern::where('is_active', true)
             ->whereNull('intern_team_id')
             ->with(['attendances', 'batch'])
+            ->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')
+            ->orderBy('id', 'asc')
             ->get();
 
         if ($unassignedTeamInterns->count() > 0) {
@@ -978,7 +1121,8 @@ class ListAttendances extends Page
         $allActiveInterns = Intern::where('is_active', true)
             ->whereNull('cohort_archive_name')
             ->with(['attendances', 'batch', 'team'])
-            ->orderBy('name')
+            ->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')
+            ->orderBy('id', 'asc')
             ->get();
 
         if (!$this->selectedInternId && $allActiveInterns->isNotEmpty()) {
@@ -1080,7 +1224,7 @@ class ListAttendances extends Page
             'teams' => InternTeam::where('is_archived', false)->get(),
             'interns' => $this->getInternsQuery()->paginate($this->perPage),
             'totalInternsCount' => $totalInternsCount,
-            'allActiveInterns' => Intern::where('is_active', true)->whereNull('cohort_archive_name')->orderBy('name')->get(),
+            'allActiveInterns' => Intern::where('is_active', true)->whereNull('cohort_archive_name')->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')->orderBy('id', 'asc')->get(),
             'selectedDateFormatted' => Carbon::parse($this->selectedDate)->format('D, d M Y'),
             'selectedWeekFormatted' => Carbon::parse($this->selectedDate)->format('F Y') . ' (Week ' . Carbon::parse($this->selectedDate)->weekOfYear . ')',
             'isToday' => $this->selectedDate === now()->toDateString(),

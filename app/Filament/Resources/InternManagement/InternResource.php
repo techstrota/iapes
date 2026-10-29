@@ -548,6 +548,30 @@ class InternResource extends Resource
                                 ->send();
                         }),
 
+                    BulkAction::make('undo_attendance')
+                        ->label('Undo Attendance (Reset to Unmarked)')
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Reset Attendance to Unmarked')
+                        ->modalDescription('Are you sure you want to delete today\'s attendance record for the selected candidate(s)? Their status will be reset back to Unmarked.')
+                        ->action(function ($records) {
+                            $today = now()->toDateString();
+                            $count = 0;
+                            foreach ($records as $intern) {
+                                $deleted = \App\Models\Attendance::where('intern_id', $intern->id)
+                                    ->where('date', $today)
+                                    ->delete();
+                                if ($deleted) {
+                                    $count++;
+                                }
+                            }
+                            Notification::make()
+                                ->title("Attendance undone: {$count} candidate(s) reset to Unmarked for today")
+                                ->info()
+                                ->send();
+                        }),
+
                     // --- COMPLETION LETTERS ---
                     BulkAction::make('bulk_download_completion_letters')
                         ->label('Bulk Download Letters (ZIP)')

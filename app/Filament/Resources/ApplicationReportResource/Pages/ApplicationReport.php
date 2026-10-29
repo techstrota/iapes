@@ -31,6 +31,7 @@ class ApplicationReport extends Page
     public string $timeRange = 'all'; // 'all' | '7_days' | '30_days' | 'this_month' | 'last_month' | 'custom'
     public ?string $customStartDate = null;
     public ?string $customEndDate = null;
+    public string $dateField = 'created_at'; // 'created_at' | 'archived_at' | 'updated_at'
     public string $sortBy = 'created_at';
     public string $sortDir = 'desc';
     public int $perPage = 15;
@@ -77,12 +78,47 @@ class ApplicationReport extends Page
     public function updatingStatus(): void { $this->resetPage(); }
     public function updatingDomain(): void { $this->resetPage(); }
     public function updatingMinCgpa(): void { $this->resetPage(); }
-    public function updatingTimeRange(): void { $this->resetPage(); }
-    public function updatingCustomStartDate(): void { $this->resetPage(); }
-    public function updatingCustomEndDate(): void { $this->resetPage(); }
     public function updatingArchiveStatus(): void { $this->resetPage(); }
     public function updatingSelectedCohort(): void { $this->resetPage(); }
     public function updatingPerPage(): void { $this->resetPage(); }
+
+    public function updatedTimeRange(): void
+    {
+        if ($this->timeRange === '7_days') {
+            $this->customStartDate = now()->subDays(7)->toDateString();
+            $this->customEndDate = now()->toDateString();
+        } elseif ($this->timeRange === '30_days') {
+            $this->customStartDate = now()->subDays(30)->toDateString();
+            $this->customEndDate = now()->toDateString();
+        } elseif ($this->timeRange === 'this_month') {
+            $this->customStartDate = now()->startOfMonth()->toDateString();
+            $this->customEndDate = now()->endOfMonth()->toDateString();
+        } elseif ($this->timeRange === 'last_month') {
+            $this->customStartDate = now()->subMonth()->startOfMonth()->toDateString();
+            $this->customEndDate = now()->subMonth()->endOfMonth()->toDateString();
+        } elseif ($this->timeRange === 'all') {
+            $this->customStartDate = null;
+            $this->customEndDate = null;
+        }
+        $this->resetPage();
+    }
+
+    public function updatedCustomStartDate(): void
+    {
+        $this->timeRange = 'custom';
+        $this->resetPage();
+    }
+
+    public function updatedCustomEndDate(): void
+    {
+        $this->timeRange = 'custom';
+        $this->resetPage();
+    }
+
+    public function updatedDateField(): void
+    {
+        $this->resetPage();
+    }
 
     public function setArchiveStatus(string $status): void
     {
@@ -111,6 +147,7 @@ class ApplicationReport extends Page
         $this->timeRange = 'all';
         $this->customStartDate = null;
         $this->customEndDate = null;
+        $this->dateField = 'created_at';
         $this->sortBy = 'created_at';
         $this->sortDir = 'desc';
         $this->selectAllColumns();
@@ -251,6 +288,35 @@ class ApplicationReport extends Page
         ];
     }
 
+    /**
+     * Resolves date bounds based on custom dates or timeRange preset.
+     */
+    public function getDateRangeBounds(): array
+    {
+        if ($this->customStartDate || $this->customEndDate) {
+            return [$this->customStartDate, $this->customEndDate];
+        }
+
+        $startDate = null;
+        $endDate = null;
+
+        if ($this->timeRange === '7_days') {
+            $startDate = now()->subDays(7)->toDateString();
+            $endDate = now()->toDateString();
+        } elseif ($this->timeRange === '30_days') {
+            $startDate = now()->subDays(30)->toDateString();
+            $endDate = now()->toDateString();
+        } elseif ($this->timeRange === 'this_month') {
+            $startDate = now()->startOfMonth()->toDateString();
+            $endDate = now()->endOfMonth()->toDateString();
+        } elseif ($this->timeRange === 'last_month') {
+            $startDate = now()->subMonth()->startOfMonth()->toDateString();
+            $endDate = now()->subMonth()->endOfMonth()->toDateString();
+        }
+
+        return [$startDate, $endDate];
+    }
+
     // ── Filtered Applications Query ──────────────────────────────────────────
     public function getApplicationsQuery()
     {
@@ -287,25 +353,19 @@ class ApplicationReport extends Page
             $query->where('cgpa', '>=', $this->minCgpa);
         }
 
-        // Time Range Filter
-        if ($this->timeRange === '7_days') {
-            $query->where('created_at', '>=', now()->subDays(7));
-        } elseif ($this->timeRange === '30_days') {
-            $query->where('created_at', '>=', now()->subDays(30));
-        } elseif ($this->timeRange === 'this_month') {
-            $query->where('created_at', '>=', now()->startOfMonth());
-        } elseif ($this->timeRange === 'last_month') {
-            $query->whereBetween('created_at', [
-                now()->subMonth()->startOfMonth(),
-                now()->subMonth()->endOfMonth(),
+        // Date Range Filter (Custom or Preset)
+        [$startDate, $endDate] = $this->getDateRangeBounds();
+        $field = in_array($this->dateField, ['created_at', 'archived_at', 'updated_at']) ? $this->dateField : 'created_at';
+
+        if ($startDate && $endDate) {
+            $query->whereBetween($field, [
+                \Carbon\Carbon::parse($startDate)->startOfDay(),
+                \Carbon\Carbon::parse($endDate)->endOfDay(),
             ]);
-        } elseif ($this->timeRange === 'custom') {
-            if ($this->customStartDate) {
-                $query->whereDate('created_at', '>=', $this->customStartDate);
-            }
-            if ($this->customEndDate) {
-                $query->whereDate('created_at', '<=', $this->customEndDate);
-            }
+        } elseif ($startDate) {
+            $query->whereDate($field, '>=', $startDate);
+        } elseif ($endDate) {
+            $query->whereDate($field, '<=', $endDate);
         }
 
         // Search Filter

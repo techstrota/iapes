@@ -96,11 +96,15 @@ class AttendanceResource extends Resource
                         'leave' => 'Leave',
                         'holiday' => 'Holiday',
                     ])
-                    ->selectablePlaceholder(false)
-                    ->afterStateUpdated(fn ($record, $state) => 
-                        // Optional: add logic here if needed
-                        $record->update(['status' => $state])
-                    ),
+                    ->placeholder('Unmarked')
+                    ->selectablePlaceholder(true)
+                    ->afterStateUpdated(function ($record, $state) {
+                        if (empty($state) || $state === 'unmarked') {
+                            $record->delete();
+                        } else {
+                            $record->update(['status' => $state]);
+                        }
+                    }),
 
                 TextColumn::make('start_time')
                     ->label('Arrival / Late Duration')
@@ -138,6 +142,7 @@ class AttendanceResource extends Resource
                     ->collapsible(), // Allows you to hide/show 5 interns at once
             ])
             ->defaultGroup('intern.batch.batch_name')
+            ->defaultSort('intern_id', 'asc')
             
             ->filters([
                 // Automatically focus on today's attendance records
@@ -148,7 +153,9 @@ class AttendanceResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Undo / Reset to Unmarked')
+                    ->tooltip('Delete record and revert to Unmarked'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -164,7 +171,8 @@ class AttendanceResource extends Resource
                         ->color('danger')
                         ->action(fn (Collection $records) => $records->each->update(['status' => 'absent'])),
                         
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Undo / Reset Selected to Unmarked'),
                 ]),
             ]);
     }

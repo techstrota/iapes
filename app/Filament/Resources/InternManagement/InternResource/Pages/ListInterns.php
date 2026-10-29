@@ -270,6 +270,11 @@ class ListInterns extends Page
             return;
         }
 
+        if ($this->selectedAttendanceStatus === 'unmarked') {
+            $this->executeUndoAttendance();
+            return;
+        }
+
         $validStatus = in_array($this->selectedAttendanceStatus, ['present', 'wfh', 'leave', 'absent'])
             ? $this->selectedAttendanceStatus
             : 'present';
@@ -304,6 +309,35 @@ class ListInterns extends Page
         Notification::make()
             ->title("Attendance marked as {$statusLabel} for {$count} interns on " . \Carbon\Carbon::parse($date)->format('d M Y'))
             ->success()
+            ->send();
+
+        $this->showAttendanceModal = false;
+        $this->selectedInterns = [];
+        $this->attendanceNote = '';
+    }
+
+    public function executeUndoAttendance(): void
+    {
+        if (empty($this->selectedInterns)) {
+            Notification::make()->title('No interns selected')->warning()->send();
+            return;
+        }
+
+        $date = filled($this->attendanceDate) ? $this->attendanceDate : now()->toDateString();
+        $count = 0;
+
+        foreach ($this->selectedInterns as $id) {
+            $deleted = Attendance::where('intern_id', $id)
+                ->where('date', $date)
+                ->delete();
+            if ($deleted) {
+                $count++;
+            }
+        }
+
+        Notification::make()
+            ->title("Attendance undone: {$count} candidate(s) reset to Unmarked on " . \Carbon\Carbon::parse($date)->format('d M Y'))
+            ->info()
             ->send();
 
         $this->showAttendanceModal = false;
