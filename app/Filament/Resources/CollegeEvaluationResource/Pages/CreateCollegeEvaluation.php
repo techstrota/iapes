@@ -119,6 +119,13 @@ class CreateCollegeEvaluation extends CreateRecord
             $data['columns_config']['columns'] = $cleaned;
         }
 
+        if (!isset($data['columns_config']['pdf_settings'])) {
+            $data['columns_config']['pdf_settings'] = [
+                'font_size' => 'normal',
+                'spacing'   => 'normal',
+            ];
+        }
+
         if (empty($data['instruction_notes'])) {
             $data['instruction_notes'] = \App\Models\ReportManagement\CollegeEvaluation::buildDefaultInstructions(
                 $data['max_attendance_marks'] ?? 20,

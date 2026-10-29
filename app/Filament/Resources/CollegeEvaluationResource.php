@@ -274,7 +274,7 @@ class CollegeEvaluationResource extends Resource
                                                 };
                                             }
                                         })
-                                        ->columnSpan(['default' => 12, 'md' => 3]),
+                                        ->columnSpan(['default' => 12, 'md' => 4]),
 
                                     TextInput::make('label')
                                         ->label('Column Header Name')
@@ -283,28 +283,20 @@ class CollegeEvaluationResource extends Resource
                                         ->live(onBlur: true)
                                         ->columnSpan([
                                             'default' => 12,
-                                            'md' => fn (Forms\Get $get) => in_array($get('type'), ['custom_text', 'custom_criterion']) ? 4 : 7,
+                                            'md' => fn (Forms\Get $get) => in_array($get('type'), ['custom_text', 'custom_criterion']) ? 4 : 8,
                                         ]),
 
                                     TextInput::make('default_value')
                                         ->label('Default Value (Optional)')
                                         ->placeholder('e.g. Web Development Module')
                                         ->visible(fn (Forms\Get $get) => $get('type') === 'custom_text')
-                                        ->columnSpan(['default' => 12, 'md' => 3]),
+                                        ->columnSpan(['default' => 12, 'md' => 4]),
 
                                     TextInput::make('name')
                                         ->label('Criterion Name (Must match scheme)')
                                         ->placeholder('e.g. Weekly Report')
                                         ->visible(fn (Forms\Get $get) => $get('type') === 'custom_criterion')
-                                        ->columnSpan(['default' => 12, 'md' => 3]),
-
-                                    TextInput::make('width')
-                                        ->label('Width %')
-                                        ->placeholder('Auto')
-                                        ->numeric()
-                                        ->minValue(3)
-                                        ->maxValue(80)
-                                        ->columnSpan(['default' => 12, 'md' => 2]),
+                                        ->columnSpan(['default' => 12, 'md' => 4]),
                                 ]),
                             ])
                             ->addActionLabel('＋ Add Column')
@@ -323,31 +315,6 @@ class CollegeEvaluationResource extends Resource
                             ->itemLabel(fn (array $state): ?string => filled($state['label'] ?? null)
                                 ? "{$state['label']}  [" . strtoupper(str_replace('_', ' ', $state['type'] ?? 'column')) . "]"
                                 : 'Column'),
-
-                        Grid::make(['default' => 1, 'md' => 2])->schema([
-                            Select::make('columns_config.pdf_settings.font_size')
-                                ->label('PDF Table Font Size')
-                                ->options([
-                                    'compact' => 'Compact (10.5px) — For 8+ columns',
-                                    'normal'  => 'Standard / Normal (12px) — Recommended',
-                                    'large'   => 'Large (13px) — Highly legible',
-                                    'xlarge'  => 'Extra Large (14px)',
-                                ])
-                                ->default('normal')
-                                ->native(false)
-                                ->helperText('Table data font size. Titles remain bold; row details are regular weight.'),
-
-                            Select::make('columns_config.pdf_settings.spacing')
-                                ->label('PDF Table Row Spacing')
-                                ->options([
-                                    'compact'  => 'Compact (5px padding)',
-                                    'normal'   => 'Standard (8px padding) — Recommended',
-                                    'spacious' => 'Spacious (10px padding)',
-                                ])
-                                ->default('normal')
-                                ->native(false)
-                                ->helperText('Vertical padding of table cells in PDF report.'),
-                        ]),
                     ]),
 
                 // ── 4. Target Interns Selection ──

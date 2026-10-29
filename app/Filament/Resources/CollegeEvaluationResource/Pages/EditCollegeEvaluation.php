@@ -90,23 +90,30 @@ class EditCollegeEvaluation extends EditRecord
         }
 
         // Clean up columns_config columns
+        $existingCols = collect($this->record->columns_config['columns'] ?? []);
         if (isset($data['columns_config']['columns']) && is_array($data['columns_config']['columns'])) {
             $cleaned = [];
             foreach ($data['columns_config']['columns'] as $c) {
                 if (is_array($c) && filled($c['type'] ?? null)) {
                     $label = trim((string)($c['label'] ?? ''));
                     $type = trim((string)$c['type']);
+                    $existingCol = $existingCols->firstWhere('type', $type);
                     $cleaned[] = [
                         'type'          => $type,
                         'label'         => $label ?: ucfirst(str_replace('_', ' ', $type)),
                         'key'           => !empty($c['key']) ? trim((string)$c['key']) : \Illuminate\Support\Str::slug($label, '_'),
                         'default_value' => $c['default_value'] ?? null,
                         'name'          => $c['name'] ?? null,
-                        'width'         => !empty($c['width']) ? (float)$c['width'] : null,
+                        'width'         => !empty($c['width']) ? (float)$c['width'] : ($existingCol['width'] ?? null),
                     ];
                 }
             }
             $data['columns_config']['columns'] = $cleaned;
+        }
+
+        // Preserve existing pdf_settings (font_size, spacing, col_widths) saved from interactive preview
+        if (isset($this->record->columns_config['pdf_settings'])) {
+            $data['columns_config']['pdf_settings'] = $this->record->columns_config['pdf_settings'];
         }
 
         if (empty($data['instruction_notes'])) {
