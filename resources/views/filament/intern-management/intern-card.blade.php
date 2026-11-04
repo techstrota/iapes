@@ -121,21 +121,37 @@
         </div>
     </div>
 
-    {{-- Optional Certificates / Letters Badges --}}
-    @if ($record->cert_ref_id || $record->letter_ref_id)
-        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-            @if ($record->cert_ref_id)
-                <span style="background-color: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: ui-monospace, monospace;">
-                    🏅 {{ $record->cert_ref_id }}
-                </span>
-            @endif
-            @if ($record->letter_ref_id)
-                <span style="background-color: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: ui-monospace, monospace;">
-                    📄 {{ $record->letter_ref_id }}
-                </span>
-            @endif
-        </div>
-    @endif
+    {{-- First Day Welcome Card Button & Document Badges --}}
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+        <a
+            href="{{ route('intern.welcome-card.download', ['id' => $record->id]) }}"
+            target="_blank"
+            title="Download First-Day Welcome Card PDF"
+            style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; background-color: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); text-decoration: none; transition: all 0.15s ease;"
+            onmouseover="this.style.backgroundColor='rgba(245, 158, 11, 0.22)'; this.style.borderColor='rgba(245, 158, 11, 0.6)';"
+            onmouseout="this.style.backgroundColor='rgba(245, 158, 11, 0.12)'; this.style.borderColor='rgba(245, 158, 11, 0.35)';"
+        >
+            <svg style="width: 13px; height: 13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+            </svg>
+            <span>Welcome Card</span>
+        </a>
+
+        @if ($record->cert_ref_id || $record->letter_ref_id)
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                @if ($record->cert_ref_id)
+                    <span style="background-color: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: ui-monospace, monospace;">
+                        🏅 {{ $record->cert_ref_id }}
+                    </span>
+                @endif
+                @if ($record->letter_ref_id)
+                    <span style="background-color: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: ui-monospace, monospace;">
+                        📄 {{ $record->letter_ref_id }}
+                    </span>
+                @endif
+            </div>
+        @endif
+    </div>
 
     {{-- Mentor & Attendance Stats Row --}}
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">

@@ -26,6 +26,8 @@ use ZipArchive;
 use Filament\Forms\Set;
 use Filament\Forms\Get;
 use App\Services\CompletionDocumentService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Collection;
 
 class InternResource extends Resource
 {
@@ -496,6 +498,13 @@ class InternResource extends Resource
                         )
                         ->url(fn (Intern $record) => route('intern.certificate.download', ['id' => $record->id]))
                         ->openUrlInNewTab(),
+
+                    Tables\Actions\Action::make('welcome_card')
+                        ->label('Welcome Card')
+                        ->icon('heroicon-o-identification')
+                        ->color('warning')
+                        ->url(fn (Intern $record) => route('intern.welcome-card.download', ['id' => $record->id]))
+                        ->openUrlInNewTab(),
                 ])
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->color('gray')
@@ -809,6 +818,15 @@ class InternResource extends Resource
                                 ->send();
                         }),
 
+                    BulkAction::make('bulk_download_welcome_cards')
+                        ->label('Download Welcome Cards (4-Up)')
+                        ->icon('heroicon-o-identification')
+                        ->color('warning')
+                        ->action(function ($records) {
+                            $ids = $records->pluck('id')->implode(',');
+                            return redirect()->route('intern.welcome-cards.bulk-download', ['ids' => $ids]);
+                        }),
+
                     Tables\Actions\DeleteBulkAction::make(),
                 ])
                 ->label('Bulk Operations')
@@ -840,5 +858,116 @@ class InternResource extends Resource
             'edit' => Pages\EditIntern::route('/{record}/edit'),
             'certificate' => Pages\ViewCertificate::route('/{record}/certificate'),
         ];
+    }
+
+    /**
+     * Download Welcome Card for a single intern (optional 4-up repetition if repeat=4).
+     */
+    public static function downloadSingleWelcomeCard(int|Intern $intern, array $options = [])
+    {
+        if (is_numeric($intern)) {
+            $intern = Intern::with(['batch', 'offerletter'])->find($intern);
+        }
+
+        if (!$intern) {
+            abort(404, 'Intern not found.');
+        }
+
+        $repeat = !isset($options['repeat']) || (int) $options['repeat'] === 4;
+        $interns = $repeat ? collect([$intern, $intern, $intern, $intern]) : collect([$intern]);
+
+        $code = $intern->intern_code ?: ('INT-' . $intern->id);
+        $fileName = 'Welcome_Card_' . str_replace(['/', '\\'], '-', $code);
+
+        return self::generateWelcomeCardPdf($interns, $fileName, !empty($options['preview']));
+    }
+
+    /**
+     * Bulk download Welcome Cards for active interns, ordered by Intern ID ascending.
+     */
+    public static function downloadBulkWelcomeCards(array $filters = [])
+    {
+        $query = Intern::query()
+            ->with(['batch', 'offerletter'])
+            ->where('is_active', true)
+            ->whereNull('cohort_archive_name');
+
+        if (!empty($filters['ids'])) {
+            $ids = is_array($filters['ids']) ? $filters['ids'] : explode(',', (string) $filters['ids']);
+            $ids = array_filter(array_map('intval', $ids));
+            if (!empty($ids)) {
+                $query->whereIn('id', $ids);
+            }
+        }
+
+        if (!empty($filters['batch_id']) && is_numeric($filters['batch_id'])) {
+            $query->where('internship_batch_id', (int) $filters['batch_id']);
+        }
+
+        $interns = $query
+            ->orderByRaw('COALESCE(NULLIF(intern_code, ""), CONCAT("ID-", LPAD(id, 6, "0"))) ASC')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        if ($interns->isEmpty()) {
+            Notification::make()
+                ->title('No Active Interns Found')
+                ->body('There are no active interns matching the criteria to generate Welcome Cards.')
+                ->warning()
+                ->send();
+
+            return redirect()->back();
+        }
+
+        $batchSuffix = !empty($filters['batch_id']) ? ('_Batch_' . (int) $filters['batch_id']) : '_All_Active';
+        $fileName = 'Welcome_Cards' . $batchSuffix . '_' . now()->format('Ymd');
+
+        return self::generateWelcomeCardPdf($interns, $fileName, !empty($filters['preview']));
+    }
+
+    /**
+     * Common PDF generator engine for Welcome Cards (4 per A4 page in 2x2 grid).
+     */
+    public static function generateWelcomeCardPdf(Collection $interns, string $baseFileName = 'Welcome_Cards', bool $preview = false)
+    {
+        $logoPath = public_path('images/TsLogo.png');
+        $logoBase64 = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : null;
+
+        $bgLogoPath = public_path('images/logo.png');
+        $bgLogoBase64 = file_exists($bgLogoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($bgLogoPath))
+            : $logoBase64;
+
+        $watermarkPath = public_path('images/logo.png');
+        if (!file_exists($watermarkPath)) {
+            $watermarkPath = public_path('images/TsLogo_watermark_blurred.png');
+        }
+        $watermarkBase64 = file_exists($watermarkPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($watermarkPath))
+            : $bgLogoBase64;
+
+        $pdf = Pdf::loadView('pdf.intern-welcome-card', [
+            'interns'         => $interns,
+            'logoBase64'      => $logoBase64,
+            'bgLogoBase64'    => $bgLogoBase64,
+            'watermarkBase64' => $watermarkBase64,
+        ])
+        ->setPaper('a4', 'landscape')
+        ->setOption('isHtml5ParserEnabled', true)
+        ->setOption('isRemoteEnabled', true);
+
+        $safeFileName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $baseFileName) . '.pdf';
+
+        if ($preview) {
+            return $pdf->stream($safeFileName);
+        }
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            $safeFileName,
+            ['Content-Type' => 'application/pdf']
+        );
     }
 }

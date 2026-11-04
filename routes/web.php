@@ -150,3 +150,12 @@ Route::get('/college-evaluations/{record}/pdf', function (\App\Models\ReportMana
 Route::get('/college-evaluations/{record}/preview', function (\App\Models\ReportManagement\CollegeEvaluation $record) {
     return \App\Filament\Resources\CollegeEvaluationResource::streamPdf($record, request()->all());
 })->name('college-evaluations.preview-pdf')->middleware(['web', 'auth']);
+
+// ─── Intern Welcome Cards PDF Download ──────────────────────────────────────
+Route::get('/interns/{id}/welcome-card', function ($id) {
+    return \App\Filament\Resources\InternManagement\InternResource::downloadSingleWelcomeCard((int) $id, request()->all());
+})->name('intern.welcome-card.download')->middleware(['web', 'auth']);
+
+Route::get('/interns/welcome-cards/bulk', function () {
+    return \App\Filament\Resources\InternManagement\InternResource::downloadBulkWelcomeCards(request()->all());
+})->name('intern.welcome-cards.bulk-download')->middleware(['web', 'auth']);

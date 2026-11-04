@@ -174,6 +174,18 @@
                         style="padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 8px; border: 1px solid #222a3d; background-color: #171f33; color: #c4c5d5; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s ease;">
                         <span>Select All Active ({{ $activeCount }})</span>
                     </button>
+
+                    {{-- Download Welcome Cards for All Active --}}
+                    <button
+                        type="button"
+                        wire:click="downloadAllActiveWelcomeCards"
+                        title="Download Welcome Cards PDF for all active interns (4 per A4 page, ascending order)"
+                        style="padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.4); background-color: rgba(245, 158, 11, 0.12); color: #fbbf24; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s ease;">
+                        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                        </svg>
+                        <span>Download Welcome Cards (All Active)</span>
+                    </button>
                 @endif
             </div>
         </div>
@@ -222,6 +234,18 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         Export CSV
+                    </button>
+
+                    {{-- Download Welcome Cards for Selected Interns --}}
+                    <button
+                        type="button"
+                        wire:click="downloadSelectedWelcomeCards"
+                        title="Download Welcome Cards PDF for selected interns (4 per A4 page, ascending order)"
+                        style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: #FFFFFF; font-weight: 700; font-size: 12px; border-radius: 8px; padding: 7px 14px; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); transition: all 0.15s ease;">
+                        <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                        </svg>
+                        <span>Welcome Cards ({{ count($selectedInterns) }})</span>
                     </button>
 
                     <button

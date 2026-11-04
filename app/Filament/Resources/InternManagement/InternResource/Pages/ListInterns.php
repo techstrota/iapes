@@ -519,6 +519,31 @@ class ListInterns extends Page
         ]);
     }
 
+    public function downloadSelectedWelcomeCards(): mixed
+    {
+        if (empty($this->selectedInterns)) {
+            Notification::make()
+                ->title('No Interns Selected')
+                ->body('Please select one or more interns to download Welcome Cards.')
+                ->warning()
+                ->send();
+            return null;
+        }
+
+        $ids = implode(',', array_map('intval', $this->selectedInterns));
+        return redirect()->route('intern.welcome-cards.bulk-download', ['ids' => $ids]);
+    }
+
+    public function downloadAllActiveWelcomeCards(): mixed
+    {
+        $params = [];
+        if ($this->selectedBatchId) {
+            $params['batch_id'] = (int) $this->selectedBatchId;
+        }
+
+        return redirect()->route('intern.welcome-cards.bulk-download', $params);
+    }
+
     public function getStats(): array
     {
         $totalInterns = Intern::count();

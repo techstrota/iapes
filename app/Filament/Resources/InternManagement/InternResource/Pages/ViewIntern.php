@@ -46,6 +46,14 @@ class ViewIntern extends ViewRecord
                 ->color('primary')
                 ->url(fn (Intern $record): string => InternResource::getUrl('edit', ['record' => $record])),
 
+            Actions\Action::make('welcome_card')
+                ->label('Welcome Card')
+                ->icon('heroicon-o-identification')
+                ->color('warning')
+                ->tooltip('Download First-Day Welcome Card PDF')
+                ->url(fn (Intern $record): string => route('intern.welcome-card.download', ['id' => $record->id]))
+                ->openUrlInNewTab(),
+
             Actions\Action::make('toggle_login_access')
                 ->label(fn (Intern $record): string => $record->is_login_enabled ? 'Disable Login' : 'Enable Login')
                 ->icon(fn (Intern $record): string => $record->is_login_enabled ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
