@@ -930,6 +930,11 @@ class InternResource extends Resource
      */
     public static function generateWelcomeCardPdf(Collection $interns, string $baseFileName = 'Welcome_Cards', bool $preview = false)
     {
+        $fontDir = storage_path('fonts');
+        if (!file_exists($fontDir)) {
+            @mkdir($fontDir, 0755, true);
+        }
+
         $logoPath = public_path('images/TsLogo.png');
         $logoBase64 = file_exists($logoPath)
             ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
@@ -940,7 +945,10 @@ class InternResource extends Resource
             ? 'data:image/png;base64,' . base64_encode(file_get_contents($bgLogoPath))
             : $logoBase64;
 
-        $watermarkPath = public_path('images/logo.png');
+        $watermarkPath = public_path('images/TsLogo.png');
+        if (!file_exists($watermarkPath)) {
+            $watermarkPath = public_path('images/logo.png');
+        }
         if (!file_exists($watermarkPath)) {
             $watermarkPath = public_path('images/TsLogo_watermark_blurred.png');
         }
@@ -948,11 +956,21 @@ class InternResource extends Resource
             ? 'data:image/png;base64,' . base64_encode(file_get_contents($watermarkPath))
             : $bgLogoBase64;
 
+        $cardBgPath = public_path('images/welcome_card_final.jpeg');
+        if (!file_exists($cardBgPath)) {
+            $cardBgPath = public_path('images/welcome card bg.png');
+        }
+        $cardBgMime = (str_ends_with(strtolower($cardBgPath), '.png')) ? 'image/png' : 'image/jpeg';
+        $cardBgBase64 = file_exists($cardBgPath)
+            ? 'data:' . $cardBgMime . ';base64,' . base64_encode(file_get_contents($cardBgPath))
+            : null;
+
         $pdf = Pdf::loadView('pdf.intern-welcome-card', [
             'interns'         => $interns,
             'logoBase64'      => $logoBase64,
             'bgLogoBase64'    => $bgLogoBase64,
             'watermarkBase64' => $watermarkBase64,
+            'cardBgBase64'    => $cardBgBase64,
         ])
         ->setPaper('a4', 'landscape')
         ->setOption('isHtml5ParserEnabled', true)
