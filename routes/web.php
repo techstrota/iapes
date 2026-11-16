@@ -159,3 +159,34 @@ Route::get('/interns/{id}/welcome-card', function ($id) {
 Route::get('/interns/welcome-cards/bulk', function () {
     return \App\Filament\Resources\InternManagement\InternResource::downloadBulkWelcomeCards(request()->all());
 })->name('intern.welcome-cards.bulk-download')->middleware(['web', 'auth']);
+
+// ─── Task Submission Deliverable File Download ───────────────────────────────
+Route::get('/task-submissions/{id}/download', function ($id) {
+    $submission = \App\Models\TaskManagement\TaskSubmission::with(['intern', 'task'])->findOrFail($id);
+
+    if (!$submission->submission_file) {
+        abort(404, 'No file attached to this submission.');
+    }
+
+    $rawPath = ltrim($submission->submission_file, '/\\');
+    $disk = Storage::disk('public');
+
+    if ($disk->exists($rawPath)) {
+        $fullPath = $disk->path($rawPath);
+    } elseif (file_exists(storage_path('app/public/' . $rawPath))) {
+        $fullPath = storage_path('app/public/' . $rawPath);
+    } elseif (file_exists(public_path('storage/' . $rawPath))) {
+        $fullPath = public_path('storage/' . $rawPath);
+    } else {
+        abort(404, 'Submission deliverable file could not be found on storage.');
+    }
+
+    $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
+    $internName = \Illuminate\Support\Str::slug($submission->intern?->name ?? 'intern');
+    $taskTitle = \Illuminate\Support\Str::slug($submission->task?->title ?? 'task');
+    $safeName = "{$taskTitle}_{$internName}_deliverable." . ($ext ?: 'bin');
+
+    return response()->download($fullPath, $safeName, [
+        'Content-Disposition' => 'attachment; filename="' . $safeName . '"',
+    ]);
+})->name('task.submission.download')->middleware(['web', 'auth:web,intern']);

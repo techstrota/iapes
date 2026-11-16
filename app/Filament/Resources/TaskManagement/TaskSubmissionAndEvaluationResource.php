@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Collection;
 
 class TaskSubmissionAndEvaluationResource extends Resource
 {
@@ -41,8 +42,8 @@ class TaskSubmissionAndEvaluationResource extends Resource
                         ->disabled(),
                 ])->columns(1),
             
-            Forms\Components\Section::make('Grading & Assessment')
-            ->description('Assign marks and provide feedback based on the quality of work.')
+            Forms\Components\Section::make('Evaluation & Assessment')
+            ->description('Assign score and provide feedback based on the quality of work.')
             ->schema([
                 Forms\Components\TextInput::make('marks')
                     ->numeric()
@@ -50,22 +51,11 @@ class TaskSubmissionAndEvaluationResource extends Resource
                     ->maxValue(100)
                     ->suffix('/ 100')
                     ->label('Score'),
-            
-        Forms\Components\Select::make('grade')
-            ->options([
-                'O' => 'Outstanding',
-                'A+' => 'Excellent',
-                'A' => 'Very Good',
-                'B' => 'Good',
-                'C' => 'Average',
-                'F' => 'Fail',
-            ])
-            ->native(false),
 
-        Forms\Components\Textarea::make('admin_feedback')
-            ->label('Specific Feedback')
-            ->columnSpanFull(),
-    ])->columns(2)
+                Forms\Components\Textarea::make('admin_feedback')
+                    ->label('Specific Feedback')
+                    ->columnSpanFull(),
+            ])->columns(1)
         
             ]);
     }
@@ -119,7 +109,6 @@ class TaskSubmissionAndEvaluationResource extends Resource
                     ->mountUsing(fn (Forms\ComponentContainer $form, $record) => $form->fill([
                         'status' => $record->status,
                         'marks' => $record->marks,
-                        'grade' => $record->grade,
                         'admin_feedback' => $record->admin_feedback,
                     ]))
                     ->form([
@@ -147,8 +136,8 @@ class TaskSubmissionAndEvaluationResource extends Resource
                 ])->columnSpan(1),
 
             // SECTION 2: RIGHT SIDE - GRADING & ASSESSMENT (EDITABLE)
-            Forms\Components\Section::make('Grading & Assessment')
-                ->description('Assign status, marks, and grade based on the work quality.')
+            Forms\Components\Section::make('Evaluation & Assessment')
+                ->description('Assign status, score, and feedback based on the work quality.')
                 ->schema([
                     Forms\Components\Select::make('status')
                         ->options([
@@ -159,26 +148,12 @@ class TaskSubmissionAndEvaluationResource extends Resource
                         ->required()
                         ->native(false),
 
-                    Forms\Components\Grid::make(2)
-                        ->schema([
-                            Forms\Components\TextInput::make('marks')
-                                ->numeric()
-                                ->minValue(0)
-                                ->maxValue(100)
-                                ->suffix('/ 100')
-                                ->label('Score'),
-
-                            Forms\Components\Select::make('grade')
-                                ->options([
-                                    'O' => 'Outstanding',
-                                    'A+' => 'Excellent',
-                                    'A' => 'Very Good',
-                                    'B' => 'Good',
-                                    'C' => 'Average',
-                                    'F' => 'Fail',
-                                ])
-                                ->native(false),
-                        ]),
+                    Forms\Components\TextInput::make('marks')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->suffix('/ 100')
+                        ->label('Score'),
 
                     Forms\Components\Textarea::make('admin_feedback')
                         ->label('Evaluation Remarks')
@@ -195,7 +170,6 @@ class TaskSubmissionAndEvaluationResource extends Resource
             $record->update([
                 'status' => $data['status'],
                 'marks' => $data['marks'],
-                'grade' => $data['grade'],
                 'admin_feedback' => $data['admin_feedback'],
                 'evaluated_at' => now(),// Good for tracking admin response time
             ]);
@@ -214,14 +188,90 @@ class TaskSubmissionAndEvaluationResource extends Resource
                 ->sendToDatabase($record->intern);
         }),
 
-                    
-            
-                //Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('download_deliverable')
+                    ->label('Download')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('info')
+                    ->visible(fn ($record) => filled($record->submission_file))
+                    ->url(fn ($record) => route('task.submission.download', ['id' => $record->submission_id]))
+                    ->openUrlInNewTab(false),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                //Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                Tables\Actions\BulkAction::make('bulk_evaluate')
+                    ->label('Bulk Evaluate')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->color('primary')
+                    ->extraAttributes([
+                        'style' => 'background-color: #1e40af !important; border: 1px solid #3b82f6 !important; color: #ffffff !important; border-radius: 8px !important; font-weight: 600 !important;',
+                    ])
+                    ->modalHeading('Bulk Evaluate Selected Submissions')
+                    ->modalDescription('Update evaluation status and timestamps for all selected submissions. Marks are not required for bulk evaluation.')
+                    ->modalSubmitActionLabel('Save Bulk Evaluation')
+                    ->modalWidth('lg')
+                    ->form([
+                        Forms\Components\Select::make('status')
+                            ->label('Evaluation Status')
+                            ->options([
+                                'reviewed' => 'Mark as Reviewed',
+                                'approved' => 'Approve Deliverables',
+                                'rejected' => 'Reject / Revision Required',
+                            ])
+                            ->default('reviewed')
+                            ->required()
+                            ->native(false)
+                            ->helperText('Select the status to apply to all selected intern deliverables.'),
+
+                        Forms\Components\Textarea::make('admin_feedback')
+                            ->label('Evaluation Remarks / Feedback (Optional)')
+                            ->placeholder('Optional comment to record on all selected submissions...')
+                            ->rows(3)
+                            ->helperText('Leave empty to preserve existing feedback or provide general remarks.'),
+                    ])
+                    ->action(function (Collection $records, array $data): void {
+                        $count = 0;
+                        $status = $data['status'];
+                        $feedback = filled($data['admin_feedback'] ?? null) ? $data['admin_feedback'] : null;
+
+                        foreach ($records as $record) {
+                            $updateData = [
+                                'status'       => $status,
+                                'evaluated_at' => now(),
+                            ];
+
+                            if ($feedback !== null) {
+                                $updateData['admin_feedback'] = $feedback;
+                            }
+
+                            $record->update($updateData);
+
+                            // Send notification to the intern
+                            if ($record->intern) {
+                                Notification::make()
+                                    ->title('Your task submission has been ' . ($status === 'reviewed' ? 'reviewed' : ucfirst($status)) . '.')
+                                    ->body($feedback ?? 'Your deliverable status has been updated by the admin team.')
+                                    ->icon('heroicon-o-clipboard-document-check')
+                                    ->iconColor($status === 'approved' ? 'success' : ($status === 'rejected' ? 'danger' : 'info'))
+                                    ->sendToDatabase($record->intern);
+                            }
+
+                            $count++;
+                        }
+
+                        // Auto-complete tasks if all assigned interns are approved
+                        $tasks = $records->map(fn ($r) => $r->task)->filter()->unique('task_id');
+                        foreach ($tasks as $task) {
+                            if (method_exists($task, 'checkAndAutoComplete')) {
+                                $task->checkAndAutoComplete();
+                            }
+                        }
+
+                        Notification::make()
+                            ->title('Bulk Evaluation Complete')
+                            ->body("Successfully updated {$count} " . ($count === 1 ? 'submission' : 'submissions') . ' to ' . ucfirst($status) . '.')
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ]);
     }
 

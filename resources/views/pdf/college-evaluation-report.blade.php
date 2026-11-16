@@ -494,7 +494,7 @@
                             @elseif ($cType === 'student_name')
                                 {{ $item->student_name }}
                             @elseif ($cType === 'grade')
-                                {{ strtoupper($item->grade ?: 'PASS') }}
+                                {{ \App\Models\ReportManagement\CollegeEvaluation::formatGradeOnly($item->grade) }}
                             @elseif (in_array($cType, ['direct_marks', 'total_marks', 'marks']))
                                 {{ rtrim(rtrim(number_format((float)$item->total_obtained_marks, 2), '0'), '.') }}
                             @elseif ($cType === 'criteria_attendance')

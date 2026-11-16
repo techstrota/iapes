@@ -33,9 +33,9 @@ class ListTasks extends ListRecords
             $activeTasksCount = Task::where('status', 'active')->count();
             $activeBatchesCount = InternshipBatch::count();
             $pendingEvalCount = TaskSubmission::where(function ($q) {
-                $q->whereNull('grade')->orWhere('status', 'submitted');
+                $q->whereNull('evaluated_at')->orWhere('status', 'submitted');
             })->count();
-            $evaluatedCount = TaskSubmission::whereNotNull('grade')->where('status', '!=', 'submitted')->count();
+            $evaluatedCount = TaskSubmission::whereNotNull('evaluated_at')->where('status', '!=', 'submitted')->count();
             $totalSubmissions = TaskSubmission::count();
             $overdueCount = Task::where('status', 'active')
                 ->whereNotNull('due_date')
@@ -113,7 +113,7 @@ class ListTasks extends ListRecords
                 ->badge($overdueCount)
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'active')->whereNotNull('due_date')->where('due_date', '<', now())),
 
-            'completed' => Tab::make('Completed & Graded')
+            'completed' => Tab::make('Completed Tasks')
                 ->icon('heroicon-m-check-badge')
                 ->badge($completedCount)
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'completed')),

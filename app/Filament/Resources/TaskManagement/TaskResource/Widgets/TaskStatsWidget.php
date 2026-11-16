@@ -31,7 +31,7 @@ class TaskStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('warning'),
             Stat::make('Evaluated', $this->record->evaluated_count)
-                ->description('Submissions graded')
+                ->description('Submissions evaluated')
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->color('success'),
         ];

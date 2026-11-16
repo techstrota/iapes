@@ -54,6 +54,24 @@ class ViewCollegeEvaluation extends ViewRecord
         $this->previewFontSize = $settings['font_size'] ?? 'normal';
         $this->previewSpacing = $settings['spacing'] ?? 'normal';
         $this->initColumnWidths();
+
+        // Auto-clean & upgrade grades to only letter grade (O, A, B, etc.)
+        $totMarks = (float)($this->record->total_marks ?: 50.0);
+        foreach ($this->record->evaluationInterns as $ei) {
+            if ($ei->total_obtained_marks !== null) {
+                $pct = min(100.0, max(0.0, round(((float)$ei->total_obtained_marks / $totMarks) * 100, 2)));
+                $calcGrade = CollegeEvaluation::computeGrade($pct, $totMarks, (float)$ei->total_obtained_marks);
+                if ($ei->grade !== $calcGrade) {
+                    $ei->update(['grade' => $calcGrade]);
+                }
+            } elseif (filled($ei->grade)) {
+                $clean = CollegeEvaluation::formatGradeOnly($ei->grade);
+                if ($ei->grade !== $clean) {
+                    $ei->update(['grade' => $clean]);
+                }
+            }
+        }
+        $this->record->refresh();
     }
 
     public function openPdfPreviewModal(): void
@@ -62,6 +80,24 @@ class ViewCollegeEvaluation extends ViewRecord
         $this->previewFontSize = $settings['font_size'] ?? 'normal';
         $this->previewSpacing = $settings['spacing'] ?? 'normal';
         $this->initColumnWidths();
+
+        // Auto-clean & upgrade grades to only letter grade (O, A, B, etc.)
+        $totMarks = (float)($this->record->total_marks ?: 50.0);
+        foreach ($this->record->evaluationInterns as $ei) {
+            if ($ei->total_obtained_marks !== null) {
+                $pct = min(100.0, max(0.0, round(((float)$ei->total_obtained_marks / $totMarks) * 100, 2)));
+                $calcGrade = CollegeEvaluation::computeGrade($pct, $totMarks, (float)$ei->total_obtained_marks);
+                if ($ei->grade !== $calcGrade) {
+                    $ei->update(['grade' => $calcGrade]);
+                }
+            } elseif (filled($ei->grade)) {
+                $clean = CollegeEvaluation::formatGradeOnly($ei->grade);
+                if ($ei->grade !== $clean) {
+                    $ei->update(['grade' => $clean]);
+                }
+            }
+        }
+        $this->record->refresh();
         $this->showPdfPreviewModal = true;
     }
 
@@ -271,7 +307,7 @@ class ViewCollegeEvaluation extends ViewRecord
             if ($this->record->isDirectMode()) {
                 $totalMax = (float)$this->record->total_marks > 0 ? (float)$this->record->total_marks : 50.0;
                 $pct = min(100.0, max(0.0, round(((float)$cleanVal / $totalMax) * 100, 2)));
-                $evalIntern->grade = CollegeEvaluation::computeGrade($pct);
+                $evalIntern->grade = CollegeEvaluation::computeGrade($pct, $totalMax, (float)$cleanVal);
             }
         } elseif ($colKey === 'grade') {
             $evalIntern->grade = strtoupper($cleanVal);
@@ -298,7 +334,7 @@ class ViewCollegeEvaluation extends ViewRecord
                         if ($this->record->isDirectMode()) {
                             $totalMax = (float)$this->record->total_marks > 0 ? (float)$this->record->total_marks : 50.0;
                             $pct = min(100.0, max(0.0, round(((float)$cleanVal / $totalMax) * 100, 2)));
-                            $evalIntern->grade = CollegeEvaluation::computeGrade($pct);
+                            $evalIntern->grade = CollegeEvaluation::computeGrade($pct, $totalMax, (float)$cleanVal);
                         }
                     } elseif ($key === 'grade') {
                         $evalIntern->grade = strtoupper($cleanVal);
@@ -324,7 +360,7 @@ class ViewCollegeEvaluation extends ViewRecord
         $totalMax = (float)$this->record->total_marks > 0 ? (float)$this->record->total_marks : 50.0;
         $marks = (float)($value ?? 0);
         $pct = min(100.0, max(0.0, round(($marks / $totalMax) * 100, 2)));
-        $this->editGrade = CollegeEvaluation::computeGrade($pct);
+        $this->editGrade = CollegeEvaluation::computeGrade($pct, $totalMax, $marks);
     }
 
     public function updatedNewTotalMarks($value): void
@@ -332,7 +368,7 @@ class ViewCollegeEvaluation extends ViewRecord
         $totalMax = (float)$this->record->total_marks > 0 ? (float)$this->record->total_marks : 50.0;
         $marks = (float)($value ?? 0);
         $pct = min(100.0, max(0.0, round(($marks / $totalMax) * 100, 2)));
-        $this->newGrade = CollegeEvaluation::computeGrade($pct);
+        $this->newGrade = CollegeEvaluation::computeGrade($pct, $totalMax, $marks);
     }
 
     public function getTitle(): string
@@ -389,9 +425,9 @@ class ViewCollegeEvaluation extends ViewRecord
         if ($evaluation->isDirectMode()) {
             $totalMax = (float)$evaluation->total_marks > 0 ? (float)$evaluation->total_marks : 50.0;
             $pct = min(100.0, max(0.0, round(($this->editTotalMarks / $totalMax) * 100, 2)));
-            $this->editGrade = (filled($evalIntern->grade) && strtoupper(trim($evalIntern->grade)) !== 'PASS')
-                ? $evalIntern->grade
-                : CollegeEvaluation::computeGrade($pct);
+            $this->editGrade = CollegeEvaluation::formatGradeOnly(
+                filled($evalIntern->grade) ? $evalIntern->grade : CollegeEvaluation::computeGrade($pct, $totalMax, $this->editTotalMarks)
+            );
         } else {
             $this->editGrade = $evalIntern->grade;
         }
@@ -434,10 +470,9 @@ class ViewCollegeEvaluation extends ViewRecord
             $totalMax = (float)$evaluation->total_marks > 0 ? (float)$evaluation->total_marks : 50.0;
             $totalObtained = max(0.0, (float)($this->editTotalMarks ?? 0));
             $pct = min(100.0, max(0.0, round(($totalObtained / $totalMax) * 100, 2)));
-            $autoGrade = CollegeEvaluation::computeGrade($pct);
-            $grade = (filled($this->editGrade) && strtoupper(trim($this->editGrade)) !== 'PASS')
-                ? trim((string)$this->editGrade)
-                : $autoGrade;
+            $grade = filled($this->editGrade)
+                ? CollegeEvaluation::formatGradeOnly(trim((string)$this->editGrade))
+                : CollegeEvaluation::computeGrade($pct, $totalMax, $totalObtained);
 
             $evalIntern->update([
                 'custom_student_id'   => $this->editStudentId,
@@ -482,7 +517,7 @@ class ViewCollegeEvaluation extends ViewRecord
             $totalObtained = round($att + $task + $customMarksSum, 2);
             $totalMax = (float)$evaluation->total_marks > 0 ? (float)$evaluation->total_marks : 100.0;
             $pct = min(100.0, round(($totalObtained / $totalMax) * 100, 2));
-            $grade = filled($this->editGrade) ? trim((string)$this->editGrade) : CollegeEvaluation::computeGrade($pct);
+            $grade = filled($this->editGrade) ? trim((string)$this->editGrade) : CollegeEvaluation::computeGrade($pct, $totalMax, $totalObtained);
 
             $marksPayload = [
                 'attendance_marks' => $att,
@@ -561,10 +596,9 @@ class ViewCollegeEvaluation extends ViewRecord
             $totalMax = (float)$evaluation->total_marks > 0 ? (float)$evaluation->total_marks : 50.0;
             $totalObtained = max(0.0, (float)($this->newTotalMarks ?? 0));
             $pct = min(100.0, max(0.0, round(($totalObtained / $totalMax) * 100, 2)));
-            $autoGrade = CollegeEvaluation::computeGrade($pct);
-            $grade = (filled($this->newGrade) && strtoupper(trim($this->newGrade)) !== 'PASS')
-                ? trim((string)$this->newGrade)
-                : $autoGrade;
+            $grade = filled($this->newGrade)
+                ? CollegeEvaluation::formatGradeOnly(trim((string)$this->newGrade))
+                : CollegeEvaluation::computeGrade($pct, $totalMax, $totalObtained);
 
             CollegeEvaluationIntern::create([
                 'college_evaluation_id' => $evaluation->id,
@@ -610,7 +644,7 @@ class ViewCollegeEvaluation extends ViewRecord
             $totalObtained = round($att + $task + $customMarksSum, 2);
             $totalMax = (float)$evaluation->total_marks > 0 ? (float)$evaluation->total_marks : 100.0;
             $pct = min(100.0, round(($totalObtained / $totalMax) * 100, 2));
-            $grade = filled($this->newGrade) ? trim((string)$this->newGrade) : CollegeEvaluation::computeGrade($pct);
+            $grade = filled($this->newGrade) ? trim((string)$this->newGrade) : CollegeEvaluation::computeGrade($pct, $totalMax, $totalObtained);
 
             $marksPayload = [
                 'attendance_marks' => $att,

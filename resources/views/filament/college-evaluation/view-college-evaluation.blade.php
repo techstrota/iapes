@@ -12,7 +12,7 @@
         $totalCount = $evalInterns->count();
         $avgScore = $totalCount > 0 ? round($evalInterns->avg('total_obtained_marks'), 1) : 0;
         $topScore = $totalCount > 0 ? round($evalInterns->max('total_obtained_marks'), 1) : 0;
-        $outstandingCount = $evalInterns->whereIn('grade', ['O', 'A+'])->count();
+        $outstandingCount = $evalInterns->filter(fn ($i) => in_array(\App\Models\ReportManagement\CollegeEvaluation::formatGradeOnly($i->grade), ['O', 'A']))->count();
     @endphp
 
     <style>
@@ -268,7 +268,7 @@
             </div>
 
             <div class="exec-card" style="padding: 16px 18px; border-left: 3px solid #8b5cf6;">
-                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Top Grades (O &amp; A+)</div>
+                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Top Grades (O &amp; A)</div>
                 <div style="font-size: 26px; font-weight: 800; color: #c084fc; margin-top: 6px;">{{ $outstandingCount }}</div>
                 <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">Distinction &amp; high honors</div>
             </div>
@@ -312,13 +312,16 @@
                     <tbody>
                         @forelse ($evalInterns as $index => $item)
                             @php
-                                $gradeStr = strtoupper($item->grade ?: 'PASS');
-                                $gradeColor = match($gradeStr) {
-                                    'O'     => 'background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);',
+                                $displayGrade = \App\Models\ReportManagement\CollegeEvaluation::formatGradeOnly($item->grade);
+                                $gradeColor = match(strtoupper($displayGrade)) {
+                                    'O'       => 'background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);',
                                     'A+', 'A' => 'background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);',
-                                    'B+', 'B' => 'background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);',
-                                    'C'     => 'background: rgba(249, 115, 22, 0.2); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.4);',
-                                    default => 'background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3);',
+                                    'B+', 'B' => 'background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.4);',
+                                    'C'       => 'background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);',
+                                    'D'       => 'background: rgba(249, 115, 22, 0.2); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.4);',
+                                    'E*', 'E', 'PASS' => 'background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4);',
+                                    'F', 'FAIL', 'DROPPED' => 'background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);',
+                                    default   => 'background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3);',
                                 };
                             @endphp
                             <tr>
@@ -342,7 +345,7 @@
                                             @endif
                                         @elseif ($cType === 'grade')
                                             <span class="badge-pill" style="{{ $gradeColor }}">
-                                                {{ $gradeStr }}
+                                                {{ $displayGrade }}
                                             </span>
                                         @elseif (in_array($cType, ['direct_marks', 'total_marks', 'marks']))
                                             <span style="font-weight: 800; font-size: 14px; color: #38bdf8;">
@@ -471,9 +474,9 @@
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">
                                     Grade (Auto-Calculated)
                                 </label>
-                                <input type="text" wire:model="editGrade" class="exec-input" placeholder="e.g. O, A, B">
-                                <div style="font-size: 11px; color: #64748b; margin-top: 3px;">
-                                    Auto: <strong>O</strong> (90%+), <strong>A</strong> (70–89%), <strong>B+</strong> (60–69%), <strong>B</strong> (50–59%), <strong>C</strong> (40–49%)
+                                <input type="text" wire:model="editGrade" class="exec-input" placeholder="e.g. O, A, B, C, D, E*">
+                                <div style="font-size: 11px; color: #64748b; margin-top: 3px; line-height: 1.4;">
+                                    Auto: <strong>O</strong> (&ge;45 / 90%+), <strong>A</strong> (40&ndash;44.9 / 80%+), <strong>B</strong> (35&ndash;39.9 / 70%+), <strong>C</strong> (30&ndash;34.9 / 60%+), <strong>D</strong> (25&ndash;29.9 / 50%+), <strong>E*</strong> (20&ndash;24.9 / 40%+), <strong>F</strong> (&lt;20 / &lt;40%)
                                 </div>
                             </div>
                         </div>
@@ -508,7 +511,7 @@
                             <label style="display: block; font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">
                                 Override Grade (Optional)
                             </label>
-                            <input type="text" wire:model="editGrade" class="exec-input" placeholder="Leave blank for auto grade">
+                            <input type="text" wire:model="editGrade" class="exec-input" placeholder="Leave blank for auto grade (e.g. O, A, B)">
                         </div>
                     @endif
 
@@ -589,9 +592,9 @@
                                 <label style="display: block; font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">
                                     Grade (Auto-Calculated)
                                 </label>
-                                <input type="text" wire:model="newGrade" class="exec-input" placeholder="e.g. O, A, B">
-                                <div style="font-size: 11px; color: #64748b; margin-top: 3px;">
-                                    Auto: <strong>O</strong> (90%+), <strong>A</strong> (70–89%), <strong>B+</strong> (60–69%), <strong>B</strong> (50–59%), <strong>C</strong> (40–49%)
+                                <input type="text" wire:model="newGrade" class="exec-input" placeholder="e.g. O, A, B, C, D, E*">
+                                <div style="font-size: 11px; color: #64748b; margin-top: 3px; line-height: 1.4;">
+                                    Auto: <strong>O</strong> (&ge;45 / 90%+), <strong>A</strong> (40&ndash;44.9 / 80%+), <strong>B</strong> (35&ndash;39.9 / 70%+), <strong>C</strong> (30&ndash;34.9 / 60%+), <strong>D</strong> (25&ndash;29.9 / 50%+), <strong>E*</strong> (20&ndash;24.9 / 40%+), <strong>F</strong> (&lt;20 / &lt;40%)
                                 </div>
                             </div>
                         </div>
@@ -626,7 +629,7 @@
                             <label style="display: block; font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">
                                 Grade (Optional)
                             </label>
-                            <input type="text" wire:model="newGrade" class="exec-input" placeholder="Leave blank for auto grade">
+                            <input type="text" wire:model="newGrade" class="exec-input" placeholder="Leave blank for auto grade (e.g. O, A, B)">
                         </div>
                     @endif
 
@@ -910,7 +913,7 @@
                                                             @elseif ($cType === 'student_name')
                                                                 {{ $item->student_name }}
                                                             @elseif ($cType === 'grade')
-                                                                {{ strtoupper($item->grade ?: 'PASS') }}
+                                                                {{ \App\Models\ReportManagement\CollegeEvaluation::formatGradeOnly($item->grade) }}
                                                             @elseif (in_array($cType, ['direct_marks', 'total_marks', 'marks']))
                                                                 {{ rtrim(rtrim(number_format((float)$item->total_obtained_marks, 2), '0'), '.') }}
                                                             @elseif ($cType === 'criteria_attendance')

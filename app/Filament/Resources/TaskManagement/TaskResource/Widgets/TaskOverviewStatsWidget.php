@@ -37,7 +37,7 @@ class TaskOverviewStatsWidget extends BaseWidget
                 ->color('primary'),
 
             Stat::make('Pending Evaluation', "{$pendingEvalCount} Submissions")
-                ->description('Needs Mentor Grading & Review')
+                ->description('Needs Mentor Review')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color('warning'),
 
@@ -46,8 +46,8 @@ class TaskOverviewStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('danger'),
 
-            Stat::make('Cohort Grading Velocity', "{$gradingVelocity}%")
-                ->description("{$evaluatedCount} of {$totalSubmissions} Graded")
+            Stat::make('Cohort Evaluation Rate', "{$gradingVelocity}%")
+                ->description("{$evaluatedCount} of {$totalSubmissions} Evaluated")
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->color('success'),
         ];

@@ -398,24 +398,56 @@ class CollegeEvaluation extends Model
     /**
      * Helper to compute Grade from percentage score.
      */
-    public static function computeGrade(float $percentage): string
+    /**
+     * Helper to extract only the letter grade (O, A, B, C, D, E*, F)
+     * Strips division prefixes like 'First/', 'Second/', 'Pass/'.
+     */
+    public static function formatGradeOnly(?string $grade): string
     {
-        if ($percentage >= 90) {
-            return 'O'; // Outstanding (>= 90%)
+        if (blank($grade)) {
+            return 'E*';
         }
-        if ($percentage >= 70) {
-            return 'A'; // Excellent / Very Good (70% - 89%, e.g. 41, 43 out of 50)
+        $grade = trim($grade);
+        if (str_contains($grade, '/')) {
+            $parts = explode('/', $grade);
+            return trim(end($parts));
         }
-        if ($percentage >= 60) {
-            return 'B+'; // Good (60% - 69%)
+        return $grade;
+    }
+
+    public static function computeGrade(float $percentage, float|int|null $totalMarks = 50, ?float $obtainedMarks = null): string
+    {
+        // 50 Marks Scale: only letter grades O, A, B, C, D, E*, F
+        if ($obtainedMarks !== null && ((float)$totalMarks == 50.0 || (float)$totalMarks <= 0)) {
+            if ($obtainedMarks >= 45.0) return 'O';   // Outstanding (m >= 45)
+            if ($obtainedMarks >= 40.0) return 'A';   // Excellent (40 <= m < 45)
+            if ($obtainedMarks >= 35.0) return 'B';   // Very Good (35 <= m < 40)
+            if ($obtainedMarks >= 30.0) return 'C';   // Good (30 <= m < 35)
+            if ($obtainedMarks >= 25.0) return 'D';   // Fair (25 <= m < 30)
+            if ($obtainedMarks >= 20.0) return 'E*';  // Average (20 <= m < 25)
+            return 'F';                               // Dropped (m < 20)
         }
-        if ($percentage >= 50) {
-            return 'B'; // Satisfactory (50% - 59%)
+
+        // Percentage-based scale
+        if ($percentage >= 90.0) {
+            return 'O';  // Outstanding (>= 90%)
         }
-        if ($percentage >= 40) {
-            return 'C'; // Pass (40% - 49%)
+        if ($percentage >= 80.0) {
+            return 'A';  // Excellent (80% - 89.9%)
         }
-        return 'Needs Improvement';
+        if ($percentage >= 70.0) {
+            return 'B';  // Very Good (70% - 79.9%)
+        }
+        if ($percentage >= 60.0) {
+            return 'C';  // Good (60% - 69.9%)
+        }
+        if ($percentage >= 50.0) {
+            return 'D';  // Fair (50% - 59.9%)
+        }
+        if ($percentage >= 40.0) {
+            return 'E*'; // Average (40% - 49.9%)
+        }
+        return 'F';      // Dropped (< 40%)
     }
 
     /**
@@ -435,9 +467,12 @@ class CollegeEvaluation extends Model
             $lines[] = "1. Evaluation Scheme (Max {$totalFormatted} Marks):";
             $lines[] = "Overall student evaluation is assessed directly based on assigned coursework, project modules, technical deliverables, practical proficiency, and periodic mentor reviews out of {$totalFormatted} marks.";
             $lines[] = "";
-            $lines[] = "2. Grading Scale:";
-            $lines[] = "Grades are assigned based on percentage achieved out of {$totalFormatted} marks:";
-            $lines[] = "90–100%: O (Outstanding) | 80–89%: A+ (Excellent) | 70–79%: A (Very Good) | 60–69%: B+ (Good) | 50–59%: B (Satisfactory) | 40–49%: Pass | Below 40%: Needs Improvement.";
+            $lines[] = "2. Grading Scale & Division:";
+            if ((float)$totalMax == 50.0) {
+                $lines[] = "Grades (out of 50 Marks): m >= 45: O (Outstanding) | 40 <= m < 45: A (Excellent) | 35 <= m < 40: B (Very Good) | 30 <= m < 35: C (Good) | 25 <= m < 30: D (Fair) | 20 <= m < 25: E* (Average) | m < 20: F (Dropped).";
+            } else {
+                $lines[] = "Grades: 90–100%: O (Outstanding) | 80–89%: A (Excellent) | 70–79%: B (Very Good) | 60–69%: C (Good) | 50–59%: D (Fair) | 40–49%: E* (Average) | Below 40%: F (Dropped).";
+            }
             return implode("\n", $lines);
         }
 
@@ -493,7 +528,11 @@ class CollegeEvaluation extends Model
         }
 
         $lines[] = "{$step}. Total Marks & Grading Scale (Max {$totalFormatted} Marks):";
-        $lines[] = "Total Obtained Marks is the sum of all evaluated criteria. Grades: 90-100%: O (Outstanding) | 80-89%: A+ (Excellent) | 70-79%: A (Very Good) | 60-69%: B+ (Good) | 50-59%: B (Satisfactory) | 40-49%: C (Pass) | Below 40%: Needs Improvement.";
+        if ((float)$totalMax == 50.0) {
+            $lines[] = "Total Obtained Marks is the sum of all evaluated criteria. Grades (out of 50 Marks): m >= 45: O (Outstanding) | 40 <= m < 45: A (Excellent) | 35 <= m < 40: B (Very Good) | 30 <= m < 35: C (Good) | 25 <= m < 30: D (Fair) | 20 <= m < 25: E* (Average) | m < 20: F (Dropped).";
+        } else {
+            $lines[] = "Total Obtained Marks is the sum of all evaluated criteria. Grades: 90-100%: O (Outstanding) | 80-89%: A (Excellent) | 70-79%: B (Very Good) | 60-69%: C (Good) | 50-59%: D (Fair) | 40-49%: E* (Average) | Below 40%: F (Dropped).";
+        }
 
         return implode("\n", $lines);
     }
@@ -522,9 +561,10 @@ class CollegeEvaluation extends Model
             $totalMax = (float)$this->total_marks > 0 ? (float)$this->total_marks : 50.0;
             $obtained = (float)($evalIntern->total_obtained_marks ?? 0);
             $pct = min(100.0, max(0.0, round(($obtained / $totalMax) * 100, 2)));
-            $grade = (filled($evalIntern->grade) && strtoupper(trim($evalIntern->grade)) !== 'PASS')
+            $isLegacyGrade = in_array(strtoupper(trim($evalIntern->grade ?? '')), ['PASS', 'O', 'A+', 'A', 'B+', 'B', 'C', 'NEEDS IMPROVEMENT']);
+            $grade = (filled($evalIntern->grade) && !$isLegacyGrade)
                 ? $evalIntern->grade
-                : self::computeGrade($pct);
+                : self::computeGrade($pct, $totalMax, $obtained);
 
             $evalIntern->update([
                 'total_obtained_marks' => $obtained,
@@ -668,7 +708,7 @@ class CollegeEvaluation extends Model
         $totalObtained = round($attendanceMarks + $taskMarks + $customMarksSum, 2);
         $totalMax = (float)$this->total_marks > 0 ? (float)$this->total_marks : 100.0;
         $overallPct = min(100.0, round(($totalObtained / $totalMax) * 100, 2));
-        $grade = self::computeGrade($overallPct);
+        $grade = self::computeGrade($overallPct, $totalMax, $totalObtained);
 
         $marksPayload = [
             'attendance_marks' => $attendanceMarks,

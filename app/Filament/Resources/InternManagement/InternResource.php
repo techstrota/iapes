@@ -9,7 +9,7 @@ use App\Models\InternManagement\Intern;
 use App\Models\InterviewManagement\Application;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\{TextInput, TextArea, FileUpload, Select, DatePicker, TimePicker, Section, Grid, RichEditor};
+use Filament\Forms\Components\{TextInput, Textarea, FileUpload, Select, DatePicker, TimePicker, Section, Grid, RichEditor};
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -125,7 +125,7 @@ class InternResource extends Resource
                                         ->placeholder('e.g. Web Development, AI')
                                         ->maxLength(255),
 
-                                    TextArea::make('skills')
+                                    Textarea::make('skills')
                                         ->label('Skills / Competencies')
                                         ->placeholder('e.g. Laravel, React, Python')
                                         ->rows(3)
