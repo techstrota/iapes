@@ -80,7 +80,31 @@ Route::middleware(['auth:web,intern'])->group(function () {
         ->name('intern.certificate.view');
     Route::get('/intern/certificate/download/{id}', [CertificateController::class, 'downloadCertificate'])
         ->name('intern.certificate.download');
+
+    // Progress Report Route (For Intern Portal)
+    Route::get('/intern/progress-report/{id}/download', function ($id) {
+        $internId = auth()->id();
+        $report = \App\Models\ReportManagement\ProgressReport::findOrFail($id);
+
+        // Verify this intern is enrolled in this report and visibility is enabled by admin
+        $pivot = \App\Models\ReportManagement\ProgressReportIntern::where('progress_report_id', $report->id)
+            ->where('intern_id', $internId)
+            ->where('is_visible_to_intern', true)
+            ->first();
+
+        if (!$pivot) {
+            abort(403, 'This progress report is not accessible or has not been published by the administrator.');
+        }
+
+        return \App\Filament\Resources\ProgressReportResource::processPdfDownload($report, 'current_intern', $internId);
+    })->name('intern.progress_report.download');
 });
+
+// Admin Route: Download Single Intern Progress Report PDF
+Route::get('/admin/progress-report/{reportId}/intern/{internId}/download', function ($reportId, $internId) {
+    $report = \App\Models\ReportManagement\ProgressReport::findOrFail($reportId);
+    return \App\Filament\Resources\ProgressReportResource::processPdfDownload($report, 'current_intern', (int) $internId);
+})->name('admin.progress_report.download_intern')->middleware(['web', 'auth:web']);
 
 //-------------- I - Card -----------------------------
 

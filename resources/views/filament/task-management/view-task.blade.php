@@ -13,6 +13,7 @@
     $priority = strtolower($record->priority ?? 'medium');
     $status = $record->status ?? 'active';
     $dueDate = $record->due_date ? \Carbon\Carbon::parse($record->due_date) : null;
+    $dueEndOfDay = $dueDate?->copy()->endOfDay();
     $isOverdue = $record->is_overdue;
 
     $totalAssigned = $record->total_assigned_count;
@@ -149,11 +150,13 @@
 
                         {{-- Deadline / Due Date Badge --}}
                         @if ($dueDate)
-                            <span style="font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 9999px; {{ $isOverdue ? 'color: #fca5a5; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);' : 'color: #cbd5e1; background-color: #090e1c; border: 1px solid #222a3d;' }}">
+                            <span style="font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 9999px; {{ $isOverdue ? 'color: #fca5a5; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);' : ($dueDate->isToday() ? 'color: #fde68a; background-color: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4);' : 'color: #cbd5e1; background-color: #090e1c; border: 1px solid #222a3d;') }}">
                                 @if ($isOverdue)
-                                    Overdue • {{ $dueDate->format('M d, Y') }} ({{ $dueDate->diffForHumans() }})
+                                    Overdue • {{ $dueDate->format('M d, Y') }} ({{ $dueEndOfDay->diffForHumans() }})
+                                @elseif ($dueDate->isToday())
+                                    Due Today • {{ $dueDate->format('M d, Y') }}
                                 @else
-                                    Due: {{ $dueDate->format('M d, Y') }} ({{ $dueDate->diffForHumans() }})
+                                    Due: {{ $dueDate->format('M d, Y') }} ({{ $dueEndOfDay->diffForHumans() }})
                                 @endif
                             </span>
                         @else

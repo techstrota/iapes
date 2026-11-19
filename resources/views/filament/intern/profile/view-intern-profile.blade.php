@@ -64,6 +64,7 @@
     $letter = $record->completionLetter;
     $hasCert = filled($record->cert_ref_id) || $cert || filled($record->cert_token);
     $hasLetter = filled($record->letter_ref_id) || $letter;
+    $hasProgressReport = \App\Models\ReportManagement\ProgressReportIntern::where('intern_id', $record->id)->where('is_visible_to_intern', true)->exists();
     $certRef = $record->cert_ref_id ?: ($cert?->cert_ref_id ?: 'Generated');
     $letterRef = $record->letter_ref_id ?: ($letter?->letter_ref_id ?: 'Generated');
 
@@ -206,7 +207,7 @@
 
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #dae2fd; display: flex; flex-direction: column; gap: 22px;"
      x-data="{
-         activeTab: 'overview',
+         activeTab: (window.location.hash && ['overview', 'academic', 'offer', 'squad', 'documents'].includes(window.location.hash.replace('#', ''))) ? window.location.hash.replace('#', '') : 'overview',
          copiedCode: false,
          copiedApp: false,
          copyText(text, type) {
@@ -543,7 +544,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
                 <span>Official Documents</span>
-                @if ($hasCert || $hasLetter || filled($record->offer_letter_id))
+                @if ($hasCert || $hasLetter || filled($record->offer_letter_id) || $hasProgressReport)
                     <span style="width: 7px; height: 7px; border-radius: 50%; background-color: #4edea3; box-shadow: 0 0 6px #4edea3;"></span>
                 @endif
             </button>
@@ -1413,6 +1414,98 @@
                 @endif
             </div>
 
+        </div>
+
+        {{-- ── 5. Weekly & Periodic Progress Reports Repository (No Marks - Only Date & Download PDF) ── --}}
+        @php
+            $publishedReports = \App\Models\ReportManagement\ProgressReportIntern::where('intern_id', $record->id)
+                ->where('is_visible_to_intern', true)
+                ->whereHas('progressReport')
+                ->with('progressReport')
+                ->get()
+                ->sortByDesc(fn ($pi) => $pi->progressReport?->week_end_date ?? $pi->created_at);
+        @endphp
+
+        <div style="background-color: #131b2e; border: 1.5px solid #222a3d; border-radius: 16px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #222a3d;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background-color: rgba(16, 185, 129, 0.15); color: #34d399; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 15px; font-weight: 700; color: #ffffff;">Weekly & Periodic Progress Reports</div>
+                        <div style="font-size: 12px; color: #8e909f; margin-top: 2px;">Official progress reports reviewed and published by your supervisors.</div>
+                    </div>
+                </div>
+
+                <span style="font-size: 11px; font-weight: 700; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 9999px;">
+                    {{ $publishedReports->count() }} Available {{ \Illuminate\Support\Str::plural('Report', $publishedReports->count()) }}
+                </span>
+            </div>
+
+            @if($publishedReports->isEmpty())
+                <div style="background-color: #090e1c; border: 1px dashed #222a3d; border-radius: 12px; padding: 32px 20px; text-align: center;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">⏳</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #ffffff;">No Published Progress Reports Yet</div>
+                    <p style="font-size: 12.5px; color: #8e909f; margin: 4px auto 0 auto; max-width: 440px;">
+                        Once the administrator reviews and publishes your periodic evaluation report, it will appear here for download.
+                    </p>
+                </div>
+            @else
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    @foreach($publishedReports as $repIntern)
+                        @php
+                            $report = $repIntern->progressReport;
+                            $startDate = $report?->week_start_date ? \Carbon\Carbon::parse($report->week_start_date)->format('d M Y') : '—';
+                            $endDate = $report?->week_end_date ? \Carbon\Carbon::parse($report->week_end_date)->format('d M Y') : '—';
+                        @endphp
+                        <div style="background-color: #090e1c; border: 1px solid #1c2638; border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; transition: border-color 0.15s ease;">
+                            {{-- Left: Report Title & Period Date (No Marks) --}}
+                            <div style="flex: 1; min-width: 240px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                                    <span style="font-size: 14px; font-weight: 700; color: #ffffff;">
+                                        {{ $report?->title ?? 'Progress Report' }}
+                                    </span>
+                                    @if($report?->isMonthly())
+                                        <span style="font-size: 10.5px; font-weight: 700; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); padding: 2px 7px; border-radius: 9999px;">
+                                            🟣 Monthly Review
+                                        </span>
+                                    @else
+                                        <span style="font-size: 10.5px; font-weight: 700; background: rgba(59, 130, 246, 0.12); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3); padding: 2px 7px; border-radius: 9999px;">
+                                            🔵 Weekly Report
+                                        </span>
+                                    @endif
+                                    <span style="font-size: 10.5px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); padding: 2px 7px; border-radius: 9999px;">
+                                        ✓ Published
+                                    </span>
+                                </div>
+
+                                {{-- Date Range Display (Only Date, No Marks) --}}
+                                <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #60a5fa; font-family: ui-monospace, monospace; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 3px 9px; border-radius: 6px;">
+                                    <span>🗓️</span>
+                                    <span>{{ $startDate }} — {{ $endDate }}</span>
+                                </div>
+                            </div>
+
+                            {{-- Right: Direct Download Button --}}
+                            <div>
+                                <a href="{{ route('intern.progress_report.download', ['id' => $report->id]) }}"
+                                   target="_blank"
+                                   style="display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; padding: 9px 18px; border-radius: 9px; font-size: 12.5px; font-weight: 700; text-decoration: none; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35); transition: transform 0.15s ease;"
+                                   onmouseover="this.style.transform='scale(1.03)';"
+                                   onmouseout="this.style.transform='scale(1)';">
+                                    <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span>Download PDF</span>
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         {{-- Project Description & Summary --}}

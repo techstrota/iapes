@@ -13,7 +13,7 @@
     $priority = strtolower($record->priority ?? 'medium');
     $status = $record->status ?? 'active';
     $dueDate = $record->due_date ? \Carbon\Carbon::parse($record->due_date) : null;
-    $isOverdue = $dueDate && $dueDate->isPast() && $status !== 'completed';
+    $isOverdue = $dueDate && $dueDate->copy()->endOfDay()->isPast() && $status !== 'completed';
     
     $assignedCount = $record->assigned_interns->count();
     $pendingSubmissionsCount = $record->submissions()->whereNull('evaluated_at')->count();
@@ -162,6 +162,10 @@
                         @elseif ($isOverdue)
                             <span style="font-size: 11px; font-weight: 700; color: #ffb4ab; background-color: rgba(147, 0, 10, 0.35); border: 1px solid rgba(255, 180, 171, 0.35); padding: 2px 8px; border-radius: 9999px;">
                                 ⚠️ Overdue ({{ $dueDate->format('M d') }})
+                            </span>
+                        @elseif ($dueDate->isToday())
+                            <span style="font-size: 11px; font-weight: 700; color: #fde68a; background-color: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 8px; border-radius: 9999px;">
+                                🕒 Due Today ({{ $dueDate->format('M d') }})
                             </span>
                         @else
                             <span style="font-size: 11px; font-weight: 600; color: #b8c4ff; background-color: #171f33; border: 1px solid #222a3d; padding: 2px 8px; border-radius: 9999px;">

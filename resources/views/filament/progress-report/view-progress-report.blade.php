@@ -305,8 +305,22 @@
                 </div>
             </div>
 
-            {{-- Header Actions: Edit Report & Download PDF Quick Triggers --}}
+            {{-- Header Actions: Edit Report & Download PDF Quick Triggers & Bulk Share --}}
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                {{-- Bulk Share Toggle Button --}}
+                @php
+                    $isAllPublished = (bool) $report->is_published;
+                    $publishedCount = $allReportInterns->where('is_visible_to_intern', true)->count();
+                @endphp
+                <button
+                    type="button"
+                    wire:click="toggleAllVisibility"
+                    style="background: {{ $isAllPublished ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.12)' }}; color: {{ $isAllPublished ? '#34d399' : '#cbd5e1' }}; border: 1.5px solid {{ $isAllPublished ? 'rgba(16, 185, 129, 0.4)' : '#334155' }}; font-size: 13px; font-weight: 700; padding: 9px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s ease;"
+                    title="{{ $isAllPublished ? 'Click to hide this report from all interns' : 'Click to share this report with all enrolled interns' }}">
+                    <span style="font-size: 15px;">{{ $isAllPublished ? '🌐' : '🔒' }}</span>
+                    <span>{{ $isAllPublished ? 'Shared with All Interns (' . $publishedCount . '/' . $totalCount . ')' : 'Share with All Interns' }}</span>
+                </button>
+
                 <a
                     href="{{ \App\Filament\Resources\ProgressReportResource::getUrl('edit', ['record' => $report]) }}"
                     style="background: rgba(59, 130, 246, 0.12); color: #93c5fd; border: 1.5px solid rgba(59, 130, 246, 0.35); font-size: 13px; font-weight: 700; padding: 9px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px; text-decoration: none; transition: all 0.15s ease;"
@@ -487,8 +501,11 @@
                             </div>
                         </div>
 
-                        {{-- Evaluated Status Pill --}}
-                        <div style="flex-shrink: 0;">
+                        {{-- Evaluated Status Pill & Intern Visibility Icon --}}
+                        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 6px;">
+                            <span title="{{ $repIntern->is_visible_to_intern ? 'Visible on Intern Portal' : 'Hidden from Intern' }}" style="font-size: 13px;">
+                                {{ $repIntern->is_visible_to_intern ? '🌐' : '🔒' }}
+                            </span>
                             @if ($isEval)
                                 <span class="pr-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);">
                                     ✓ Done
@@ -554,8 +571,29 @@
                             </div>
                         </div>
 
-                        {{-- Evaluated Status Badge --}}
-                        <div>
+                        {{-- Evaluated Status Badge & Individual Visibility Toggle & PDF Download --}}
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            {{-- Individual Visibility Toggle Button --}}
+                            <button
+                                type="button"
+                                wire:click="toggleInternVisibility({{ $selectedIntern->id }})"
+                                style="background: {{ $currentRepIntern?->is_visible_to_intern ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.12)' }}; color: {{ $currentRepIntern?->is_visible_to_intern ? '#34d399' : '#cbd5e1' }}; border: 1.5px solid {{ $currentRepIntern?->is_visible_to_intern ? 'rgba(16, 185, 129, 0.4)' : '#334155' }}; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 9px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; transition: all 0.15s ease;"
+                                title="{{ $currentRepIntern?->is_visible_to_intern ? 'Click to hide this report from ' . $selectedIntern->name : 'Click to make this report visible to ' . $selectedIntern->name }}">
+                                <span>{{ $currentRepIntern?->is_visible_to_intern ? '🌐 Visible to Intern' : '🔒 Hidden from Intern' }}</span>
+                            </button>
+
+                            {{-- Direct PDF Download Button for this Intern --}}
+                            <a
+                                href="{{ route('admin.progress_report.download_intern', ['reportId' => $report->id, 'internId' => $selectedIntern->id]) }}"
+                                target="_blank"
+                                style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 9px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.15s ease;"
+                                title="Download {{ $selectedIntern->name }}'s Report PDF">
+                                <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span>PDF</span>
+                            </a>
+
                             @if ($currentRepIntern?->is_evaluated)
                                 <span class="pr-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 12px; padding: 6px 14px;">
                                     ✓ Evaluation Completed

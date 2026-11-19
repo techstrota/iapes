@@ -689,11 +689,12 @@
                                     </td>
                                     <td>
                                         @if ($task->due_date)
-                                            <div style="font-weight: 700; color: {{ $task->due_date->isPast() ? '#ffb4ab' : '#4edea3' }}; font-size: 13px;">
+                                            @php $dueEndOfDay = $task->due_date->copy()->endOfDay(); @endphp
+                                            <div style="font-weight: 700; color: {{ $dueEndOfDay->isPast() ? '#ffb4ab' : ($task->due_date->isToday() ? '#fde68a' : '#4edea3') }}; font-size: 13px;">
                                                 📅 {{ $task->due_date->format('d/m/Y') }}
                                             </div>
                                             <div style="font-size: 11px; color: #8e909f; margin-top: 2px;">
-                                                {{ $task->due_date->diffForHumans() }}
+                                                {{ $task->due_date->isToday() ? 'Due today' : $dueEndOfDay->diffForHumans() }}
                                             </div>
                                         @else
                                             <span style="color: #64748b; font-size: 12px;">No Deadline</span>

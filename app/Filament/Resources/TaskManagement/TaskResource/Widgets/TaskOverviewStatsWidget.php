@@ -23,7 +23,7 @@ class TaskOverviewStatsWidget extends BaseWidget
 
         $overdueCount = Task::where('status', 'active')
             ->whereNotNull('due_date')
-            ->where('due_date', '<', now())
+            ->where('due_date', '<', today()->toDateString())
             ->count();
 
         $gradingVelocity = $totalSubmissions > 0

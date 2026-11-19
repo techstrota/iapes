@@ -26,12 +26,16 @@ class ProgressReportIntern extends Model
         'is_evaluated',
         'evaluated_at',
         'evaluated_by',
+        'is_visible_to_intern',
+        'shared_at',
     ];
 
     protected $casts = [
-        'is_evaluated'     => 'boolean',
-        'evaluated_at'     => 'datetime',
-        'criteria_ratings' => 'array',
+        'is_evaluated'         => 'boolean',
+        'evaluated_at'         => 'datetime',
+        'criteria_ratings'     => 'array',
+        'is_visible_to_intern' => 'boolean',
+        'shared_at'            => 'datetime',
     ];
 
     public function progressReport(): BelongsTo

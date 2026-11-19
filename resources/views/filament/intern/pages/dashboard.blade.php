@@ -97,6 +97,19 @@
                             My Profile
                         </a>
 
+                        @if(($data['total_progress_reports'] ?? 0) > 0)
+                            <a href="{{ route('filament.intern.resources.interns.index') }}#documents"
+                               style="display: inline-flex; align-items: center; gap: 7px; background-color: rgba(16, 185, 129, 0.15); color: #34d399; padding: 9px 15px; border-radius: 10px; font-size: 12.5px; font-weight: 700; text-decoration: none; border: 1px solid rgba(16, 185, 129, 0.35); transition: all 0.15s ease;">
+                                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span>Progress Reports</span>
+                                <span style="background-color: #10b981; color: #ffffff; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 9999px;">
+                                    {{ $data['total_progress_reports'] }}
+                                </span>
+                            </a>
+                        @endif
+
                         <!-- <a href="{{ route('print-id-card', ['id' => $intern->id]) }}" target="_blank"
                            style="display: inline-flex; align-items: center; gap: 7px; background-color: #171f33; color: #dae2fd; padding: 9px 15px; border-radius: 10px; font-size: 12.5px; font-weight: 600; text-decoration: none; border: 1px solid #222a3d; transition: all 0.15s ease;">
                             <svg style="width: 16px; height: 16px; color: #fbbf24;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,6 +486,62 @@
 
                 {{-- RIGHT COLUMN: Quick Management Hub & Team Squad & System Milestones --}}
                 <div style="display: flex; flex-direction: column; gap: 20px;">
+
+                    {{-- Module Hub 1: Latest Weekly Progress Report (No Marks - Only Date & Download PDF) --}}
+                    @if(isset($data['latest_progress_report']) && $data['latest_progress_report'])
+                        @php
+                            $lr = $data['latest_progress_report'];
+                            $rep = $lr->progressReport;
+                            $dateStr = '—';
+                            if ($rep && $rep->week_start_date && $rep->week_end_date) {
+                                $dateStr = \Carbon\Carbon::parse($rep->week_start_date)->format('d M Y') . ' — ' . \Carbon\Carbon::parse($rep->week_end_date)->format('d M Y');
+                            }
+                        @endphp
+                        <div style="background-color: #131b2e; border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 14px; padding: 18px 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25); position: relative; overflow: hidden;">
+                            <div style="position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #4edea3; display: flex; align-items: center; gap: 6px;">
+                                    <svg style="width: 15px; height: 15px; color: #4edea3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Weekly Progress Report
+                                </div>
+                                <span style="font-size: 10.5px; font-weight: 700; color: #4edea3; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 9999px;">
+                                    Published
+                                </span>
+                            </div>
+
+                            <div style="background-color: #090e1c; border: 1px solid #1c2638; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                                <div style="font-size: 14px; font-weight: 700; color: #ffffff; line-height: 1.3;">
+                                    {{ $rep?->title ?? 'Progress Report' }}
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #60a5fa; margin-top: 5px; font-family: ui-monospace, monospace;">
+                                    <span>🗓️</span>
+                                    <span>{{ $dateStr }}</span>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <a href="{{ route('intern.progress_report.download', ['id' => $rep->id]) }}"
+                                   target="_blank"
+                                   style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; padding: 8px 14px; border-radius: 9px; font-size: 12px; font-weight: 700; text-decoration: none; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35); transition: all 0.15s ease;">
+                                    <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span>Download PDF</span>
+                                </a>
+
+                                @if(($data['total_progress_reports'] ?? 0) > 1)
+                                    <a href="{{ route('filament.intern.resources.interns.index') }}#documents"
+                                       style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 12px; background-color: #171f33; border: 1px solid #222a3d; border-radius: 9px; color: #cbd5e1; font-size: 11.5px; font-weight: 600; text-decoration: none;"
+                                       title="View All {{ $data['total_progress_reports'] }} Reports">
+                                        All ({{ $data['total_progress_reports'] }}) ➔
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Module Hub 2: Cohort & Project Squad --}}
                     <div style="background-color: #131b2e; border: 1px solid #222a3d; border-radius: 14px; padding: 18px 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">

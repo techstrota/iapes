@@ -109,13 +109,13 @@ class Task extends Model
     }
 
     /**
-     * True if due_date is in the past AND the task is still active.
+     * True if due_date (end of day) is in the past AND the task is still active.
      */
     public function getIsOverdueAttribute(): bool
     {
         return $this->status === 'active'
             && $this->due_date !== null
-            && $this->due_date->isPast();
+            && $this->due_date->copy()->endOfDay()->isPast();
     }
 
     /**

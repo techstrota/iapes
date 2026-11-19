@@ -414,6 +414,36 @@
                         </div>
                     </div>
 
+                    {{-- ── Card Intern Sharing Bulk Toggle Strip ── --}}
+                    @php
+                        $isPublished = (bool) $report->is_published;
+                        $publishedCount = $report->reportInterns->where('is_visible_to_intern', true)->count();
+                    @endphp
+                    <div style="background-color: #0b1326; border: 1px solid {{ $isPublished ? 'rgba(16, 185, 129, 0.35)' : '#1c2638' }}; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; transition: border-color 0.2s ease;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                            <span style="font-size: 14px;">{{ $isPublished ? '🌐' : '🔒' }}</span>
+                            <div style="min-width: 0;">
+                                <div style="font-size: 11.5px; font-weight: 700; color: {{ $isPublished ? '#34d399' : '#cbd5e1' }}; line-height: 1.2;">
+                                    {{ $isPublished ? 'Shared with Interns' : 'Hidden from Interns' }}
+                                </div>
+                                <div style="font-size: 10.5px; color: #8e909f; margin-top: 1px;">
+                                    {{ $publishedCount }}/{{ $totalInterns }} interns can view & download
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Toggle Switch Button --}}
+                        <button
+                            type="button"
+                            wire:click.stop="toggleBulkVisibility({{ $report->id }})"
+                            title="{{ $isPublished ? 'Click to hide this report from all interns' : 'Click to share with all interns' }}"
+                            style="background: transparent; border: none; padding: 2px; cursor: pointer; display: inline-flex; align-items: center;">
+                            <span style="width: 38px; height: 22px; border-radius: 9999px; background-color: {{ $isPublished ? '#10b981' : '#1e293b' }}; border: 1.5px solid {{ $isPublished ? '#059669' : '#334155' }}; display: inline-flex; align-items: center; padding: 2px; transition: background-color 0.2s ease, border-color 0.2s ease;">
+                                <span style="width: 15px; height: 15px; border-radius: 50%; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transform: translateX({{ $isPublished ? '16px' : '0px' }}); transition: transform 0.2s ease;"></span>
+                            </span>
+                        </button>
+                    </div>
+
                     {{-- ── Card Bottom Action Buttons (With Edit Button) ── --}}
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid #1c2638;">
                         

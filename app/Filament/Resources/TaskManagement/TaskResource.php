@@ -348,11 +348,6 @@ class TaskResource extends Resource
                                         })
                                         ->formatStateUsing(fn ($state) => ucfirst($state)),
 
-                                    Infolists\Components\TextEntry::make('description')
-                                        ->label('Deliverable Description & Guidelines')
-                                        ->columnSpanFull()
-                                        ->prose(),
-
                                     Infolists\Components\TextEntry::make('priority')
                                         ->label('Priority Level')
                                         ->badge()
@@ -367,8 +362,10 @@ class TaskResource extends Resource
                                     Infolists\Components\TextEntry::make('due_date')
                                         ->label('Submission Deadline')
                                         ->badge()
-                                        ->state(fn ($record) => $record->due_date ? $record->due_date->format('F d, Y') . ($record->is_overdue ? ' (Overdue)' : '') : 'No Deadline Set')
-                                        ->color(fn ($record) => $record->is_overdue ? 'danger' : 'info'),
+                                        ->state(fn ($record) => $record->due_date
+                                            ? $record->due_date->format('F d, Y') . ($record->is_overdue ? ' (Overdue)' : ($record->due_date->isToday() ? ' (Due Today)' : ''))
+                                            : 'No Deadline Set')
+                                        ->color(fn ($record) => $record->is_overdue ? 'danger' : ($record->due_date?->isToday() ? 'warning' : 'info')),
                                 ]),
 
                             Infolists\Components\Grid::make(1)
@@ -398,7 +395,12 @@ class TaskResource extends Resource
                                         ->openUrlInNewTab()
                                         ->color(fn ($state) => $state ? 'primary' : 'gray'),
                                 ])->grow(false),
-                        ])
+                        ]),
+
+                        Infolists\Components\TextEntry::make('description')
+                            ->label('Deliverable Description & Guidelines')
+                            ->columnSpanFull()
+                            ->prose(),
                     ])
             ]);
     }

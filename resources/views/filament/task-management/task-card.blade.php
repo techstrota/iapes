@@ -5,7 +5,8 @@
     $priority = strtolower($record->priority ?? 'medium');
     $status = $record->status ?? 'active';
     $dueDate = $record->due_date ? \Carbon\Carbon::parse($record->due_date) : null;
-    $isOverdue = $dueDate && $dueDate->isPast() && $status !== 'completed';
+    $dueEndOfDay = $dueDate?->copy()->endOfDay();
+    $isOverdue = $dueEndOfDay && $dueEndOfDay->isPast() && $status !== 'completed';
 
     // Priority styles
     if ($priority === 'high') {
@@ -32,7 +33,7 @@
         $dueColor = '#94a3b8';
         $dueBorder = '#222a3d';
     } elseif ($isOverdue) {
-        $diff = $dueDate->diffForHumans(null, true);
+        $diff = $dueEndOfDay->diffForHumans(null, true);
         $dueText = "⚠️ Overdue {$diff}";
         $dueBg = 'rgba(147, 0, 10, 0.35)';
         $dueColor = '#ffb4ab';

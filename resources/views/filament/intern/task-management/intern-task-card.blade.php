@@ -6,8 +6,9 @@
     $description = $task?->description ? strip_tags($task->description) : 'Milestone guidelines and project deliverables.';
     $priority = strtolower($task?->priority ?? 'medium');
     $dueDate = $task?->due_date ? \Carbon\Carbon::parse($task->due_date) : null;
+    $dueEndOfDay = $dueDate?->copy()->endOfDay();
     $subStatus = $submission?->status;
-    $isOverdue = $dueDate && $dueDate->isPast() && (!$submission || in_array($subStatus, ['rejected']));
+    $isOverdue = $dueEndOfDay && $dueEndOfDay->isPast() && (!$submission || in_array($subStatus, ['rejected']));
 
     // Priority styles
     if ($priority === 'high') {
@@ -34,7 +35,7 @@
         $dueColor = '#94a3b8';
         $dueBorder = '#222a3d';
     } elseif ($isOverdue) {
-        $diff = $dueDate->diffForHumans(null, true);
+        $diff = $dueEndOfDay->diffForHumans(null, true);
         $dueText = "⚠️ Overdue {$diff}";
         $dueBg = 'rgba(220, 38, 38, 0.2)';
         $dueColor = '#fca5a5';

@@ -39,7 +39,7 @@ class ListTasks extends ListRecords
             $totalSubmissions = TaskSubmission::count();
             $overdueCount = Task::where('status', 'active')
                 ->whereNotNull('due_date')
-                ->where('due_date', '<', now())
+                ->where('due_date', '<', today()->toDateString())
                 ->count();
             $gradingVelocity = $totalSubmissions > 0
                 ? round(($evaluatedCount / $totalSubmissions) * 100)
@@ -88,7 +88,7 @@ class ListTasks extends ListRecords
         $overdueCount = Task::query()
             ->where('status', 'active')
             ->whereNotNull('due_date')
-            ->where('due_date', '<', now())
+            ->where('due_date', '<', today()->toDateString())
             ->count();
 
         $completedCount = Task::query()
@@ -111,7 +111,7 @@ class ListTasks extends ListRecords
             'overdue' => Tab::make('Overdue Tasks')
                 ->icon('heroicon-m-exclamation-triangle')
                 ->badge($overdueCount)
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'active')->whereNotNull('due_date')->where('due_date', '<', now())),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'active')->whereNotNull('due_date')->where('due_date', '<', today()->toDateString())),
 
             'completed' => Tab::make('Completed Tasks')
                 ->icon('heroicon-m-check-badge')

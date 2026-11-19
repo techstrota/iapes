@@ -55,7 +55,7 @@ class ListAssignedTasks extends ListRecords
 
             if (!$sub || $status === 'rejected') {
                 $pendingCount++;
-                if ($task?->due_date && \Carbon\Carbon::parse($task->due_date)->isPast()) {
+                if ($task?->due_date && \Carbon\Carbon::parse($task->due_date)->endOfDay()->isPast()) {
                     $overdueCount++;
                 }
             } elseif (in_array($status, ['submitted', 'reviewed'])) {

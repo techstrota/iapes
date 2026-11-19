@@ -29,12 +29,14 @@ class ProgressReport extends Model
         'evaluation_criteria',
         'created_by',
         'status',
+        'is_published',
     ];
 
     protected $casts = [
         'week_start_date'     => 'date',
         'week_end_date'       => 'date',
         'evaluation_criteria' => 'array',
+        'is_published'        => 'boolean',
     ];
 
     public static function getDefaultEvaluationCriteria(): array
@@ -76,6 +78,16 @@ class ProgressReport extends Model
     public function isMonthly(): bool
     {
         return $this->report_type === 'monthly';
+    }
+
+    public function isPublished(): bool
+    {
+        return (bool) $this->is_published;
+    }
+
+    public function publishedInternsCount(): int
+    {
+        return $this->reportInterns()->where('is_visible_to_intern', true)->count();
     }
 
     public function batch(): BelongsTo

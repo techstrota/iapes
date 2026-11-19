@@ -211,6 +211,57 @@ class ViewProgressReport extends ViewRecord
         }
     }
 
+    public function toggleInternVisibility(int $internId): void
+    {
+        $repIntern = ProgressReportIntern::where('progress_report_id', $this->record->id)
+            ->where('intern_id', $internId)
+            ->first();
+
+        if (!$repIntern) {
+            return;
+        }
+
+        $newState = !$repIntern->is_visible_to_intern;
+        $repIntern->update([
+            'is_visible_to_intern' => $newState,
+            'shared_at'            => $newState ? now() : null,
+        ]);
+
+        // Check if all or none are visible to update report's is_published status
+        $hasAnyVisible = ProgressReportIntern::where('progress_report_id', $this->record->id)
+            ->where('is_visible_to_intern', true)
+            ->exists();
+        $this->record->update(['is_published' => $hasAnyVisible]);
+
+        $internName = $repIntern->intern?->name ?? 'Intern';
+        Notification::make()
+            ->title($newState ? 'Shared with Intern' : 'Hidden from Intern')
+            ->body($newState 
+                ? "{$internName} can now view and download their progress report from their dashboard." 
+                : "Progress report has been hidden for {$internName}.")
+            ->success()
+            ->send();
+    }
+
+    public function toggleAllVisibility(): void
+    {
+        $newState = !$this->record->is_published;
+        $this->record->update(['is_published' => $newState]);
+
+        $this->record->reportInterns()->update([
+            'is_visible_to_intern' => $newState,
+            'shared_at'            => $newState ? now() : null,
+        ]);
+
+        Notification::make()
+            ->title($newState ? 'All Interns Granted Access' : 'Access Disabled for All Interns')
+            ->body($newState 
+                ? "All enrolled interns can now view and download their progress report." 
+                : "Access has been hidden from all interns.")
+            ->success()
+            ->send();
+    }
+
     public function applyCriterionSuggested(string $critKey): void
     {
         if (!$this->selectedInternId || !isset($this->criteriaRatings[$critKey])) {

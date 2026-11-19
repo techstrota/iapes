@@ -176,32 +176,45 @@ class Dashboard extends BaseDashboard
                 ->take(5)
                 ->get();
 
+            // 6. Published Progress Reports (Enabled by Admin)
+            $publishedReports = \App\Models\ReportManagement\ProgressReportIntern::where('intern_id', $userId)
+                ->where('is_visible_to_intern', true)
+                ->whereHas('progressReport')
+                ->with('progressReport')
+                ->get()
+                ->sortByDesc(fn ($pi) => $pi->progressReport?->week_end_date ?? $pi->created_at);
+
+            $latestProgressReport = $publishedReports->first();
+            $totalPublishedReports = $publishedReports->count();
+
             return [
-                'intern'                => $intern,
-                'total_assigned'        => $totalAssigned,
-                'pending_count'         => $pendingCount,
-                'approved_count'        => $approvedCount,
-                'rejected_count'        => $rejectedCount,
-                'review_count'          => $reviewCount,
-                'avg_score'             => $avgScore ? round($avgScore, 1) : null,
-                'pending_tasks'         => $pendingTasks,
-                'today_attendance'      => $todayAttendance,
-                'total_attendance_days' => $totalDays,
-                'present_days'          => $presentDays,
-                'late_days'             => $lateDays,
-                'leave_days'            => $leaveDays,
-                'absent_days'           => $absentDays,
-                'attendance_rate'       => $attendanceRate,
-                'milestone_progress'    => $progress,
-                'days_left'             => $daysLeft,
-                'total_duration'        => $totalDuration,
-                'elapsed_days'          => $elapsedDays,
-                'start_date'            => $startDate,
-                'end_date'              => $endDate,
-                'batch'                 => $batch,
-                'team'                  => $team,
-                'teammates'             => $teammates,
-                'recent_submissions'    => $recentSubmissions,
+                'intern'                 => $intern,
+                'total_assigned'         => $totalAssigned,
+                'pending_count'          => $pendingCount,
+                'approved_count'         => $approvedCount,
+                'rejected_count'         => $rejectedCount,
+                'review_count'           => $reviewCount,
+                'avg_score'              => $avgScore ? round($avgScore, 1) : null,
+                'pending_tasks'          => $pendingTasks,
+                'today_attendance'       => $todayAttendance,
+                'total_attendance_days'  => $totalDays,
+                'present_days'           => $presentDays,
+                'late_days'              => $lateDays,
+                'leave_days'             => $leaveDays,
+                'absent_days'            => $absentDays,
+                'attendance_rate'        => $attendanceRate,
+                'milestone_progress'     => $progress,
+                'days_left'              => $daysLeft,
+                'total_duration'         => $totalDuration,
+                'elapsed_days'           => $elapsedDays,
+                'start_date'             => $startDate,
+                'end_date'               => $endDate,
+                'batch'                  => $batch,
+                'team'                   => $team,
+                'teammates'              => $teammates,
+                'recent_submissions'     => $recentSubmissions,
+                'latest_progress_report' => $latestProgressReport,
+                'total_progress_reports' => $totalPublishedReports,
             ];
         } catch (\Throwable $e) {
             return [];

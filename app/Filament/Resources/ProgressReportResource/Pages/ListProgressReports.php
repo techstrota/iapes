@@ -93,6 +93,31 @@ class ListProgressReports extends Page
         return ProgressReportResource::processPdfDownload($report, $mode);
     }
 
+    public function toggleBulkVisibility(int $reportId): void
+    {
+        $report = ProgressReport::with('reportInterns')->find($reportId);
+        if (!$report) {
+            return;
+        }
+
+        $newState = !$report->is_published;
+        $report->update(['is_published' => $newState]);
+
+        // Update all enrolled intern pivots
+        $report->reportInterns()->update([
+            'is_visible_to_intern' => $newState,
+            'shared_at'            => $newState ? now() : null,
+        ]);
+
+        Notification::make()
+            ->title($newState ? 'Shared With All Interns' : 'Visibility Disabled')
+            ->body($newState 
+                ? "All interns in '{$report->title}' can now view and download their report from their dashboard."
+                : "Report access has been hidden from interns.")
+            ->success()
+            ->send();
+    }
+
     public function confirmDelete(int $reportId, string $title): void
     {
         $this->reportIdToDelete = $reportId;
