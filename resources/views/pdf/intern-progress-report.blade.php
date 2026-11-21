@@ -144,47 +144,45 @@
         letter-spacing: 0.02em;
     }
 
-    /* ── Internship Details Box (Single Part / 1 Column List, No Background Color) ── */
+    /* ── Internship Details Box (Table Format) ── */
     .details-container {
         padding: 4px 6px;
-        margin-bottom: 14px;
+        margin-top: 4px;
+        margin-bottom: 12px;
         background: transparent;
     }
 
-    /* ── Weekly Report Overview Narrative ── */
-    .weekly-intro-box {
-        margin-top: 6px;
-        margin-bottom: 14px;
-        font-size: 13.5px;
+    .details-heading {
+        font-size: 15px;
+        font-weight: bold;
         color: #000;
-        line-height: 1.5;
-        text-align: justify;
-    }
-    .weekly-intro-box p {
-        margin: 0;
+        margin-top: 2px;
+        margin-bottom: 6px;
     }
 
     .details-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: 13.5px;
     }
 
     .details-table td {
-        padding: 1.2px 0;
+        padding: 2px 0;
         vertical-align: top;
         color: #000;
+        line-height: 1.35;
     }
 
-    .label {
+    .details-table td.label, .label {
         font-weight: bold;
         color: #000;
-        width: 25%;
+        width: 26%;
+        white-space: nowrap;
     }
 
-    .val {
+    .details-table td.val, .val {
         color: #000;
-        width: 75%;
+        width: 74%;
     }
 
     /* ── Section Title ── */
@@ -455,6 +453,15 @@
         $internCode = $intern?->intern_code ?: ('INT-' . str_pad($intern?->id ?? 0, 3, '0', STR_PAD_LEFT));
         $collegeName = $intern?->college ?: ($intern?->university ?: ($intern?->offerletter?->college ?? 'N/A'));
         $internshipDuration = $intern?->offerletter?->duration_label ?? ($intern?->batch?->duration ?? '3 Months');
+        $rawDuration = trim((string) $internshipDuration);
+        if (stripos($rawDuration, 'working') !== false) {
+            $internshipDurationDisplay = $rawDuration;
+        } elseif (preg_match('/day/i', $rawDuration)) {
+            $internshipDurationDisplay = $rawDuration . ' (working Days )';
+        } else {
+            $internshipDurationDisplay = $rawDuration;
+        }
+
         $internshipType = $intern?->offerletter?->internship_role ?? ($intern?->internship_role ?? ($intern?->domain ?? 'Web Development'));
         $internRole = $intern?->internship_role ?: ($intern?->offerletter?->internship_role ?: ($intern?->domain ?: ($internshipType !== 'On-site' ? $internshipType : 'Full Stack Development')));
         $departmentCourse = $intern?->degree ?: ($intern?->offerletter?->degree ?: ($intern?->internship_role ?: ($intern?->domain ?: 'Information Technology')));
@@ -467,11 +474,11 @@
 
         // Internship Period
         if ($intern?->joining_date && $intern?->completion_date) {
-            $internshipPeriod = \Carbon\Carbon::parse($intern->joining_date)->format('d/m/Y') . ' to ' . \Carbon\Carbon::parse($intern->completion_date)->format('d/m/Y');
+            $internshipPeriod = 'From ' . \Carbon\Carbon::parse($intern->joining_date)->format('d /m /Y') . ' To ' . \Carbon\Carbon::parse($intern->completion_date)->format('d /m /Y');
         } elseif ($intern?->offerletter?->joining_date && $intern?->offerletter?->completion_date) {
-            $internshipPeriod = \Carbon\Carbon::parse($intern->offerletter->joining_date)->format('d/m/Y') . ' to ' . \Carbon\Carbon::parse($intern->offerletter->completion_date)->format('d/m/Y');
+            $internshipPeriod = 'From ' . \Carbon\Carbon::parse($intern->offerletter->joining_date)->format('d /m /Y') . ' To ' . \Carbon\Carbon::parse($intern->offerletter->completion_date)->format('d /m /Y');
         } else {
-            $internshipPeriod = $report->formatted_date_range;
+            $internshipPeriod = 'From ' . \Carbon\Carbon::parse($report->week_start_date)->format('d /m /Y') . ' To ' . \Carbon\Carbon::parse($report->week_end_date)->format('d /m /Y');
         }
 
         // Date iteration across report duration
@@ -532,6 +539,7 @@
         @if ($report->isMonthly())
             {{-- ── 2. Internship Details Box (Monthly Evaluation Review Mode) ── --}}
             <div class="details-container">
+                <div class="details-heading">Internship Details</div>
                 <table class="details-table">
                     <tr>
                         <td class="label">1) Company Name:</td>
@@ -539,7 +547,7 @@
                     </tr>
                     <tr>
                         <td class="label">2) Internship Duration:</td>
-                        <td class="val">{{ $internshipDuration }} (Working Days)</td>
+                        <td class="val">{{ $internshipDurationDisplay }}</td>
                     </tr>
                     <tr>
                         <td class="label">3) Internship Type:</td>
@@ -568,9 +576,43 @@
                 </table>
             </div>
         @else
-            {{-- ── 2. Weekly Report Overview Narrative (Replaces numbered details table in weekly mode) ── --}}
-            <div class="weekly-intro-box">
-                <p>This weekly report presents the work and learning progress of <strong>{{ $internDisplayName }}</strong>, a <strong>{{ $internRole }}</strong> intern at TechStrota, during the reporting period from <strong>{{ $weekStart->format('d F Y') }}</strong> to <strong>{{ $weekEnd->format('d F Y') }}</strong>. The intern, registered under ID <strong>{{ $internCode }}</strong> and enrolled in <strong>{{ $departmentCourse }}</strong> at <strong>{{ $collegeName }}</strong>, has been assigned tasks related to the internship program. This report documents the activities completed, skills developed, challenges encountered, and objectives for the upcoming week.</p>
+            {{-- ── 2. Internship Details Box (Weekly Progress Report Mode - Matching Reference Image) ── --}}
+            <div class="details-container">
+                <div class="details-heading">Internship Details</div>
+                <table class="details-table">
+                    <tr>
+                        <td class="label">Company Name:</td>
+                        <td class="val">Techstrota</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Internship Duration:</td>
+                        <td class="val">{{ $internshipDurationDisplay }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Internship Type:</td>
+                        <td class="val">{{ $internshipType }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Intern's Name:</td>
+                        <td class="val">{{ $internDisplayName ?: $internName }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">College Name:</td>
+                        <td class="val">{{ $collegeName }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Internship ID:</td>
+                        <td class="val">{{ $internCode }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Department / Course:</td>
+                        <td class="val">{{ $departmentCourse }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Internship Period:</td>
+                        <td class="val">{{ $internshipPeriod }}</td>
+                    </tr>
+                </table>
             </div>
         @endif
 

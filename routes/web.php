@@ -214,3 +214,16 @@ Route::get('/task-submissions/{id}/download', function ($id) {
         'Content-Disposition' => 'attachment; filename="' . $safeName . '"',
     ]);
 })->name('task.submission.download')->middleware(['web', 'auth:web,intern']);
+
+// ─── Public Storage Direct Serving Route ────────────────────────────────────
+Route::get('/storage/{path}', function (string $path) {
+    $fullPath = storage_path('app/public/' . $path);
+    if (!file_exists($fullPath)) {
+        abort(404, 'File not found on server.');
+    }
+    $mime = @mime_content_type($fullPath) ?: 'application/octet-stream';
+    return response()->file($fullPath, [
+        'Content-Type' => $mime,
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->where('path', '.*')->name('public.storage');

@@ -36,7 +36,7 @@ class TaskSubmissionAndEvaluationResource extends Resource
                         ->disabled(),
                     Forms\Components\FileUpload::make('submission_file')
                         ->label('Submitted File')
-                        ->directory('task-submissions')
+                        ->disk('public')
                         ->openable() // Allows admin to view the file in a new tab
                         ->downloadable()
                         ->disabled(),
@@ -129,7 +129,7 @@ class TaskSubmissionAndEvaluationResource extends Resource
 
                     Forms\Components\FileUpload::make('submission_file')
                         ->label('Submitted File')
-                        ->directory('task-submissions')
+                        ->disk('public')
                         ->openable()
                         ->downloadable()
                         ->disabled(),

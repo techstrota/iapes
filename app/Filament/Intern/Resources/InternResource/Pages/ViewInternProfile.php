@@ -35,6 +35,7 @@ class ViewInternProfile extends ViewRecord
                         ->image()
                         ->avatar()
                         ->imageEditor()
+                        ->disk('public')
                         ->directory('intern-profiles')
                         ->visibility('public')
                         ->getUploadedFileNameForStorageUsing(

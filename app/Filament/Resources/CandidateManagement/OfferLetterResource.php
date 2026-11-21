@@ -412,16 +412,10 @@ class OfferLetterResource extends Resource
                 Forms\Components\Section::make('Internship Details')
                     ->columns(2)
                     ->schema([
-                        Select::make('duration')
-                            ->label('Internship Duration')
-                            ->options(OfferLetter::DURATION_SUGGESTIONS)
-                            ->searchable()
-                            ->createOptionUsing(fn ($val) => $val)
-                            ->placeholder('Select or type duration (e.g. 1 month, 21 days)...')
-                            ->default('1 month')
+                        self::makeDurationSelect('duration', 'Internship Duration')
                             ->required()
                             ->live()
-                            ->helperText('Select standard duration or type any custom duration.')
+                            ->helperText('Select standard duration or click + to add custom days.')
                             ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                 self::updateCompletionDate($set, $get);
                             }),
@@ -876,13 +870,7 @@ class OfferLetterResource extends Resource
                             }),
 
                         Forms\Components\Grid::make(2)->schema([
-                            Forms\Components\Select::make('duration')
-                                ->label('Internship Duration')
-                                ->options(OfferLetter::DURATION_SUGGESTIONS)
-                                ->searchable()
-                                ->createOptionUsing(fn ($val) => $val)
-                                ->placeholder('Select or type duration...')
-                                ->default('1 month')
+                            self::makeDurationSelect('duration', 'Internship Duration')
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, $state) {
@@ -1038,6 +1026,36 @@ class OfferLetterResource extends Resource
             'create' => Pages\CreateOfferLetter::route('/create'),
             'edit' => Pages\EditOfferLetter::route('/{record}/edit'),
         ];
+    }
+
+    public static function makeDurationSelect(string $name = 'duration', string $label = 'Internship Duration'): Select
+    {
+        return Select::make($name)
+            ->label($label)
+            ->options(fn (?string $state) => OfferLetter::getDurationOptions($state))
+            ->getOptionLabelUsing(fn ($value) => OfferLetter::DURATION_SUGGESTIONS[strtolower((string) $value)] ?? ucwords((string) $value))
+            ->searchable()
+            ->createOptionForm([
+                Forms\Components\TextInput::make('custom_duration')
+                    ->label('Custom Duration (e.g. 27 Days, 35 Days, 8 Weeks)')
+                    ->placeholder('e.g. 27 Days')
+                    ->required()
+                    ->helperText('Type number of days or custom duration (e.g. "27 Days" or "45 Days").'),
+            ])
+            ->createOptionUsing(function (array $data): string {
+                $raw = trim($data['custom_duration']);
+                if (is_numeric($raw)) {
+                    $raw = $raw . ' days';
+                }
+                return strtolower($raw);
+            })
+            ->createOptionAction(function (Forms\Components\Actions\Action $action) {
+                $action->modalHeading('Add Custom Duration')
+                    ->modalButton('Add & Select Duration')
+                    ->modalWidth('md');
+            })
+            ->placeholder('Select or add custom duration...')
+            ->default('1 month');
     }
 
     public static function updateCompletionDate(Set $set, Get $get)

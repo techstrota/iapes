@@ -178,13 +178,7 @@ class ListOfferLetters extends ListRecords
                                 ->placeholder('e.g. 1-Month Web Developer Batch')
                                 ->required(fn (Get $get) => $get('mode') !== 'delete'),
 
-                            Forms\Components\Select::make('duration')
-                                ->label('Internship Duration')
-                                ->options(OfferLetter::DURATION_SUGGESTIONS)
-                                ->searchable()
-                                ->createOptionUsing(fn ($val) => $val)
-                                ->placeholder('Select or type duration...')
-                                ->default('1 month')
+                            OfferLetterResource::makeDurationSelect('duration', 'Internship Duration')
                                 ->required(fn (Get $get) => $get('mode') !== 'delete')
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, $state) {
@@ -380,13 +374,7 @@ class ListOfferLetters extends ListRecords
                         ->helperText('Candidates with [New] will have a draft offer letter created; candidates with [Has Draft] will have their draft updated with this template.'),
 
                     Forms\Components\Grid::make(2)->schema([
-                        Forms\Components\Select::make('duration')
-                            ->label('Internship Duration')
-                            ->options(OfferLetter::DURATION_SUGGESTIONS)
-                            ->searchable()
-                            ->createOptionUsing(fn ($val) => $val)
-                            ->placeholder('Select or type duration...')
-                            ->default('1 month')
+                        OfferLetterResource::makeDurationSelect('duration', 'Internship Duration')
                             ->required()
                             ->live()
                             ->afterStateUpdated(function (Set $set, Get $get, $state) {

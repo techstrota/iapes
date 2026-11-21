@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CandidateManagement\OfferLetterResource\Widgets;
 
+use App\Filament\Resources\CandidateManagement\OfferLetterResource;
 use App\Models\InterviewManagement\Application;
 use App\Models\InterviewManagement\OfferLetter;
 use App\Models\InterviewManagement\OfferLetterTemplate;
@@ -49,13 +50,7 @@ class OfferLetterTemplatesWidget extends Widget implements HasForms, HasActions
                     ->placeholder('e.g. 1-Month Web Developer Batch')
                     ->required(),
 
-                Forms\Components\Select::make('duration')
-                    ->label('Internship Duration')
-                    ->options(OfferLetter::DURATION_SUGGESTIONS)
-                    ->searchable()
-                    ->createOptionUsing(fn ($val) => $val)
-                    ->placeholder('Select or type duration...')
-                    ->default('1 month')
+                OfferLetterResource::makeDurationSelect('duration', 'Internship Duration')
                     ->required()
                     ->live()
                     ->afterStateUpdated(function (Set $set, Get $get, $state) {

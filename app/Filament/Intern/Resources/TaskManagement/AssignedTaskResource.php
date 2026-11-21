@@ -320,10 +320,12 @@ class AssignedTaskResource extends Resource
                         ($record->task_submission ? 'Update Submission: ' : 'Submit Deliverable: ') . ($record->task?->title ?? 'Task')
                     )
                     ->modalWidth('2xl')
-                    ->fillForm(fn (TaskAssignment $record): array => [
-                        'attachment' => $record->task_submission?->submission_file,
-                        'link'       => $record->task_submission?->submission_text,
-                    ])
+                    ->fillForm(function (TaskAssignment $record): array {
+                        return [
+                            'attachment' => null, // Fresh upload box ready for new image/file
+                            'link'       => $record->task_submission?->submission_text,
+                        ];
+                    })
                     ->form([
                         Placeholder::make('deadline_notice')
                             ->label('')
@@ -342,16 +344,57 @@ class AssignedTaskResource extends Resource
                                 );
                             }),
 
+                        Placeholder::make('current_file_preview')
+                            ->label('')
+                            ->visible(fn (TaskAssignment $record) => filled($record->task_submission?->submission_file))
+                            ->content(function (TaskAssignment $record) {
+                                $file = $record->task_submission?->submission_file;
+                                $fileName = basename($file);
+                                $viewUrl = '/storage/' . ltrim($file, '/\\');
+                                $downloadUrl = $record->task_submission
+                                    ? route('task.submission.download', ['id' => $record->task_submission->submission_id])
+                                    : $viewUrl;
+
+                                return new \Illuminate\Support\HtmlString("
+                                    <div style='background-color:#0b1326; border:1px solid #1c2638; border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px;'>
+                                        <div style='display:flex; align-items:center; gap:8px; min-width:0;'>
+                                            <span style='font-size:18px;'>📄</span>
+                                            <div style='min-width:0;'>
+                                                <div style='font-size:10.5px; font-weight:700; color:#8e909f; text-transform:uppercase;'>Current Submitted Deliverable</div>
+                                                <div style='font-size:13px; font-weight:600; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>{$fileName}</div>
+                                            </div>
+                                        </div>
+                                        <div style='display:flex; align-items:center; gap:8px; flex-shrink:0;'>
+                                            <a href='{$viewUrl}' target='_blank' style='padding:5px 12px; border-radius:7px; background:#1e293b; color:#93c5fd; font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:4px;'>
+                                                <span>👁 Preview</span>
+                                            </a>
+                                            <a href='{$downloadUrl}' target='_blank' style='padding:5px 12px; border-radius:7px; background:#1e40af; color:#ffffff; font-size:12px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:4px;'>
+                                                <span>⬇ Download</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                ");
+                            }),
+
                         FileUpload::make('attachment')
-                            ->label('Upload File Deliverable')
-                            ->helperText('Accepted file formats: PDF, ZIP, images, DOCX, XLSX')
+                            ->label(fn (TaskAssignment $record) => $record->task_submission?->submission_file ? 'Upload New Image / File (Replaces Current Deliverable)' : 'Upload File Deliverable')
+                            ->disk('public')
                             ->directory('submissions')
                             ->visibility('public')
+                            ->openable()
+                            ->downloadable()
+                            ->deletable(true)
+                            ->maxSize(51200)
+                            ->helperText('Accepted formats: PDF, ZIP, images, DOCX, XLSX (Max 50MB). To upload another image, drag & drop or click Browse below.')
                             ->acceptedFileTypes([
                                 'application/pdf',
                                 'application/zip',
                                 'application/x-zip-compressed',
                                 'image/*',
+                                'image/jpeg',
+                                'image/png',
+                                'image/webp',
+                                'image/gif',
                                 'application/msword',
                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                                 'application/vnd.ms-excel',
@@ -373,10 +416,12 @@ class AssignedTaskResource extends Resource
                             )),
                     ])
                     ->action(function (TaskAssignment $record, array $data): void {
+                        $newFile = $data['attachment'] ?? $record->task_submission?->submission_file;
+
                         TaskSubmission::updateOrCreate(
                             ['task_id' => $record->task_id, 'intern_id' => Auth::id()],
                             [
-                                'submission_file' => $data['attachment'] ?? null,
+                                'submission_file' => $newFile,
                                 'submission_text' => $data['link']       ?? null,
                                 'status'          => 'submitted',
                                 'submitted_at'    => now(),

@@ -167,9 +167,14 @@ class OfferLetter extends Model
 
     public const DURATION_SUGGESTIONS = [
         '15 days'  => '15 Days',
+        '20 days'  => '20 Days',
         '21 days'  => '21 Days',
+        '25 days'  => '25 Days',
         '26 days'  => '26 Days',
+        '27 days'  => '27 Days',
+        '28 days'  => '28 Days',
         '30 days'  => '30 Days',
+        '45 days'  => '45 Days',
         '1 month'  => '1 Month',
         '2 months' => '2 Months',
         '3 months' => '3 Months',
@@ -177,6 +182,17 @@ class OfferLetter extends Model
         '6 months' => '6 Months',
         '1 year'   => '1 Year',
     ];
+
+    public static function getDurationOptions(?string $currentState = null): array
+    {
+        $options = self::DURATION_SUGGESTIONS;
+
+        if ($currentState && !isset($options[strtolower(trim($currentState))])) {
+            $options[strtolower(trim($currentState))] = ucwords($currentState);
+        }
+
+        return $options;
+    }
 
     /**
      * Calculate completion date dynamically from joining date and duration.
