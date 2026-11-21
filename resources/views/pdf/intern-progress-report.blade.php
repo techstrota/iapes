@@ -542,19 +542,7 @@
                 <div class="details-heading">Internship Details</div>
                 <table class="details-table">
                     <tr>
-                        <td class="label">1) Company Name:</td>
-                        <td class="val">Techstrota</td>
-                    </tr>
-                    <tr>
-                        <td class="label">2) Internship Duration:</td>
-                        <td class="val">{{ $internshipDurationDisplay }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">3) Internship Type:</td>
-                        <td class="val">{{ $internshipType }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">4) Intern's Name:</td>
+                        <td class="label">Intern's Name:</td>
                         <td class="val"><strong>{{ strtoupper($internName) }}</strong></td>
                     </tr>
                     @if (filled($intern?->roll_no))
@@ -563,29 +551,6 @@
                         <td class="val">{{ $intern->roll_no }}</td>
                     </tr>
                     @endif
-                    <tr>
-                        <td class="label">5) College Name:</td>
-                        <td class="val">{{ $collegeName }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">6) Internship ID:</td>
-                        <td class="val" style="font-weight: bold;">{{ $internCode }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">7) Department/ Course:</td>
-                        <td class="val">{{ $departmentCourse }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">8) Internship Period:</td>
-                        <td class="val">{{ $internshipPeriod }}</td>
-                    </tr>
-                </table>
-            </div>
-        @else
-            {{-- ── 2. Internship Details Box (Weekly Progress Report Mode - Matching Reference Image) ── --}}
-            <div class="details-container">
-                <div class="details-heading">Internship Details</div>
-                <table class="details-table">
                     <tr>
                         <td class="label">Company Name:</td>
                         <td class="val">Techstrota</td>
@@ -599,6 +564,29 @@
                         <td class="val">{{ $internshipType }}</td>
                     </tr>
                     <tr>
+                        <td class="label">College Name:</td>
+                        <td class="val">{{ $collegeName }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Internship ID:</td>
+                        <td class="val" style="font-weight: bold;">{{ $internCode }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Department/ Course:</td>
+                        <td class="val">{{ $departmentCourse }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Internship Period:</td>
+                        <td class="val">{{ $internshipPeriod }}</td>
+                    </tr>
+                </table>
+            </div>
+        @else
+            {{-- ── 2. Internship Details Box (Weekly Progress Report Mode - Matching Reference Image) ── --}}
+            <div class="details-container">
+                <div class="details-heading">Internship Details</div>
+                <table class="details-table">
+                    <tr>
                         <td class="label">Intern's Name:</td>
                         <td class="val">{{ $internDisplayName ?: $internName }}</td>
                     </tr>
@@ -608,6 +596,18 @@
                         <td class="val">{{ $intern->roll_no }}</td>
                     </tr>
                     @endif
+                    <tr>
+                        <td class="label">Company Name:</td>
+                        <td class="val">Techstrota</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Internship Duration:</td>
+                        <td class="val">{{ $internshipDurationDisplay }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Internship Type:</td>
+                        <td class="val">{{ $internshipType }}</td>
+                    </tr>
                     <tr>
                         <td class="label">College Name:</td>
                         <td class="val">{{ $collegeName }}</td>
