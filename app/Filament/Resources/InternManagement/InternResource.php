@@ -101,6 +101,11 @@ class InternResource extends Resource
                                         ->label('College / Institution')
                                         ->maxLength(255),
 
+                                    TextInput::make('roll_no')
+                                        ->label('Roll No')
+                                        ->placeholder('e.g. 220010116001')
+                                        ->maxLength(100),
+
                                     TextInput::make('university')
                                         ->label('University')
                                         ->maxLength(255),

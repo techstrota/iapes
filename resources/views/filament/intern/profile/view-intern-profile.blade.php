@@ -840,6 +840,13 @@
                 </div>
 
                 <div style="background-color: #090e1c; border: 1px solid #222a3d; border-radius: 12px; padding: 14px 18px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase;">Roll No</div>
+                    <div style="font-size: 15px; font-weight: 700; color: #dae2fd; margin-top: 4px;">
+                        {{ $record->roll_no ?: 'Not Provided' }}
+                    </div>
+                </div>
+
+                <div style="background-color: #090e1c; border: 1px solid #222a3d; border-radius: 12px; padding: 14px 18px;">
                     <div style="font-size: 11px; font-weight: 700; color: #8e909f; text-transform: uppercase;">Affiliated University</div>
                     <div style="font-size: 15px; font-weight: 700; color: #dae2fd; margin-top: 4px;">
                         {{ $record->university ?: ($record->offerletter?->university ?? $record->college ?? 'Not Specified') }}

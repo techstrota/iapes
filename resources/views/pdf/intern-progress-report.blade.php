@@ -557,6 +557,12 @@
                         <td class="label">4) Intern's Name:</td>
                         <td class="val"><strong>{{ strtoupper($internName) }}</strong></td>
                     </tr>
+                    @if (filled($intern?->roll_no))
+                    <tr>
+                        <td class="label">Roll No:</td>
+                        <td class="val">{{ $intern->roll_no }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td class="label">5) College Name:</td>
                         <td class="val">{{ $collegeName }}</td>
@@ -596,6 +602,12 @@
                         <td class="label">Intern's Name:</td>
                         <td class="val">{{ $internDisplayName ?: $internName }}</td>
                     </tr>
+                    @if (filled($intern?->roll_no))
+                    <tr>
+                        <td class="label">Roll No:</td>
+                        <td class="val">{{ $intern->roll_no }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td class="label">College Name:</td>
                         <td class="val">{{ $collegeName }}</td>

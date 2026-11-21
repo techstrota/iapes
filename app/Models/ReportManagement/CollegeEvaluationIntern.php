@@ -50,7 +50,7 @@ class CollegeEvaluationIntern extends Model
         if (filled($this->custom_student_id)) {
             return $this->custom_student_id;
         }
-        return $this->intern?->intern_code ?: ($this->intern_id ? 'INT-' . str_pad($this->intern_id, 4, '0', STR_PAD_LEFT) : '—');
+        return $this->intern?->roll_no ?: ($this->intern?->intern_code ?: ($this->intern_id ? 'INT-' . str_pad($this->intern_id, 4, '0', STR_PAD_LEFT) : '—'));
     }
 
     /**

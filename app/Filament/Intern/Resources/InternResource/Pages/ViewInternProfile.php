@@ -104,6 +104,7 @@ class ViewInternProfile extends ViewRecord
                 ->fillForm(fn (Intern $record): array => [
                     'phone'      => $record->phone,
                     'college'    => $record->college,
+                    'roll_no'    => $record->roll_no,
                     'university' => $record->university,
                     'degree'     => $record->degree,
                     'skills'     => $record->skills,
@@ -117,6 +118,11 @@ class ViewInternProfile extends ViewRecord
                     Forms\Components\TextInput::make('college')
                         ->label('College / Institution')
                         ->maxLength(255),
+
+                    Forms\Components\TextInput::make('roll_no')
+                        ->label('Roll No')
+                        ->placeholder('e.g. 220010116001')
+                        ->maxLength(100),
 
                     Forms\Components\TextInput::make('university')
                         ->label('Affiliated University')

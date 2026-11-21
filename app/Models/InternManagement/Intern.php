@@ -44,6 +44,7 @@ class Intern extends Authenticatable implements FilamentUser
         'email',
         'phone',
         'college',
+        'roll_no',
         'degree',
         'university',
         'academic_year',
