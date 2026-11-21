@@ -702,12 +702,13 @@
                 <thead>
                     <tr>
                         <th style="width: 7%;">Day</th>
-                        <th style="width: 11%;">Date</th>
-                        <th style="width: 44%;">Module/Topic</th>
-                        <th style="width: 14%;">Nature of Work</th>
+                        <th style="width: 10%;">Date</th>
+                        <th style="width: 38%;">Module/Topic</th>
+                        <th style="width: 13%;">Nature of Work</th>
                         <th style="width: 8%;">Entry time</th>
                         <th style="width: 8%;">Exit time</th>
                         <th style="width: 8%;">Supervisor's sign</th>
+                        <th style="width: 8%;">Student's sign</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -815,6 +816,9 @@
                             </td>
                             <td style="text-align: center;">
                                 {{ $exitTime }}
+                            </td>
+                            {{-- Student's sign cell remains empty for physical signing --}}
+                            <td style="text-align: center;">
                             </td>
                             {{-- Supervisor's sign cell remains empty as requested --}}
                             <td style="text-align: center;">
